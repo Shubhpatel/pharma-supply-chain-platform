@@ -1,0 +1,167 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useApp } from "@/context/AppContext";
+import { api } from "@/lib/api";
+
+const BLANK_FORM = {
+  name: "",
+  gstNumber: "",
+  contactPerson: "",
+  phone: "",
+  email: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  postalCode: "",
+};
+
+export default function PartyManager({ type, title }) {
+  const { user, token, showToast } = useApp();
+  const [parties, setParties] = useState([]);
+  const [form, setForm] = useState(BLANK_FORM);
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.listParties(type);
+      setParties(data.parties);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [type]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function startEdit(party) {
+    setEditingId(party._id);
+    setForm(Object.fromEntries(Object.keys(BLANK_FORM).map((key) => [key, party[key] || ""])));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(BLANK_FORM);
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    if (!user) return setError("Log in to manage masters.");
+    setBusy(true);
+    try {
+      const payload = { ...form, partyType: type };
+      if (editingId) {
+        await api.updateParty(editingId, payload, token);
+        showToast(`${title} updated successfully.`);
+      } else {
+        await api.createParty(payload, token);
+        showToast(`${title} added successfully.`);
+      }
+      cancelEdit();
+      await load();
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm(`Delete this ${title.toLowerCase()} permanently?`)) return;
+    setBusy(true);
+    try {
+      await api.deleteParty(id, token);
+      showToast(`${title} deleted successfully.`);
+      await load();
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const fields = [
+    ["name", "Name", true],
+    ["gstNumber", "GST number", false],
+    ["contactPerson", "Contact person", false],
+    ["phone", "Phone", false],
+    ["email", "Email", false],
+    ["addressLine1", "Address line 1", true],
+    ["addressLine2", "Address line 2", false],
+    ["city", "City", false],
+    ["state", "State", false],
+    ["postalCode", "Postal code", false],
+  ];
+
+  return (
+    <div className="space-y-5">
+      <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-4">
+        <h2 className="text-sm font-semibold">{editingId ? `Edit ${title}` : `Add ${title}`}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {fields.map(([field, placeholder, required]) => (
+            <input key={field} required={required} type={field === "email" ? "email" : "text"}
+              placeholder={placeholder} value={form[field]} onChange={(event) => updateField(field, event.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+          ))}
+        </div>
+        <div className="flex gap-3">
+          <button type="submit" disabled={busy}
+            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
+            {editingId ? "Save changes" : `Add ${title}`}
+          </button>
+          {editingId && <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</button>}
+        </div>
+      </form>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading ? <p className="text-sm text-gray-500">Loading...</p> : (
+        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left text-gray-500">
+              <tr>
+                <th className="px-4 py-2">Name</th>
+                <th className="px-4 py-2">GST number</th>
+                <th className="px-4 py-2">Contact</th>
+                <th className="px-4 py-2">Phone</th>
+                <th className="px-4 py-2">City</th>
+                <th className="px-4 py-2">State</th>
+                <th className="px-4 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parties.map((party) => (
+                <tr key={party._id} className="border-t border-gray-100">
+                  <td className="px-4 py-2 font-medium">{party.name}</td>
+                  <td className="px-4 py-2">{party.gstNumber || "-"}</td>
+                  <td className="px-4 py-2">{party.contactPerson || "-"}</td>
+                  <td className="px-4 py-2">{party.phone || "-"}</td>
+                  <td className="px-4 py-2">{party.city || "-"}</td>
+                  <td className="px-4 py-2">{party.state || "-"}</td>
+                  <td className="px-4 py-2 space-x-3">
+                    <button onClick={() => startEdit(party)} className="text-blue-600 hover:underline">Edit</button>
+                    <button onClick={() => handleDelete(party._id)} disabled={busy} className="text-red-500 hover:underline">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

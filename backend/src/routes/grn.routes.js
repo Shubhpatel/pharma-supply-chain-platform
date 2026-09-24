@@ -11,7 +11,7 @@ const router = express.Router();
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
+    const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, gstRate, items } = req.body;
     if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
       return res.status(400).json({ error: "purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate and at least one item are required" });
     }
@@ -34,7 +34,11 @@ router.post("/", requireAuth, async (req, res) => {
     for (const item of items) {
       const skuId = String(item.sku);
       const qtyReceived = Number(item.qtyReceived);
-      if (!orderedBySku[skuId]) return res.status(400).json({ error: `SKU ${item.skuName || skuId} is not part of this purchase order` });
+      const poItem = po.items.find((currentItem) => String(currentItem.sku) === skuId);
+      if (!poItem) return res.status(400).json({ error: `SKU ${item.skuName || skuId} is not part of this purchase order` });
+      if (Number(item.gstRate || 0) !== Number(poItem.gstRate || 0)) {
+        return res.status(400).json({ error: `GST for ${item.skuName || skuId} must match the purchase order` });
+      }
       if (!Number.isFinite(qtyReceived) || qtyReceived < 0) {
         return res.status(400).json({ error: `Received quantity for ${item.skuName || skuId} must be a non-negative number` });
       }
@@ -48,14 +52,21 @@ router.post("/", requireAuth, async (req, res) => {
       }
     }
 
-    const itemsWithAmount = items.map((i) => ({ ...i, amount: i.qtyReceived * i.rate }));
+    const itemsWithAmount = items.map((i) => {
+      const itemGstRate = Number(i.gstRate || 0);
+      if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
+      const amount = i.qtyReceived * i.rate;
+      return { ...i, gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
+    });
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
     const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
+    const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
     const grnNumber = await nextNumber(Grn, "grnNumber", "GRN");
 
     const grn = await Grn.create({
       grnNumber,
       purchaseOrder: po._id,
+      supplier: po.supplier,
       poNumber: po.poNumber,
       supplierName: po.supplierName,
       grnDate,
@@ -64,6 +75,9 @@ router.post("/", requireAuth, async (req, res) => {
       items: itemsWithAmount,
       totalQty,
       totalValue,
+      gstRate: 0,
+      gstAmount,
+      grandTotal: totalValue + gstAmount,
       createdBy: req.user.id,
     });
 
@@ -98,7 +112,7 @@ router.post("/", requireAuth, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const grns = await Grn.find()
-      .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue status")
+      .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue gstAmount grandTotal status")
       .sort({ createdAt: -1 });
     return res.json({ grns });
   } catch (err) {
@@ -111,7 +125,8 @@ router.get("/:id", async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id)
       .populate("createdBy", "name")
-      .populate("purchaseOrder", "poNumber");
+      .populate("purchaseOrder", "poNumber")
+      .populate("supplier");
     if (!grn) return res.status(404).json({ error: "GRN not found" });
     return res.json({ grn });
   } catch (err) {

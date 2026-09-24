@@ -17,7 +17,7 @@ export default function GrnDetailPage() {
   if (!grn) return <p className="text-sm text-gray-500">Loading...</p>;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-xl font-semibold">{grn.grnNumber}</h1>
         <p className="text-sm text-gray-500">
@@ -37,6 +37,14 @@ export default function GrnDetailPage() {
         <div><div className="text-gray-500 text-xs">Created by</div>{grn.createdBy?.name || "-"}</div>
         <div><div className="text-gray-500 text-xs">Last updated by</div>{grn.createdBy?.name || "-"}</div>
         <div><div className="text-gray-500 text-xs">Last updated at</div>{grn.updatedAt ? new Date(grn.updatedAt).toLocaleString() : "-"}</div>
+        {grn.supplier && (
+          <div className="sm:col-span-4 border-t border-gray-100 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div><div className="text-gray-500 text-xs">Supplier GST</div>{grn.supplier.gstNumber || "-"}</div>
+            <div><div className="text-gray-500 text-xs">Contact person</div>{grn.supplier.contactPerson || "-"}</div>
+            <div><div className="text-gray-500 text-xs">Phone / email</div>{[grn.supplier.phone, grn.supplier.email].filter(Boolean).join(" / ") || "-"}</div>
+            <div><div className="text-gray-500 text-xs">Address</div>{[grn.supplier.addressLine1, grn.supplier.addressLine2, grn.supplier.city, grn.supplier.state, grn.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div>
+          </div>
+        )}
       </div>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -50,6 +58,7 @@ export default function GrnDetailPage() {
               <th className="px-4 py-2">Expiry</th>
               <th className="px-4 py-2">MRP</th>
               <th className="px-4 py-2">Rate</th>
+              <th className="px-4 py-2">GST</th>
               <th className="px-4 py-2">Amount</th>
             </tr>
           </thead>
@@ -63,6 +72,7 @@ export default function GrnDetailPage() {
                 <td className="px-4 py-2">{new Date(item.expiryDate).toLocaleDateString()}</td>
                 <td className="px-4 py-2">₹{Number(item.mrp || 0).toFixed(2)}</td>
                 <td className="px-4 py-2">₹{Number(item.rate || 0).toFixed(2)}</td>
+                <td className="px-4 py-2">{item.gstRate || 0}%</td>
                 <td className="px-4 py-2">₹{Number(item.amount || 0).toFixed(2)}</td>
               </tr>
             ))}
@@ -74,6 +84,14 @@ export default function GrnDetailPage() {
               <td className="px-4 py-2">{grn.totalQty}</td>
               <td></td>
               <td className="px-4 py-2">₹{grn.totalValue.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colSpan="8" className="px-4 py-1 text-right">GST</td>
+              <td className="px-4 py-1">₹{Number(grn.gstAmount || 0).toFixed(2)}</td>
+            </tr>
+            <tr className="font-semibold">
+              <td colSpan="7" className="px-4 py-1 text-right">Grand total</td>
+              <td className="px-4 py-1">₹{Number(grn.grandTotal ?? grn.totalValue).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

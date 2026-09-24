@@ -36,9 +36,12 @@ export default function NewGrnPage() {
         expiryDate: "",
         mrp: "",
         rate: i.rate,
+        gstRate: i.gstRate ?? "0",
       }))
     );
   }
+
+  const selectedPo = openPos.find((po) => po._id === selectedPoId);
 
   function updateReceived(index, value) {
     setItems((prev) => {
@@ -77,7 +80,7 @@ export default function NewGrnPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <h1 className="text-xl font-semibold">Add a GRN</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,6 +99,12 @@ export default function NewGrnPage() {
             <label className="block text-sm font-medium mb-1">GRN date</label>
             <input required type="date" value={grnDate} onChange={(e) => setGrnDate(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Supplier</label>
+            <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50">
+              {selectedPo?.supplier?.name || selectedPo?.supplierName || "Select a purchase order"}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Purchase invoice number</label>
@@ -118,6 +127,7 @@ export default function NewGrnPage() {
               <div className="col-span-2">Batch</div>
               <div className="col-span-2">Expiry</div>
               <div className="col-span-1">MRP</div>
+              <div className="col-span-1">GST</div>
               <div className="col-span-1">Rate</div>
               <div className="col-span-1">Pending</div>
               <div className="col-span-2">Received</div>
@@ -134,6 +144,9 @@ export default function NewGrnPage() {
                 <input required type="number" min="0" step="0.01" placeholder="MRP" value={item.mrp}
                   onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, mrp: e.target.value } : current))}
                   className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                <div className="col-span-1 border border-gray-200 rounded-md px-2 py-2 text-sm bg-gray-50">
+                  {item.gstRate ?? 0}%
+                </div>
                 <input required type="number" min="0" step="0.01" placeholder="Rate" value={item.rate}
                   onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, rate: e.target.value } : current))}
                   className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />

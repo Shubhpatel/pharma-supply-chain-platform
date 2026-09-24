@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
+import PartyManager from "@/components/PartyManager";
 
 const BLANK_FORM = { name: "", hsnCode: "", category: "", subCategory: "", manufacturer: "", uom: "UNIT", gst: "", mrp: "" };
 
@@ -14,6 +15,7 @@ export default function MastersPage() {
   const [form, setForm] = useState(BLANK_FORM);
   const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [activeTab, setActiveTab] = useState("sku");
 
   async function load() {
     setLoading(true);
@@ -102,6 +104,20 @@ export default function MastersPage() {
     <div className="space-y-8">
       <h1 className="text-xl font-semibold">Master SKUs</h1>
 
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-2">
+        {[{ id: "sku", label: "SKUs" }, { id: "vendor", label: "Vendors" }, { id: "customer", label: "Customers" }].map((tab) => (
+          <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
+            className={`px-3 py-2 rounded-md text-sm font-medium ${activeTab === tab.id ? "bg-teal-100 text-teal-800" : "text-gray-600 hover:bg-gray-100"}`}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "vendor" && <PartyManager type="vendor" title="Vendor" />}
+      {activeTab === "customer" && <PartyManager type="customer" title="Customer" />}
+      {activeTab === "sku" && (
+        <>
+
       <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
         <h2 className="text-sm font-semibold">{editingId ? "Edit SKU" : "Add a new SKU"}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -178,6 +194,8 @@ export default function MastersPage() {
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </div>
   );

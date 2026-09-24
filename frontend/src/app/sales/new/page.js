@@ -5,20 +5,27 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import LineItemsEditor from "@/components/LineItemsEditor";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function NewInvoicePage() {
   const router = useRouter();
   const { token, user, showToast } = useApp();
   const [skus, setSkus] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [inventory, setInventory] = useState([]);
-  const [form, setForm] = useState({ customerName: "", saleDate: new Date().toISOString().slice(0, 10) });
-  const [items, setItems] = useState([{ sku: "", skuName: "", batch: "", expiryDate: "", mrp: "", qty: "", rate: "" }]);
+  const [form, setForm] = useState({ customerId: "", customerName: "", saleDate: new Date().toISOString().slice(0, 10) });
+  const [items, setItems] = useState([{ sku: "", skuName: "", batch: "", expiryDate: "", mrp: "", qty: "", rate: "", gstRate: "0" }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.listSkus(true).then((d) => setSkus(d.skus)).catch((e) => setError(e.message));
-    api.listStock().then((d) => setInventory(d.stock || [])).catch((e) => setError(e.message));
+    Promise.all([api.listSkus(true), api.listStock(), api.listParties("customer")])
+      .then(([skuData, stockData, customerData]) => {
+        setSkus(skuData.skus);
+        setInventory(stockData.stock || []);
+        setCustomers(customerData.parties);
+      })
+      .catch((e) => setError(e.message));
   }, []);
 
   async function handleSubmit(e) {
@@ -30,6 +37,8 @@ export default function NewInvoicePage() {
     try {
       const payload = {
         ...form,
+        customerId: form.customerId,
+        customerName: customers.find((customer) => customer._id === form.customerId)?.name || "",
         items: items.map((i) => ({
           sku: i.sku,
           skuName: i.skuName,
@@ -38,6 +47,7 @@ export default function NewInvoicePage() {
           mrp: Number(i.mrp),
           qty: Number(i.qty),
           rate: Number(i.rate),
+          gstRate: Number(i.gstRate),
         })),
       };
       const data = await api.createInvoice(payload, token);
@@ -52,15 +62,17 @@ export default function NewInvoicePage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <h1 className="text-xl font-semibold">Add Invoice</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Customer</label>
-            <input required value={form.customerName} onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <SearchableSelect required value={form.customerId}
+              onChange={(value) => setForm((f) => ({ ...f, customerId: value }))}
+              options={customers.map((customer) => ({ value: customer._id, label: `${customer.name}${customer.gstNumber ? ` - ${customer.gstNumber}` : ""}` }))}
+              placeholder="Select customer" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Sale date</label>

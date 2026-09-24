@@ -35,6 +35,13 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
         next[index] = stockFilledItem;
         return next;
       }
+      if (field === "batch" && includeBatch) {
+        const selectedStock = inventory.find((row) => row.skuId === item.sku && row.batch === value && Number(row.qty) > 0);
+        if (selectedStock) {
+          item.expiryDate = selectedStock.expiryDate ? new Date(selectedStock.expiryDate).toISOString().slice(0, 10) : "";
+          item.mrp = selectedStock.mrp ?? "";
+        }
+      }
       next[index] = item;
       return next;
     });
@@ -48,17 +55,26 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
   }, [applyPreferredStock, setItems]);
 
   function addRow() {
-    setItems((prev) => [...prev, { sku: "", skuName: "", batch: "", expiryDate: "", mrp: "", qty: "", rate: "" }]);
+    setItems((prev) => [...prev, { sku: "", skuName: "", batch: "", expiryDate: "", mrp: "", qty: "", rate: "", gstRate: "0" }]);
   }
 
   function removeRow(index) {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const skuCol = includeBatch ? "col-span-3" : "col-span-5";
+  function stockOnHand(item) {
+    return inventory
+      .filter((row) => row.skuId === item.sku && row.batch === item.batch)
+      .reduce((sum, row) => sum + Number(row.qty || 0), 0);
+  }
+
+  const skuCol = includeBatch ? "col-span-2" : "col-span-5";
   const qtyCol = includeBatch ? "col-span-1" : "col-span-2";
   const rateCol = includeBatch ? "col-span-1" : "col-span-2";
-  const amountCol = includeBatch ? "col-span-1" : "col-span-2";
+  const amountCol = "col-span-1";
+  const gstCol = "col-span-1";
+  const sohCol = "col-span-1";
+  const mrpCol = includeBatch ? "col-span-1" : "col-span-2";
 
   return (
     <div className="space-y-2">
@@ -66,7 +82,9 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
         <div className={skuCol}>SKU</div>
         {includeBatch && <div className="col-span-2">Batch</div>}
         {includeBatch && <div className="col-span-2">Expiry</div>}
-        {includeBatch && <div className="col-span-2">MRP</div>}
+        {includeBatch && <div className={mrpCol}>MRP</div>}
+        <div className={gstCol}>GST</div>
+        {includeBatch && <div className={sohCol}>SOH</div>}
         <div className={qtyCol}>Qty</div>
         <div className={rateCol}>Rate</div>
         <div className={amountCol}>Amount</div>
@@ -83,20 +101,32 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
             className={skuCol}
           />
           {includeBatch && (
-            <input required placeholder="Batch" value={item.batch}
+            <select required value={item.batch}
               onChange={(e) => updateItem(i, "batch", e.target.value)}
-              className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+              className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm">
+              <option value="">Batch</option>
+              {[...new Set(inventory
+                .filter((row) => row.skuId === item.sku && Number(row.qty) > 0)
+                .map((row) => row.batch))]
+                .map((batch) => <option key={batch} value={batch}>{batch}</option>)}
+            </select>
           )}
           {includeBatch && (
             <input required type="date" value={item.expiryDate}
-              onChange={(e) => updateItem(i, "expiryDate", e.target.value)}
-              className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+              readOnly
+              className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm bg-gray-50" />
           )}
           {includeBatch && (
             <input required type="number" min="0" step="0.01" placeholder="MRP" value={item.mrp}
-              onChange={(e) => updateItem(i, "mrp", e.target.value)}
-              className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+              readOnly
+              className={`${mrpCol} border border-gray-300 rounded-md px-2 py-2 text-sm bg-gray-50`} />
           )}
+          <select required value={item.gstRate ?? "0"}
+            onChange={(e) => updateItem(i, "gstRate", e.target.value)}
+            className={`${gstCol} border border-gray-300 rounded-md px-2 py-2 text-sm`}>
+            {[0, 5, 12, 18, 28].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}
+          </select>
+          {includeBatch && <div className={`${sohCol} text-sm text-gray-500`}>{item.batch ? stockOnHand(item) : "-"}</div>}
           <input required type="number" min="1" placeholder="Qty" value={item.qty}
             onChange={(e) => updateItem(i, "qty", e.target.value)}
             className={`${qtyCol} border border-gray-300 rounded-md px-2 py-2 text-sm`} />

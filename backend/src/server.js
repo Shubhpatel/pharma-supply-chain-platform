@@ -10,6 +10,7 @@ const purchaseOrderRoutes = require("./routes/purchaseOrder.routes");
 const grnRoutes = require("./routes/grn.routes");
 const inventoryRoutes = require("./routes/inventory.routes");
 const salesRoutes = require("./routes/sales.routes");
+const partyRoutes = require("./routes/party.routes");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/grn", grnRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/sales", salesRoutes);
+app.use("/api/parties", partyRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 

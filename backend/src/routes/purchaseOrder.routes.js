@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const PurchaseOrder = require("../models/PurchaseOrder");
 const Grn = require("../models/Grn");
+const Party = require("../models/Party");
 const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
@@ -36,25 +37,38 @@ async function receivedQuantitiesByPo(poIds) {
 // POST /api/purchase-orders  { supplierName, orderDate, paymentTerm, expectedDeliveryDate, items: [{sku, skuName, qty, rate}] }
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const { supplierName, orderDate, paymentTerm, expectedDeliveryDate, items } = req.body;
-    if (!supplierName || !orderDate || !items || items.length === 0) {
-      return res.status(400).json({ error: "supplierName, orderDate and at least one item are required" });
+    const { supplierId, supplierName, orderDate, paymentTerm, expectedDeliveryDate, gstRate, items } = req.body;
+    if ((!supplierId && !supplierName) || !orderDate || !items || items.length === 0) {
+      return res.status(400).json({ error: "supplier, orderDate and at least one item are required" });
     }
 
-    const itemsWithAmount = items.map((i) => ({ ...i, amount: i.qty * i.rate }));
+    const supplier = supplierId ? await Party.findOne({ _id: supplierId, partyType: "vendor" }) : null;
+    if (supplierId && !supplier) return res.status(400).json({ error: "Selected vendor not found" });
+
+    const itemsWithAmount = items.map((i) => {
+      const itemGstRate = Number(i.gstRate || 0);
+      if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
+      const amount = i.qty * i.rate;
+      return { ...i, gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
+    });
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qty, 0);
     const totalPrice = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
+    const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
     const poNumber = await nextNumber(PurchaseOrder, "poNumber", "PO");
 
     const po = await PurchaseOrder.create({
       poNumber,
-      supplierName,
+      supplier: supplier?._id,
+      supplierName: supplier?.name || supplierName,
       orderDate,
       paymentTerm,
       expectedDeliveryDate,
       items: itemsWithAmount,
       totalQty,
       totalPrice,
+      gstRate: 0,
+      gstAmount,
+      grandTotal: totalPrice + gstAmount,
       createdBy: req.user.id,
     });
 
@@ -68,7 +82,7 @@ router.post("/", requireAuth, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const orders = await PurchaseOrder.find()
-      .select("poNumber supplierName orderDate paymentTerm expectedDeliveryDate status totalQty totalPrice items")
+      .select("poNumber supplierName orderDate paymentTerm expectedDeliveryDate status totalQty totalPrice gstAmount grandTotal items")
       .sort({ createdAt: -1 });
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
@@ -82,7 +96,8 @@ router.get("/", async (req, res) => {
 router.get("/open/list", async (req, res) => {
   try {
     const orders = await PurchaseOrder.find({ status: { $in: ["placed", "partially_received"] } })
-      .select("poNumber supplierName orderDate items totalQty status")
+      .select("poNumber supplier supplierName orderDate items totalQty status")
+      .populate("supplier")
       .sort({ createdAt: -1 });
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
@@ -94,7 +109,7 @@ router.get("/open/list", async (req, res) => {
 // GET /api/purchase-orders/:id - full detail
 router.get("/:id", async (req, res) => {
   try {
-    const po = await PurchaseOrder.findById(req.params.id).populate("createdBy", "name");
+    const po = await PurchaseOrder.findById(req.params.id).populate("createdBy", "name").populate("supplier");
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
     const receivedByPo = await receivedQuantitiesByPo([po._id]);
     const linkedGrns = await Grn.find({ purchaseOrder: po._id })
