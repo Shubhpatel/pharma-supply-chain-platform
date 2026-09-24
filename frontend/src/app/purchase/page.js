@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 
 export default function PurchasePage() {
@@ -20,7 +20,8 @@ export default function PurchasePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredOrders = orders.filter((order) => {
+  // ⚡ Bolt: Prevent O(N) filtering on every render to eliminate search input lag.
+  const filteredOrders = useMemo(() => orders.filter((order) => {
     const query = appliedFilters.search.toLowerCase();
     const orderDate = new Date(order.orderDate);
     const matchesSearch = !query || [order.poNumber, order.supplierName].some((value) => value.toLowerCase().includes(query));
@@ -28,7 +29,7 @@ export default function PurchasePage() {
     const matchesFrom = !appliedFilters.fromDate || orderDate >= new Date(`${appliedFilters.fromDate}T00:00:00`);
     const matchesTo = !appliedFilters.toDate || orderDate <= new Date(`${appliedFilters.toDate}T23:59:59.999`);
     return matchesSearch && matchesStatus && matchesFrom && matchesTo;
-  });
+  }), [orders, appliedFilters]);
 
   return (
     <div className="space-y-6">

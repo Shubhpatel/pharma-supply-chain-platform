@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 
 export default function SalesPage() {
@@ -16,14 +16,15 @@ export default function SalesPage() {
     api.listInvoices().then((d) => setInvoices(d.invoices)).catch((e) => setError(e.message)).finally(() => setLoading(false));
   }, []);
 
-  const filteredInvoices = invoices.filter((invoice) => {
+  // ⚡ Bolt: Prevent O(N) filtering on every render to eliminate search input lag.
+  const filteredInvoices = useMemo(() => invoices.filter((invoice) => {
     const query = appliedFilters.search.toLowerCase();
     const saleDate = new Date(invoice.saleDate);
     const matchesSearch = !query || [invoice.invoiceNumber, invoice.customerName].some((value) => value.toLowerCase().includes(query));
     const matchesFrom = !appliedFilters.fromDate || saleDate >= new Date(`${appliedFilters.fromDate}T00:00:00`);
     const matchesTo = !appliedFilters.toDate || saleDate <= new Date(`${appliedFilters.toDate}T23:59:59.999`);
     return matchesSearch && matchesFrom && matchesTo;
-  });
+  }), [invoices, appliedFilters]);
 
   return (
     <div className="space-y-6">

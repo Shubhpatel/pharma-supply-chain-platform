@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 
 export default function InventoryPage() {
@@ -18,24 +18,29 @@ export default function InventoryPage() {
     api.listStock().then((d) => setStock(d.stock)).catch((e) => setError(e.message)).finally(() => setLoading(false));
   }, []);
 
-  const categories = [...new Set(stock.map((item) => item.category).filter(Boolean))].sort();
-  const manufacturers = [...new Set(stock.map((item) => item.manufacturer).filter(Boolean))].sort();
-  const filtered = stock.filter((s) => {
+  // ⚡ Bolt: Prevent O(N) recalculations on unrelated re-renders. Reduces rendering time.
+  const categories = useMemo(() => [...new Set(stock.map((item) => item.category).filter(Boolean))].sort(), [stock]);
+  const manufacturers = useMemo(() => [...new Set(stock.map((item) => item.manufacturer).filter(Boolean))].sort(), [stock]);
+
+  // ⚡ Bolt: Memoize filter operation to avoid blocking main thread on typing.
+  const filtered = useMemo(() => stock.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(appliedFilters.search.toLowerCase());
     const matchesBatch = !appliedFilters.batch || (s.batch || "").toLowerCase().includes(appliedFilters.batch.toLowerCase());
     const matchesCategory = !appliedFilters.category || s.category === appliedFilters.category;
     const matchesManufacturer = !appliedFilters.manufacturer || s.manufacturer === appliedFilters.manufacturer;
     const matchesStockLevel = !appliedFilters.stockLevel || (appliedFilters.stockLevel === "low" ? s.qty > 0 && s.qty <= 10 : appliedFilters.stockLevel === "out" ? s.qty <= 0 : s.qty > 10);
     return matchesSearch && matchesBatch && matchesCategory && matchesManufacturer && matchesStockLevel;
-  });
-  const products = Object.values(filtered.reduce((grouped, item) => {
+  }), [stock, appliedFilters]);
+
+  // ⚡ Bolt: Memoize complex reduction to speed up rendering for large inventory lists.
+  const products = useMemo(() => Object.values(filtered.reduce((grouped, item) => {
     if (!grouped[item.skuId]) {
       grouped[item.skuId] = { ...item, qty: 0, batches: [] };
     }
     grouped[item.skuId].qty += Number(item.qty) || 0;
     grouped[item.skuId].batches.push(item);
     return grouped;
-  }, {}));
+  }, {})), [filtered]);
 
   return (
     <div className="space-y-6">

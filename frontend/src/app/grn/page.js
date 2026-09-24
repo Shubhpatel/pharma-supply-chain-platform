@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 
 export default function GrnPage() {
@@ -16,14 +16,15 @@ export default function GrnPage() {
     api.listGrns().then((d) => setGrns(d.grns)).catch((e) => setError(e.message)).finally(() => setLoading(false));
   }, []);
 
-  const filteredGrns = grns.filter((grn) => {
+  // ⚡ Bolt: Prevent O(N) filtering on every render to eliminate search input lag.
+  const filteredGrns = useMemo(() => grns.filter((grn) => {
     const query = appliedFilters.search.toLowerCase();
     const grnDate = new Date(grn.grnDate);
     const matchesSearch = !query || [grn.grnNumber, grn.poNumber, grn.supplierName].some((value) => value.toLowerCase().includes(query));
     const matchesFrom = !appliedFilters.fromDate || grnDate >= new Date(`${appliedFilters.fromDate}T00:00:00`);
     const matchesTo = !appliedFilters.toDate || grnDate <= new Date(`${appliedFilters.toDate}T23:59:59.999`);
     return matchesSearch && matchesFrom && matchesTo;
-  });
+  }), [grns, appliedFilters]);
 
   return (
     <div className="space-y-6">
