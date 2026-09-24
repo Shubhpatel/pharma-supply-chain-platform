@@ -8,7 +8,7 @@ export default function NavBar() {
   return (
     <nav className="border-b border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-        <a href="/" className="font-semibold text-lg">Pharma Inventory</a>
+        <a href="/" className="font-semibold text-lg">Pharma Buddy</a>
         {user && (
           <div className="flex items-center gap-4 text-sm">
             <a href="/purchase" className="text-gray-700 hover:text-blue-600">Purchase</a>

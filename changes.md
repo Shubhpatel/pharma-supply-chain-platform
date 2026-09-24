@@ -12,3 +12,6 @@
 # add filter po,grn,invoice,invenrtory
 # add report 
 # add transaction report for product
+# add search option in dropdown
+# add rate in grn 
+# add validation 

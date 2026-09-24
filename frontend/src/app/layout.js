@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Pharma Inventory",
+  title: "Pharma Buddy",
   description: "Purchase, GRN, Inventory, Sales and Masters management",
 };
 
