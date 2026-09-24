@@ -3,7 +3,12 @@
 import { useApp } from "@/context/AppContext";
 
 export default function NavBar() {
-  const { user, logout } = useApp();
+  const { user, logout, showToast } = useApp();
+
+  function handleLogout() {
+    logout();
+    showToast("Logged out successfully.");
+  }
 
   return (
     <nav className="border-b border-gray-200 bg-white">
@@ -22,7 +27,7 @@ export default function NavBar() {
           {user ? (
             <>
               <span className="text-gray-500">{user.name}</span>
-              <button onClick={logout} className="text-gray-500 hover:text-gray-800">Log out</button>
+              <button onClick={handleLogout} className="text-gray-500 hover:text-gray-800">Log out</button>
             </>
           ) : (
             <>

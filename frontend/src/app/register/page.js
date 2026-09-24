@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { showToast } = useApp();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,9 +18,11 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await api.register(form);
+      showToast("Account created successfully.");
       router.push("/login?registered=1");
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }

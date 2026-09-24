@@ -8,7 +8,7 @@ import LineItemsEditor from "@/components/LineItemsEditor";
 
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
-  const { token, user } = useApp();
+  const { token, user, showToast } = useApp();
   const [skus, setSkus] = useState([]);
   const [form, setForm] = useState({
     supplierName: "",
@@ -36,9 +36,11 @@ export default function NewPurchaseOrderPage() {
         items: items.map((i) => ({ sku: i.sku, skuName: i.skuName, qty: Number(i.qty), rate: Number(i.rate) })),
       };
       const data = await api.createPurchaseOrder(payload, token);
+      showToast("Purchase order created successfully.");
       router.push(`/purchase/${data.purchaseOrder._id}`);
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }

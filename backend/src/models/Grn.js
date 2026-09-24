@@ -6,6 +6,9 @@ const grnItemSchema = new mongoose.Schema(
     skuName: { type: String, required: true },
     qtyOrdered: { type: Number, required: true },
     qtyReceived: { type: Number, required: true, min: 0 },
+    batch: { type: String, required: true, trim: true },
+    expiryDate: { type: Date, required: true },
+    mrp: { type: Number, required: true, min: 0 },
     rate: { type: Number, required: true, min: 0 },
     amount: { type: Number, required: true }, // qtyReceived * rate
   },

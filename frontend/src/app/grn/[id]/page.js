@@ -36,6 +36,9 @@ export default function GrnDetailPage() {
               <th className="px-4 py-2">SKU</th>
               <th className="px-4 py-2">Qty Ordered</th>
               <th className="px-4 py-2">Qty Received</th>
+              <th className="px-4 py-2">Batch</th>
+              <th className="px-4 py-2">Expiry</th>
+              <th className="px-4 py-2">MRP</th>
               <th className="px-4 py-2">Rate</th>
               <th className="px-4 py-2">Amount</th>
             </tr>
@@ -46,8 +49,11 @@ export default function GrnDetailPage() {
                 <td className="px-4 py-2">{item.skuName}</td>
                 <td className="px-4 py-2">{item.qtyOrdered}</td>
                 <td className="px-4 py-2">{item.qtyReceived}</td>
-                <td className="px-4 py-2">₹{item.rate.toFixed(2)}</td>
-                <td className="px-4 py-2">₹{item.amount.toFixed(2)}</td>
+                <td className="px-4 py-2">{item.batch}</td>
+                <td className="px-4 py-2">{new Date(item.expiryDate).toLocaleDateString()}</td>
+                <td className="px-4 py-2">₹{Number(item.mrp || 0).toFixed(2)}</td>
+                <td className="px-4 py-2">₹{Number(item.rate || 0).toFixed(2)}</td>
+                <td className="px-4 py-2">₹{Number(item.amount || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

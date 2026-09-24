@@ -4,6 +4,9 @@ const saleItemSchema = new mongoose.Schema(
   {
     sku: { type: mongoose.Schema.Types.ObjectId, ref: "Sku", required: true },
     skuName: { type: String, required: true },
+    batch: { type: String, required: true, trim: true },
+    expiryDate: { type: Date, required: true },
+    mrp: { type: Number, required: true, min: 0 },
     qty: { type: Number, required: true, min: 1 },
     rate: { type: Number, required: true, min: 0 },
     amount: { type: Number, required: true }, // qty * rate

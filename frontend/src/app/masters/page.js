@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 const BLANK_FORM = { name: "", hsnCode: "", category: "", subCategory: "", manufacturer: "", uom: "UNIT", gst: "", mrp: "" };
 
 export default function MastersPage() {
-  const { user, token } = useApp();
+  const { user, token, showToast } = useApp();
   const [skus, setSkus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,13 +54,16 @@ export default function MastersPage() {
     try {
       if (editingId) {
         await api.updateSku(editingId, payload, token);
+        showToast("SKU updated successfully.");
       } else {
         await api.createSku(payload, token);
+        showToast("SKU created successfully.");
       }
       cancelEdit();
       await load();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setBusy(false);
     }
@@ -70,9 +73,11 @@ export default function MastersPage() {
     setBusy(true);
     try {
       await api.toggleSku(id, token);
+      showToast("SKU status updated.");
       await load();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setBusy(false);
     }
@@ -83,9 +88,11 @@ export default function MastersPage() {
     setBusy(true);
     try {
       await api.deleteSku(id, token);
+      showToast("SKU deleted successfully.");
       await load();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setBusy(false);
     }

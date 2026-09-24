@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function NewGrnPage() {
   const router = useRouter();
-  const { token, user } = useApp();
+  const { token, user, showToast } = useApp();
   const [openPos, setOpenPos] = useState([]);
   const [selectedPoId, setSelectedPoId] = useState("");
   const [grnDate, setGrnDate] = useState(new Date().toISOString().slice(0, 10));
@@ -29,6 +30,9 @@ export default function NewGrnPage() {
         skuName: i.skuName,
         qtyOrdered: i.qty,
         qtyReceived: i.qty, // default to fully received; user can edit down for partial
+        batch: "",
+        expiryDate: "",
+        mrp: "",
         rate: i.rate,
       }))
     );
@@ -56,9 +60,11 @@ export default function NewGrnPage() {
         items: items.map((i) => ({ ...i, qtyReceived: Number(i.qtyReceived) })),
       };
       const data = await api.createGrn(payload, token);
+      showToast("GRN created successfully.");
       router.push(`/grn/${data.grn._id}`);
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -72,13 +78,13 @@ export default function NewGrnPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Purchase order</label>
-            <select required value={selectedPoId} onChange={(e) => handleSelectPo(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-              <option value="" disabled>Select a PO awaiting receipt</option>
-              {openPos.map((po) => (
-                <option key={po._id} value={po._id}>{po.poNumber} - {po.supplierName}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={selectedPoId}
+              onChange={handleSelectPo}
+              options={openPos.map((po) => ({ value: po._id, label: `${po.poNumber} - ${po.supplierName}` }))}
+              placeholder="Select a PO awaiting receipt"
+              required
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">GRN date</label>
@@ -91,17 +97,33 @@ export default function NewGrnPage() {
           <div className="border border-gray-200 rounded-lg p-4 bg-white space-y-2">
             <h2 className="text-sm font-semibold mb-2">Items to receive</h2>
             <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
-              <div className="col-span-5">SKU</div>
-              <div className="col-span-3">Qty Ordered</div>
-              <div className="col-span-4">Qty Received</div>
+              <div className="col-span-3">SKU</div>
+              <div className="col-span-2">Batch</div>
+              <div className="col-span-2">Expiry</div>
+              <div className="col-span-1">MRP</div>
+              <div className="col-span-1">Rate</div>
+              <div className="col-span-1">Ordered</div>
+              <div className="col-span-2">Received</div>
             </div>
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-5 text-sm">{item.skuName}</div>
-                <div className="col-span-3 text-sm text-gray-600">{item.qtyOrdered}</div>
+                <div className="col-span-3 text-sm">{item.skuName}</div>
+                <input required placeholder="Batch" value={item.batch}
+                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, batch: e.target.value } : current))}
+                  className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                <input required type="date" value={item.expiryDate}
+                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, expiryDate: e.target.value } : current))}
+                  className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                <input required type="number" min="0" step="0.01" placeholder="MRP" value={item.mrp}
+                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, mrp: e.target.value } : current))}
+                  className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                <input required type="number" min="0" step="0.01" placeholder="Rate" value={item.rate}
+                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, rate: e.target.value } : current))}
+                  className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                <div className="col-span-1 text-sm text-gray-600">{item.qtyOrdered}</div>
                 <input type="number" min="0" max={item.qtyOrdered} value={item.qtyReceived}
                   onChange={(e) => updateReceived(i, e.target.value)}
-                  className="col-span-4 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                  className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
               </div>
             ))}
           </div>

@@ -6,7 +6,7 @@ const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
-// POST /api/sales  { customerName, saleDate, items: [{sku, skuName, qty, rate}] }
+// POST /api/sales  { customerName, saleDate, items: [{sku, skuName, batch, expiryDate, mrp, qty, rate}] }
 router.post("/", requireAuth, async (req, res) => {
   try {
     const { customerName, saleDate, items } = req.body;
@@ -14,16 +14,34 @@ router.post("/", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "customerName, saleDate and at least one item are required" });
     }
 
-    // Check stock availability for every line before committing anything.
-    for (const item of items) {
-      const stock = await Stock.findOne({ sku: item.sku });
-      const available = stock ? stock.qty : 0;
+    const itemsWithAmount = items.map((i) => ({
+      ...i,
+      batch: String(i.batch || "").trim(),
+      qty: Number(i.qty),
+      rate: Number(i.rate),
+      mrp: Number(i.mrp),
+      amount: Number(i.qty) * Number(i.rate),
+    }));
+
+    // Check batch-specific stock availability before committing anything.
+    for (const item of itemsWithAmount) {
+      if (!item.batch) {
+        return res.status(400).json({ error: `Batch is required for ${item.skuName}` });
+      }
+      if (!item.expiryDate) {
+        return res.status(400).json({ error: `Expiry date is required for ${item.skuName} (${item.batch})` });
+      }
+      if (Number.isNaN(item.mrp) || item.mrp < 0) {
+        return res.status(400).json({ error: `MRP is required for ${item.skuName} (${item.batch})` });
+      }
+
+      const stockRecords = await Stock.find({ sku: item.sku, batch: item.batch });
+      const available = stockRecords.reduce((sum, stock) => sum + stock.qty, 0);
       if (available < item.qty) {
-        return res.status(400).json({ error: `Not enough stock for ${item.skuName}: have ${available}, need ${item.qty}` });
+        return res.status(400).json({ error: `Not enough stock for ${item.skuName} (${item.batch}): have ${available}, need ${item.qty}` });
       }
     }
 
-    const itemsWithAmount = items.map((i) => ({ ...i, amount: i.qty * i.rate }));
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qty, 0);
     const totalAmount = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
     const invoiceNumber = await nextNumber(SaleInvoice, "invoiceNumber", "INV");
@@ -39,7 +57,19 @@ router.post("/", requireAuth, async (req, res) => {
     });
 
     for (const item of itemsWithAmount) {
-      await Stock.findOneAndUpdate({ sku: item.sku }, { $inc: { qty: -item.qty } });
+      const matchingStocks = await Stock.find({ sku: item.sku, batch: item.batch }).sort({ expiryDate: 1, rate: 1, mrp: 1 });
+      let remaining = item.qty;
+
+      for (const stock of matchingStocks) {
+        if (remaining <= 0) break;
+        const consumed = Math.min(remaining, stock.qty);
+        await Stock.findByIdAndUpdate(stock._id, { $inc: { qty: -consumed } });
+        remaining -= consumed;
+      }
+
+      if (remaining > 0) {
+        throw new Error(`Unable to allocate ${remaining} units for ${item.skuName} (${item.batch}) from stock`);
+      }
     }
 
     return res.status(201).json({ invoice });

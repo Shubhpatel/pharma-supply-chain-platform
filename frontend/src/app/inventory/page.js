@@ -37,7 +37,11 @@ export default function InventoryPage() {
                 <th className="px-4 py-2">Sub Category</th>
                 <th className="px-4 py-2">Product Name</th>
                 <th className="px-4 py-2">Manufacturer</th>
-                <th className="px-4 py-2">Total Qty</th>
+                <th className="px-4 py-2">Batch</th>
+                <th className="px-4 py-2">Expiry</th>
+                <th className="px-4 py-2">MRP</th>
+                <th className="px-4 py-2">Rate</th>
+                <th className="px-4 py-2">Qty</th>
                 <th className="px-4 py-2">UOM</th>
               </tr>
             </thead>
@@ -48,6 +52,10 @@ export default function InventoryPage() {
                   <td className="px-4 py-2">{s.subCategory || "-"}</td>
                   <td className="px-4 py-2">{s.name}</td>
                   <td className="px-4 py-2">{s.manufacturer || "-"}</td>
+                  <td className="px-4 py-2">{s.batch}</td>
+                  <td className="px-4 py-2">{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "-"}</td>
+                  <td className="px-4 py-2">{s.mrp == null ? "-" : `₹${Number(s.mrp).toFixed(2)}`}</td>
+                  <td className="px-4 py-2">{s.rate == null ? "-" : `₹${Number(s.rate).toFixed(2)}`}</td>
                   <td className={`px-4 py-2 font-medium ${s.qty === 0 ? "text-red-500" : ""}`}>{s.qty}</td>
                   <td className="px-4 py-2">{s.uom}</td>
                 </tr>

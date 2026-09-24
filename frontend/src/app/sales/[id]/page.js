@@ -33,6 +33,9 @@ export default function InvoiceDetailPage() {
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="px-4 py-2">SKU</th>
+              <th className="px-4 py-2">Batch</th>
+              <th className="px-4 py-2">Expiry</th>
+              <th className="px-4 py-2">MRP</th>
               <th className="px-4 py-2">Qty</th>
               <th className="px-4 py-2">Rate</th>
               <th className="px-4 py-2">Amount</th>
@@ -42,9 +45,12 @@ export default function InvoiceDetailPage() {
             {invoice.items.map((item, i) => (
               <tr key={i} className="border-t border-gray-100">
                 <td className="px-4 py-2">{item.skuName}</td>
+                <td className="px-4 py-2">{item.batch}</td>
+                <td className="px-4 py-2">{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "-"}</td>
+                <td className="px-4 py-2">₹{Number(item.mrp || 0).toFixed(2)}</td>
                 <td className="px-4 py-2">{item.qty}</td>
-                <td className="px-4 py-2">₹{item.rate.toFixed(2)}</td>
-                <td className="px-4 py-2">₹{item.amount.toFixed(2)}</td>
+                <td className="px-4 py-2">₹{Number(item.rate || 0).toFixed(2)}</td>
+                <td className="px-4 py-2">₹{Number(item.amount || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

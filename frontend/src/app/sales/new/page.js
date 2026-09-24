@@ -8,15 +8,17 @@ import LineItemsEditor from "@/components/LineItemsEditor";
 
 export default function NewInvoicePage() {
   const router = useRouter();
-  const { token, user } = useApp();
+  const { token, user, showToast } = useApp();
   const [skus, setSkus] = useState([]);
+  const [inventory, setInventory] = useState([]);
   const [form, setForm] = useState({ customerName: "", saleDate: new Date().toISOString().slice(0, 10) });
-  const [items, setItems] = useState([{ sku: "", skuName: "", qty: "", rate: "" }]);
+  const [items, setItems] = useState([{ sku: "", skuName: "", batch: "", expiryDate: "", mrp: "", qty: "", rate: "" }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     api.listSkus(true).then((d) => setSkus(d.skus)).catch((e) => setError(e.message));
+    api.listStock().then((d) => setInventory(d.stock || [])).catch((e) => setError(e.message));
   }, []);
 
   async function handleSubmit(e) {
@@ -28,12 +30,22 @@ export default function NewInvoicePage() {
     try {
       const payload = {
         ...form,
-        items: items.map((i) => ({ sku: i.sku, skuName: i.skuName, qty: Number(i.qty), rate: Number(i.rate) })),
+        items: items.map((i) => ({
+          sku: i.sku,
+          skuName: i.skuName,
+          batch: i.batch,
+          expiryDate: i.expiryDate,
+          mrp: Number(i.mrp),
+          qty: Number(i.qty),
+          rate: Number(i.rate),
+        })),
       };
       const data = await api.createInvoice(payload, token);
+      showToast("Invoice created successfully.");
       router.push(`/sales/${data.invoice._id}`);
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -59,7 +71,7 @@ export default function NewInvoicePage() {
 
         <div className="border border-gray-200 rounded-lg p-4 bg-white">
           <h2 className="text-sm font-semibold mb-3">Line items</h2>
-          <LineItemsEditor items={items} setItems={setItems} skus={skus} />
+          <LineItemsEditor items={items} setItems={setItems} skus={skus} inventory={inventory} includeBatch />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

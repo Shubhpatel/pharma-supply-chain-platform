@@ -8,6 +8,7 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [ready, setReady] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -33,7 +34,15 @@ export function AppProvider({ children }) {
     localStorage.removeItem("user");
   }
 
-  return <AppContext.Provider value={{ user, token, ready, login, logout }}>{children}</AppContext.Provider>;
+  function showToast(message, type = "success") {
+    setToast({ message, type, id: Date.now() });
+  }
+
+  function hideToast() {
+    setToast(null);
+  }
+
+  return <AppContext.Provider value={{ user, token, ready, login, logout, toast, showToast, hideToast }}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {

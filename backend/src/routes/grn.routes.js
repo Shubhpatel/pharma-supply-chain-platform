@@ -7,7 +7,7 @@ const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
-// POST /api/grn  { purchaseOrderId, grnDate, items: [{sku, skuName, qtyOrdered, qtyReceived, rate}] }
+// POST /api/grn  { purchaseOrderId, grnDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.
 router.post("/", requireAuth, async (req, res) => {
   try {
@@ -36,10 +36,10 @@ router.post("/", requireAuth, async (req, res) => {
       createdBy: req.user.id,
     });
 
-    // Add received quantities to stock.
+    // Keep stock separated by lot and pricing details.
     for (const item of itemsWithAmount) {
       await Stock.findOneAndUpdate(
-        { sku: item.sku },
+        { sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate },
         { $inc: { qty: item.qtyReceived } },
         { upsert: true }
       );
