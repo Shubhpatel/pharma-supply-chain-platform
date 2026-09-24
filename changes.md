@@ -15,3 +15,4 @@
 # add search option in dropdown
 # add rate in grn 
 # add validation 
+# only admin can add user, vendor, customer, product
