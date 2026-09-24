@@ -5,23 +5,32 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import LineItemsEditor from "@/components/LineItemsEditor";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
-  const { token, user } = useApp();
+  const { token, user, showToast } = useApp();
   const [skus, setSkus] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [form, setForm] = useState({
+    supplierId: "",
     supplierName: "",
     orderDate: new Date().toISOString().slice(0, 10),
     paymentTerm: "",
     expectedDeliveryDate: "",
+    gstRate: "0",
   });
-  const [items, setItems] = useState([{ sku: "", skuName: "", qty: "", rate: "" }]);
+  const [items, setItems] = useState([{ sku: "", skuName: "", qty: "", rate: "", gstRate: "0" }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.listSkus(true).then((d) => setSkus(d.skus)).catch((e) => setError(e.message));
+    Promise.all([api.listSkus(true), api.listParties("vendor")])
+      .then(([skuData, vendorData]) => {
+        setSkus(skuData.skus);
+        setVendors(vendorData.parties);
+      })
+      .catch((e) => setError(e.message));
   }, []);
 
   async function handleSubmit(e) {
@@ -33,27 +42,33 @@ export default function NewPurchaseOrderPage() {
     try {
       const payload = {
         ...form,
-        items: items.map((i) => ({ sku: i.sku, skuName: i.skuName, qty: Number(i.qty), rate: Number(i.rate) })),
+        supplierId: form.supplierId,
+        supplierName: vendors.find((vendor) => vendor._id === form.supplierId)?.name || "",
+        items: items.map((i) => ({ sku: i.sku, skuName: i.skuName, qty: Number(i.qty), rate: Number(i.rate), gstRate: Number(i.gstRate) })),
       };
       const data = await api.createPurchaseOrder(payload, token);
+      showToast("Purchase order created successfully.");
       router.push(`/purchase/${data.purchaseOrder._id}`);
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <h1 className="text-xl font-semibold">Add a Purchase Order</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Supplier</label>
-            <input required value={form.supplierName} onChange={(e) => setForm((f) => ({ ...f, supplierName: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <SearchableSelect required value={form.supplierId}
+              onChange={(value) => setForm((f) => ({ ...f, supplierId: value }))}
+              options={vendors.map((vendor) => ({ value: vendor._id, label: `${vendor.name}${vendor.gstNumber ? ` - ${vendor.gstNumber}` : ""}` }))}
+              placeholder="Select vendor" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Order date</label>

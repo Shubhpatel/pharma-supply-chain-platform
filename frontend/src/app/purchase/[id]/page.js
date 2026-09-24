@@ -17,7 +17,7 @@ export default function PurchaseOrderDetailPage() {
   if (!po) return <p className="text-sm text-gray-500">Loading...</p>;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-xl font-semibold">{po.poNumber}</h1>
         <p className="text-sm text-gray-500 capitalize">Status: {po.status.replace("_", " ")}</p>
@@ -30,6 +30,26 @@ export default function PurchaseOrderDetailPage() {
         <div><div className="text-gray-500 text-xs">Expected delivery</div>{po.expectedDeliveryDate ? new Date(po.expectedDeliveryDate).toLocaleDateString() : "-"}</div>
         <div><div className="text-gray-500 text-xs">Created by</div>{po.createdBy?.name || "-"}</div>
         <div><div className="text-gray-500 text-xs">Created at</div>{new Date(po.createdAt).toLocaleString()}</div>
+        <div><div className="text-gray-500 text-xs">Last updated by</div>{po.lastUpdatedBy}</div>
+        <div><div className="text-gray-500 text-xs">Last updated at</div>{po.lastUpdatedAt ? new Date(po.lastUpdatedAt).toLocaleString() : "-"}</div>
+        {po.supplier && (
+          <div className="sm:col-span-3 border-t border-gray-100 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div><div className="text-gray-500 text-xs">Vendor GST</div>{po.supplier.gstNumber || "-"}</div>
+            <div><div className="text-gray-500 text-xs">Contact person</div>{po.supplier.contactPerson || "-"}</div>
+            <div><div className="text-gray-500 text-xs">Phone / email</div>{[po.supplier.phone, po.supplier.email].filter(Boolean).join(" / ") || "-"}</div>
+            <div><div className="text-gray-500 text-xs">Address</div>{[po.supplier.addressLine1, po.supplier.addressLine2, po.supplier.city, po.supplier.state, po.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div>
+          </div>
+        )}
+        <div>
+          <div className="text-gray-500 text-xs">Linked GRN</div>
+          {po.linkedGrns?.length ? (
+            <div className="flex flex-wrap gap-x-2">
+              {po.linkedGrns.map((grn) => (
+                <a key={grn._id} href={`/grn/${grn._id}`} className="text-blue-600 hover:underline">{grn.grnNumber}</a>
+              ))}
+            </div>
+          ) : "-"}
+        </div>
       </div>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -38,7 +58,9 @@ export default function PurchaseOrderDetailPage() {
             <tr>
               <th className="px-4 py-2">SKU</th>
               <th className="px-4 py-2">Qty</th>
+              <th className="px-4 py-2">Pending</th>
               <th className="px-4 py-2">Rate</th>
+              <th className="px-4 py-2">GST</th>
               <th className="px-4 py-2">Amount</th>
             </tr>
           </thead>
@@ -47,7 +69,9 @@ export default function PurchaseOrderDetailPage() {
               <tr key={i} className="border-t border-gray-100">
                 <td className="px-4 py-2">{item.skuName}</td>
                 <td className="px-4 py-2">{item.qty}</td>
+                <td className="px-4 py-2">{item.pendingQty}</td>
                 <td className="px-4 py-2">₹{item.rate.toFixed(2)}</td>
+                <td className="px-4 py-2">{item.gstRate || 0}%</td>
                 <td className="px-4 py-2">₹{item.amount.toFixed(2)}</td>
               </tr>
             ))}
@@ -56,8 +80,18 @@ export default function PurchaseOrderDetailPage() {
             <tr className="border-t border-gray-200 font-medium">
               <td className="px-4 py-2">Total</td>
               <td className="px-4 py-2">{po.totalQty}</td>
+              <td className="px-4 py-2">{po.pendingQty}</td>
+              <td></td>
               <td></td>
               <td className="px-4 py-2">₹{po.totalPrice.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colSpan="5" className="px-4 py-1 text-right">GST</td>
+              <td className="px-4 py-1">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
+            </tr>
+            <tr className="font-semibold">
+              <td colSpan="4" className="px-4 py-1 text-right">Grand total</td>
+              <td className="px-4 py-1">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

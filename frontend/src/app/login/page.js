@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useApp();
+  const { login, showToast } = useApp();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,9 +19,11 @@ export default function LoginPage() {
     try {
       const data = await api.login(form);
       login(data.user, data.token);
+      showToast("Logged in successfully.");
       router.push("/");
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }

@@ -3,17 +3,20 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
+import PartyManager from "@/components/PartyManager";
 
-const BLANK_FORM = { name: "", hsnCode: "", category: "", subCategory: "", manufacturer: "", uom: "UNIT", gst: "", mrp: "" };
+const BLANK_FORM = { name: "", hsnCode: "", category: "", subCategory: "", manufacturer: "", uom: "UNIT", mrp: "" };
 
 export default function MastersPage() {
-  const { user, token } = useApp();
+  const { user, token, showToast } = useApp();
   const [skus, setSkus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState(BLANK_FORM);
   const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [activeView, setActiveView] = useState("sku");
 
   async function load() {
     setLoading(true);
@@ -31,17 +34,26 @@ export default function MastersPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const requestedView = new URLSearchParams(window.location.search).get("tab");
+    if (requestedView === "vendor" || requestedView === "customer") {
+      setActiveView(requestedView);
+    }
+  }, []);
+
   function startEdit(sku) {
     setEditingId(sku._id);
+    setShowForm(true);
     setForm({
       name: sku.name, hsnCode: sku.hsnCode, category: sku.category, subCategory: sku.subCategory,
-      manufacturer: sku.manufacturer, uom: sku.uom, gst: sku.gst, mrp: sku.mrp,
+      manufacturer: sku.manufacturer, uom: sku.uom, mrp: sku.mrp,
     });
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm(BLANK_FORM);
+    setShowForm(false);
   }
 
   async function handleSubmit(e) {
@@ -49,18 +61,21 @@ export default function MastersPage() {
     setError("");
     if (!user) return setError("Log in to manage SKUs.");
 
-    const payload = { ...form, gst: Number(form.gst) || 0, mrp: Number(form.mrp) || 0 };
+    const payload = { ...form, mrp: Number(form.mrp) || 0 };
     setBusy(true);
     try {
       if (editingId) {
         await api.updateSku(editingId, payload, token);
+        showToast("SKU updated successfully.");
       } else {
         await api.createSku(payload, token);
+        showToast("SKU created successfully.");
       }
       cancelEdit();
       await load();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setBusy(false);
     }
@@ -70,9 +85,11 @@ export default function MastersPage() {
     setBusy(true);
     try {
       await api.toggleSku(id, token);
+      showToast("SKU status updated.");
       await load();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setBusy(false);
     }
@@ -83,9 +100,11 @@ export default function MastersPage() {
     setBusy(true);
     try {
       await api.deleteSku(id, token);
+      showToast("SKU deleted successfully.");
       await load();
     } catch (err) {
       setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setBusy(false);
     }
@@ -93,40 +112,52 @@ export default function MastersPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold">Master SKUs</h1>
+      <h1 className="text-xl font-semibold">
+        {activeView === "vendor" ? "Master Vendors" : activeView === "customer" ? "Master Customers" : "Master SKUs"}
+      </h1>
 
-      <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
-        <h2 className="text-sm font-semibold">{editingId ? "Edit SKU" : "Add a new SKU"}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input required placeholder="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input placeholder="HSN code" value={form.hsnCode} onChange={(e) => setForm((f) => ({ ...f, hsnCode: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input placeholder="Category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input placeholder="Sub category" value={form.subCategory} onChange={(e) => setForm((f) => ({ ...f, subCategory: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input placeholder="Manufacturer" value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input placeholder="UOM (e.g. UNIT, STRIP)" value={form.uom} onChange={(e) => setForm((f) => ({ ...f, uom: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input type="number" placeholder="GST %" value={form.gst} onChange={(e) => setForm((f) => ({ ...f, gst: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          <input type="number" placeholder="MRP" value={form.mrp} onChange={(e) => setForm((f) => ({ ...f, mrp: e.target.value }))}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-        </div>
-        <div className="flex gap-3">
-          <button type="submit" disabled={busy}
-            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-            {editingId ? "Save changes" : "Add SKU"}
+      {activeView === "vendor" ? <PartyManager type="vendor" title="Vendor" /> : activeView === "customer" ? <PartyManager type="customer" title="Customer" /> : (
+        <>
+
+      <div className="flex items-center justify-end">
+        {!editingId && (
+          <button type="button" onClick={() => setShowForm(true)}
+            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
+            Add New SKU
           </button>
-          {editingId && (
+        )}
+      </div>
+
+      {(editingId || showForm) && (
+        <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
+          <h2 className="text-sm font-semibold">{editingId ? "Edit SKU" : "Add a new SKU"}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input required placeholder="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <input placeholder="HSN code" value={form.hsnCode} onChange={(e) => setForm((f) => ({ ...f, hsnCode: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <input placeholder="Category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <input placeholder="Sub category" value={form.subCategory} onChange={(e) => setForm((f) => ({ ...f, subCategory: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <input placeholder="Manufacturer" value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <input placeholder="UOM (e.g. UNIT, STRIP)" value={form.uom} onChange={(e) => setForm((f) => ({ ...f, uom: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            <input type="number" placeholder="MRP" value={form.mrp} onChange={(e) => setForm((f) => ({ ...f, mrp: e.target.value }))}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+          </div>
+          <div className="flex gap-3">
+            <button type="submit" disabled={busy}
+              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
+              {editingId ? "Save changes" : "Add SKU"}
+            </button>
             <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">
               Cancel
             </button>
-          )}
-        </div>
-      </form>
+          </div>
+        </form>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -141,7 +172,6 @@ export default function MastersPage() {
                 <th className="px-4 py-2">Category</th>
                 <th className="px-4 py-2">Manufacturer</th>
                 <th className="px-4 py-2">UOM</th>
-                <th className="px-4 py-2">GST</th>
                 <th className="px-4 py-2">MRP</th>
                 <th className="px-4 py-2">Enabled</th>
                 <th className="px-4 py-2"></th>
@@ -154,7 +184,6 @@ export default function MastersPage() {
                   <td className="px-4 py-2">{s.category || "-"}</td>
                   <td className="px-4 py-2">{s.manufacturer || "-"}</td>
                   <td className="px-4 py-2">{s.uom}</td>
-                  <td className="px-4 py-2">{s.gst}%</td>
                   <td className="px-4 py-2">₹{s.mrp}</td>
                   <td className="px-4 py-2">
                     <button onClick={() => handleToggle(s._id)} disabled={busy}
@@ -171,6 +200,8 @@ export default function MastersPage() {
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </div>
   );

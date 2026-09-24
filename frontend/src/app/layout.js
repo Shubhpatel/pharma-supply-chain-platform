@@ -2,6 +2,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import NavBar from "@/components/NavBar";
+import Toast from "@/components/Toast";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -25,7 +26,8 @@ export default function RootLayout({ children }) {
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}>
         <AppProvider>
           <NavBar />
-          <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+          <Toast />
+          <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
         </AppProvider>
       </body>
     </html>

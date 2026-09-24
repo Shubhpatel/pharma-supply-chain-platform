@@ -26,6 +26,12 @@ export const api = {
   toggleSku: (id, token) => apiFetch(`/skus/${id}/toggle`, { method: "PATCH", token }),
   deleteSku: (id, token) => apiFetch(`/skus/${id}`, { method: "DELETE", token }),
 
+  // Vendors and customers
+  listParties: (type) => apiFetch(`/parties?type=${type}`),
+  createParty: (payload, token) => apiFetch("/parties", { method: "POST", body: payload, token }),
+  updateParty: (id, payload, token) => apiFetch(`/parties/${id}`, { method: "PUT", body: payload, token }),
+  deleteParty: (id, token) => apiFetch(`/parties/${id}`, { method: "DELETE", token }),
+
   // Purchase orders
   listPurchaseOrders: () => apiFetch("/purchase-orders"),
   listOpenPurchaseOrders: () => apiFetch("/purchase-orders/open/list"),

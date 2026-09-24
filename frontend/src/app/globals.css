@@ -3,8 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f7f8;
+  --foreground: #17252b;
+  --brand: #0f766e;
+  --brand-dark: #115e59;
+  --line: #d7e2e5;
+  --surface: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,7 +21,44 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
+  min-height: 100vh;
+}
+
+input,
+select {
+  border-color: var(--line) !important;
+  border-radius: 0.5rem !important;
+  background-color: var(--surface);
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid rgb(13 148 136 / 0.2);
+  border-color: var(--brand) !important;
+}
+
+button.bg-gray-900,
+a.bg-gray-900 {
+  background-color: var(--brand) !important;
+}
+
+button.bg-gray-900:hover,
+a.bg-gray-900:hover {
+  background-color: var(--brand-dark) !important;
+}
+
+.bg-white {
+  background-color: var(--surface);
+}
+
+.border-gray-200,
+.border-gray-300 {
+  border-color: var(--line);
+}
+
+.bg-gray-50 {
+  background-color: #eef5f5;
 }
 
 @layer utilities {

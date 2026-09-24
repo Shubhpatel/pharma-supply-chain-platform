@@ -17,6 +17,10 @@ router.get("/", async (req, res) => {
         subCategory: s.sku.subCategory,
         manufacturer: s.sku.manufacturer,
         uom: s.sku.uom,
+        batch: s.batch,
+        expiryDate: s.expiryDate,
+        mrp: s.mrp,
+        rate: s.rate,
         qty: s.qty,
       }));
     return res.json({ stock: rows });
