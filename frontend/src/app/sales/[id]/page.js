@@ -3,24 +3,66 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
+  const { user } = useApp();
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState("");
+  const [lastPrinted, setLastPrinted] = useState(null);
 
   useEffect(() => {
     api.getInvoice(id).then((d) => setInvoice(d.invoice)).catch((e) => setError(e.message));
+    const printedInfo = localStorage.getItem(`printed_sales_${id}`);
+    if (printedInfo) {
+      try {
+        setLastPrinted(JSON.parse(printedInfo));
+      } catch (e) {
+        // ignore parse error
+      }
+    }
   }, [id]);
+
+  function handlePrint() {
+    const printData = {
+      printedBy: user?.name || "System User",
+      printedAt: new Date().toISOString(),
+    };
+    setLastPrinted(printData);
+    localStorage.setItem(`printed_sales_${id}`, JSON.stringify(printData));
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  }
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!invoice) return <p className="text-sm text-gray-500">Loading...</p>;
 
   return (
-    <div className="w-full space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Invoice {invoice.invoiceNumber}</h1>
+    <div className="w-full space-y-6 print:p-0">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Invoice {invoice.invoiceNumber}</h1>
+        </div>
+        <button
+          onClick={handlePrint}
+          type="button"
+          className="no-print inline-flex items-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          Print / PDF
+        </button>
       </div>
+
+      {lastPrinted && (
+        <div className="text-xs text-gray-500 border-b border-gray-100 pb-2">
+          Last printed by: <span className="font-medium text-gray-700">{lastPrinted.printedBy}</span> at{" "}
+          <span className="font-medium text-gray-700">{new Date(lastPrinted.printedAt).toLocaleString()}</span>
+        </div>
+      )}
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
         <div><div className="text-gray-500 text-xs">Customer</div>{invoice.customerName}</div>
