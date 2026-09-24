@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 export default function NavBar() {
   const { user, logout, showToast } = useApp();
   const [mastersOpen, setMastersOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   function handleLogout() {
     logout();
@@ -23,7 +24,31 @@ export default function NavBar() {
             <a href="/inventory" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Inventory</a>
             <a href="/sales" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Sales</a>
             <div className="relative">
-              <button type="button" onClick={() => setMastersOpen((open) => !open)}
+              <button type="button" onClick={() => { setReportsOpen((open) => !open); setMastersOpen(false); }}
+                className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">
+                Reports
+              </button>
+              {reportsOpen && (
+                <div className="absolute left-0 top-full z-10 mt-2 w-48 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+                  <a href="/reports?tab=sales" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Sales Report</a>
+                  <a href="/reports?tab=grn" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">GRN Report</a>
+                  <a href="/reports?tab=near-expired" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Near Expired Report</a>
+                  <a href="/reports?tab=expired" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Expired Report</a>
+                  <a href="/reports?tab=po" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">PO Report</a>
+                  <a href="/reports?tab=slow-moving" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Slow Moving Report</a>
+                  <a href="/reports?tab=non-moving" onClick={() => setReportsOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Non Moving Report</a>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <button type="button" onClick={() => { setMastersOpen((open) => !open); setReportsOpen(false); }}
                 className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">
                 Masters
               </button>
