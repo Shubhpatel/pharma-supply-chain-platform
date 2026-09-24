@@ -11,3 +11,4 @@
 # add gst number, address and others details in vendor and customer master
 # add filter po,grn,invoice,invenrtory
 # add report 
+# add transaction report for product
