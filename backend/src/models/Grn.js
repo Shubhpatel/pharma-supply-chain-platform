@@ -22,6 +22,8 @@ const grnSchema = new mongoose.Schema(
     poNumber: { type: String, required: true }, // snapshot for easy display
     supplierName: { type: String, required: true },
     grnDate: { type: Date, required: true },
+    purchaseInvoiceNumber: { type: String, required: true, trim: true },
+    purchaseInvoiceDate: { type: Date, required: true },
     items: { type: [grnItemSchema], validate: (v) => v.length > 0 },
     totalQty: { type: Number, required: true },
     totalValue: { type: Number, required: true },

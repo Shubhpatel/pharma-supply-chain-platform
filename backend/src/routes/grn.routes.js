@@ -7,13 +7,13 @@ const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
-// POST /api/grn  { purchaseOrderId, grnDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
+// POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const { purchaseOrderId, grnDate, items } = req.body;
-    if (!purchaseOrderId || !grnDate || !items || items.length === 0) {
-      return res.status(400).json({ error: "purchaseOrderId, grnDate and at least one item are required" });
+    const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
+    if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
+      return res.status(400).json({ error: "purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate and at least one item are required" });
     }
 
     const po = await PurchaseOrder.findById(purchaseOrderId);
@@ -30,6 +30,8 @@ router.post("/", requireAuth, async (req, res) => {
       poNumber: po.poNumber,
       supplierName: po.supplierName,
       grnDate,
+      purchaseInvoiceNumber: purchaseInvoiceNumber.trim(),
+      purchaseInvoiceDate,
       items: itemsWithAmount,
       totalQty,
       totalValue,
@@ -73,7 +75,7 @@ router.post("/", requireAuth, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const grns = await Grn.find()
-      .select("grnNumber poNumber supplierName grnDate totalQty totalValue status")
+      .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue status")
       .sort({ createdAt: -1 });
     return res.json({ grns });
   } catch (err) {

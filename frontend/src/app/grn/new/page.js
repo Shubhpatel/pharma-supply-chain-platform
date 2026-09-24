@@ -12,6 +12,8 @@ export default function NewGrnPage() {
   const [openPos, setOpenPos] = useState([]);
   const [selectedPoId, setSelectedPoId] = useState("");
   const [grnDate, setGrnDate] = useState(new Date().toISOString().slice(0, 10));
+  const [purchaseInvoiceNumber, setPurchaseInvoiceNumber] = useState("");
+  const [purchaseInvoiceDate, setPurchaseInvoiceDate] = useState("");
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,12 +53,16 @@ export default function NewGrnPage() {
     setError("");
     if (!user) return setError("Log in to create a GRN.");
     if (!selectedPoId) return setError("Select a purchase order.");
+    if (!purchaseInvoiceNumber.trim()) return setError("Enter the purchase invoice number.");
+    if (!purchaseInvoiceDate) return setError("Select the purchase invoice date.");
 
     setLoading(true);
     try {
       const payload = {
         purchaseOrderId: selectedPoId,
         grnDate,
+        purchaseInvoiceNumber: purchaseInvoiceNumber.trim(),
+        purchaseInvoiceDate,
         items: items.map((i) => ({ ...i, qtyReceived: Number(i.qtyReceived) })),
       };
       const data = await api.createGrn(payload, token);
@@ -89,6 +95,17 @@ export default function NewGrnPage() {
           <div>
             <label className="block text-sm font-medium mb-1">GRN date</label>
             <input required type="date" value={grnDate} onChange={(e) => setGrnDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Purchase invoice number</label>
+            <input required type="text" value={purchaseInvoiceNumber} onChange={(e) => setPurchaseInvoiceNumber(e.target.value)}
+              placeholder="Enter invoice number"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Purchase invoice date</label>
+            <input required type="date" value={purchaseInvoiceDate} onChange={(e) => setPurchaseInvoiceDate(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
           </div>
         </div>

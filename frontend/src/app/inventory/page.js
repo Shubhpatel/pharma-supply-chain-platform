@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 export default function InventoryPage() {
@@ -13,7 +13,15 @@ export default function InventoryPage() {
     api.listStock().then((d) => setStock(d.stock)).catch((e) => setError(e.message)).finally(() => setLoading(false));
   }, []);
 
-  const filtered = stock.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = stock.filter((s) => s.qty > 0 && s.name.toLowerCase().includes(search.toLowerCase()));
+  const products = Object.values(filtered.reduce((grouped, item) => {
+    if (!grouped[item.skuId]) {
+      grouped[item.skuId] = { ...item, qty: 0, batches: [] };
+    }
+    grouped[item.skuId].qty += Number(item.qty) || 0;
+    grouped[item.skuId].batches.push(item);
+    return grouped;
+  }, {}));
 
   return (
     <div className="space-y-6">
@@ -26,7 +34,7 @@ export default function InventoryPage() {
 
       {loading ? (
         <p className="text-sm text-gray-500">Loading...</p>
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <p className="text-sm text-gray-500">No stock to show.</p>
       ) : (
         <div className="border border-gray-200 rounded-lg overflow-hidden bg-white overflow-x-auto">
@@ -37,28 +45,53 @@ export default function InventoryPage() {
                 <th className="px-4 py-2">Sub Category</th>
                 <th className="px-4 py-2">Product Name</th>
                 <th className="px-4 py-2">Manufacturer</th>
-                <th className="px-4 py-2">Batch</th>
-                <th className="px-4 py-2">Expiry</th>
-                <th className="px-4 py-2">MRP</th>
                 <th className="px-4 py-2">Rate</th>
                 <th className="px-4 py-2">Qty</th>
                 <th className="px-4 py-2">UOM</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
-                <tr key={s.skuId} className="border-t border-gray-100">
-                  <td className="px-4 py-2">{s.category || "-"}</td>
-                  <td className="px-4 py-2">{s.subCategory || "-"}</td>
-                  <td className="px-4 py-2">{s.name}</td>
-                  <td className="px-4 py-2">{s.manufacturer || "-"}</td>
-                  <td className="px-4 py-2">{s.batch}</td>
-                  <td className="px-4 py-2">{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : "-"}</td>
-                  <td className="px-4 py-2">{s.mrp == null ? "-" : `₹${Number(s.mrp).toFixed(2)}`}</td>
-                  <td className="px-4 py-2">{s.rate == null ? "-" : `₹${Number(s.rate).toFixed(2)}`}</td>
-                  <td className={`px-4 py-2 font-medium ${s.qty === 0 ? "text-red-500" : ""}`}>{s.qty}</td>
-                  <td className="px-4 py-2">{s.uom}</td>
-                </tr>
+              {products.map((s) => (
+                <Fragment key={s.skuId}>
+                  <tr className="border-t border-gray-100">
+                    <td className="px-4 py-2">{s.category || "-"}</td>
+                    <td className="px-4 py-2">{s.subCategory || "-"}</td>
+                    <td className="px-4 py-2">{s.name}</td>
+                    <td className="px-4 py-2">{s.manufacturer || "-"}</td>
+                    <td className="px-4 py-2">{s.rate == null ? "-" : `₹${Number(s.rate).toFixed(2)}`}</td>
+                    <td className={`px-4 py-2 font-medium ${s.qty === 0 ? "text-red-500" : ""}`}>{s.qty}</td>
+                    <td className="px-4 py-2">{s.uom}</td>
+                  </tr>
+                  <tr className="border-t border-gray-100">
+                    <td colSpan="7" className="px-4 py-2">
+                      <details>
+                        <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Show Details</summary>
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full min-w-[28rem] text-xs text-gray-600">
+                            <thead className="bg-gray-50 text-left">
+                              <tr>
+                                <th className="px-3 py-2 font-medium">Batch</th>
+                                <th className="px-3 py-2 font-medium">Exp</th>
+                                <th className="px-3 py-2 font-medium">MRP</th>
+                                <th className="px-3 py-2 font-medium">Qty</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {s.batches.map((batch) => (
+                                <tr key={`${batch.batch}-${batch.expiryDate}-${batch.mrp}`} className="border-t border-gray-100">
+                                  <td className="px-3 py-2 font-medium text-gray-900">{batch.batch || "-"}</td>
+                                  <td className="px-3 py-2">{batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : "-"}</td>
+                                  <td className="px-3 py-2">{batch.mrp == null ? "-" : `₹${Number(batch.mrp).toFixed(2)}`}</td>
+                                  <td className="px-3 py-2">{batch.qty}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    </td>
+                  </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>

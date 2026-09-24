@@ -23,9 +23,11 @@ export default function GrnDetailPage() {
         <p className="text-sm text-gray-500">Against PO {grn.poNumber}</p>
       </div>
 
-      <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+      <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
         <div><div className="text-gray-500 text-xs">Supplier</div>{grn.supplierName}</div>
         <div><div className="text-gray-500 text-xs">GRN date</div>{new Date(grn.grnDate).toLocaleDateString()}</div>
+        <div><div className="text-gray-500 text-xs">Purchase invoice number</div>{grn.purchaseInvoiceNumber}</div>
+        <div><div className="text-gray-500 text-xs">Purchase invoice date</div>{new Date(grn.purchaseInvoiceDate).toLocaleDateString()}</div>
         <div><div className="text-gray-500 text-xs">Created by</div>{grn.createdBy?.name || "-"}</div>
       </div>
 
