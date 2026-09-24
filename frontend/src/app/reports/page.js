@@ -169,20 +169,21 @@ function ReportsContent() {
     exportToCsv(`${activeTab}-report`, headers, rows);
   }
 
-  const tabs = [
-    { key: "sales", label: "Sales Report" },
-    { key: "grn", label: "GRN Report" },
-    { key: "near-expired", label: "Near Expired" },
-    { key: "expired", label: "Expired Report" },
-    { key: "po", label: "PO Report" },
-    { key: "slow-moving", label: "Slow Moving" },
-    { key: "non-moving", label: "Non Moving" },
-  ];
+  const reportTitles = {
+    sales: "Sales Report",
+    grn: "GRN Report",
+    "near-expired": "Near Expired Report",
+    expired: "Expired Report",
+    po: "PO Report",
+    "slow-moving": "Slow Moving Report",
+    "non-moving": "Non Moving Report",
+  };
+  const reportTitle = reportTitles[activeTab] || "Reports & Analytics";
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Reports & Analytics</h1>
+        <h1 className="text-xl font-semibold">{reportTitle}</h1>
         <button
           onClick={handleExportCsv}
           disabled={!reportData.length || loading}
@@ -190,23 +191,6 @@ function ReportsContent() {
         >
           Export to CSV / Excel
         </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 flex gap-2 overflow-x-auto text-sm">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 border-b-2 font-medium whitespace-nowrap ${
-              activeTab === tab.key
-                ? "border-teal-800 text-teal-800"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* Filters Bar */}
