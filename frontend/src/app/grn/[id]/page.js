@@ -18,15 +18,23 @@ export default function GrnDetailPage() {
 
   return (
     <div className="w-full space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">{grn.grnNumber}</h1>
-        <p className="text-sm text-gray-500">
-          Against PO {grn.purchaseOrder?._id ? (
-            <a href={`/purchase/${grn.purchaseOrder._id}`} className="text-blue-600 hover:underline">
-              {grn.purchaseOrder.poNumber}
-            </a>
-          ) : grn.poNumber}
-        </p>
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+          <h1 className="text-xl font-semibold">{grn.grnNumber}</h1>
+          <p className="text-sm text-gray-500">
+            Against PO {grn.purchaseOrder?._id ? (
+              <a href={`/purchase/${grn.purchaseOrder._id}`} className="text-blue-600 hover:underline">
+                {grn.purchaseOrder.poNumber}
+              </a>
+            ) : grn.poNumber}
+          </p>
+        </div>
+        <button
+          onClick={() => window.print()}
+          className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition"
+        >
+          Print GRN
+        </button>
       </div>
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">

@@ -18,9 +18,17 @@ export default function PurchaseOrderDetailPage() {
 
   return (
     <div className="w-full space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">{po.poNumber}</h1>
-        <p className="text-sm text-gray-500 capitalize">Status: {po.status.replace("_", " ")}</p>
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+          <h1 className="text-xl font-semibold">{po.poNumber}</h1>
+          <p className="text-sm text-gray-500 capitalize">Status: {po.status.replace("_", " ")}</p>
+        </div>
+        <button
+          onClick={() => window.print()}
+          className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition"
+        >
+          Print Purchase Order
+        </button>
       </div>
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">

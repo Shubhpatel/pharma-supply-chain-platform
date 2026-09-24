@@ -11,6 +11,8 @@ const grnRoutes = require("./routes/grn.routes");
 const inventoryRoutes = require("./routes/inventory.routes");
 const salesRoutes = require("./routes/sales.routes");
 const partyRoutes = require("./routes/party.routes");
+const debitNoteRoutes = require("./routes/debitNote.routes");
+const creditNoteRoutes = require("./routes/creditNote.routes");
 
 const app = express();
 
@@ -26,6 +28,8 @@ app.use("/api/grn", grnRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/parties", partyRoutes);
+app.use("/api/debit-notes", debitNoteRoutes);
+app.use("/api/credit-notes", creditNoteRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
