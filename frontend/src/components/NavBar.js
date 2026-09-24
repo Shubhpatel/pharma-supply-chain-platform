@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 
 export default function NavBar() {
   const { user, logout, showToast } = useApp();
+  const [mastersOpen, setMastersOpen] = useState(false);
 
   function handleLogout() {
     logout();
@@ -20,7 +22,22 @@ export default function NavBar() {
             <a href="/grn" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">GRN</a>
             <a href="/inventory" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Inventory</a>
             <a href="/sales" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Sales</a>
-            <a href="/masters" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Masters</a>
+            <div className="relative">
+              <button type="button" onClick={() => setMastersOpen((open) => !open)}
+                className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">
+                Masters
+              </button>
+              {mastersOpen && (
+                <div className="absolute right-0 top-full z-10 mt-2 min-w-36 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+                  <a href="/masters?tab=sku" onClick={() => setMastersOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKUs</a>
+                  <a href="/masters?tab=vendor" onClick={() => setMastersOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Vendors</a>
+                  <a href="/masters?tab=customer" onClick={() => setMastersOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Customers</a>
+                </div>
+              )}
+            </div>
           </div>
         )}
         <div className="flex items-center gap-4 text-sm">

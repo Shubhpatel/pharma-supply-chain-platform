@@ -25,6 +25,7 @@ export default function PartyManager({ type, title }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,12 +49,14 @@ export default function PartyManager({ type, title }) {
 
   function startEdit(party) {
     setEditingId(party._id);
+    setShowForm(true);
     setForm(Object.fromEntries(Object.keys(BLANK_FORM).map((key) => [key, party[key] || ""])));
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm(BLANK_FORM);
+    setShowForm(false);
   }
 
   async function handleSubmit(event) {
@@ -110,23 +113,34 @@ export default function PartyManager({ type, title }) {
 
   return (
     <div className="space-y-5">
-      <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-4">
-        <h2 className="text-sm font-semibold">{editingId ? `Edit ${title}` : `Add ${title}`}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {fields.map(([field, placeholder, required]) => (
-            <input key={field} required={required} type={field === "email" ? "email" : "text"}
-              placeholder={placeholder} value={form[field]} onChange={(event) => updateField(field, event.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-          ))}
-        </div>
-        <div className="flex gap-3">
-          <button type="submit" disabled={busy}
-            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-            {editingId ? "Save changes" : `Add ${title}`}
+      <div className="flex justify-end">
+        {!editingId && (
+          <button type="button" onClick={() => setShowForm(true)}
+            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
+            Add {title}
           </button>
-          {editingId && <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</button>}
-        </div>
-      </form>
+        )}
+      </div>
+
+      {(showForm || editingId) && (
+        <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-4">
+          <h2 className="text-sm font-semibold">{editingId ? `Edit ${title}` : `Add ${title}`}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {fields.map(([field, placeholder, required]) => (
+              <input key={field} required={required} type={field === "email" ? "email" : "text"}
+                placeholder={placeholder} value={form[field]} onChange={(event) => updateField(field, event.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <button type="submit" disabled={busy}
+              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
+              {editingId ? "Save changes" : `Add ${title}`}
+            </button>
+            <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</button>
+          </div>
+        </form>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {loading ? <p className="text-sm text-gray-500">Loading...</p> : (

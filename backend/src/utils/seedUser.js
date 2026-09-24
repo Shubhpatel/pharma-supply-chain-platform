@@ -25,9 +25,9 @@ async function seed() {
   }
 
   const sampleSkus = [
-    { name: "Paracetamol 500mg", category: "PHARMA", subCategory: "TABLET", manufacturer: "GSK", uom: "STRIP", gst: 5, mrp: 30 },
-    { name: "Amoxicillin 250mg", category: "PHARMA", subCategory: "CAPSULE", manufacturer: "Cipla", uom: "STRIP", gst: 5, mrp: 60 },
-    { name: "Betadine Ointment 20g", category: "PHARMA", subCategory: "OINTMENT", manufacturer: "Win-Medicare", uom: "UNIT", gst: 12, mrp: 85 },
+    { name: "Paracetamol 500mg", category: "PHARMA", subCategory: "TABLET", manufacturer: "GSK", uom: "STRIP", mrp: 30 },
+    { name: "Amoxicillin 250mg", category: "PHARMA", subCategory: "CAPSULE", manufacturer: "Cipla", uom: "STRIP", mrp: 60 },
+    { name: "Betadine Ointment 20g", category: "PHARMA", subCategory: "OINTMENT", manufacturer: "Win-Medicare", uom: "UNIT", mrp: 85 },
   ];
 
   for (const s of sampleSkus) {
