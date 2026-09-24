@@ -27,11 +27,11 @@ export default function NewGrnPage() {
     const po = openPos.find((p) => p._id === poId);
     if (!po) return setItems([]);
     setItems(
-      po.items.map((i) => ({
+      po.items.filter((i) => i.pendingQty > 0).map((i) => ({
         sku: i.sku,
         skuName: i.skuName,
-        qtyOrdered: i.qty,
-        qtyReceived: i.qty, // default to fully received; user can edit down for partial
+        qtyOrdered: i.pendingQty,
+        qtyReceived: i.pendingQty,
         batch: "",
         expiryDate: "",
         mrp: "",
@@ -119,7 +119,7 @@ export default function NewGrnPage() {
               <div className="col-span-2">Expiry</div>
               <div className="col-span-1">MRP</div>
               <div className="col-span-1">Rate</div>
-              <div className="col-span-1">Ordered</div>
+              <div className="col-span-1">Pending</div>
               <div className="col-span-2">Received</div>
             </div>
             {items.map((item, i) => (
@@ -138,7 +138,7 @@ export default function NewGrnPage() {
                   onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, rate: e.target.value } : current))}
                   className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />
                 <div className="col-span-1 text-sm text-gray-600">{item.qtyOrdered}</div>
-                <input type="number" min="0" max={item.qtyOrdered} value={item.qtyReceived}
+                <input required type="number" min="0" max={item.qtyOrdered} value={item.qtyReceived}
                   onChange={(e) => updateReceived(i, e.target.value)}
                   className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
               </div>

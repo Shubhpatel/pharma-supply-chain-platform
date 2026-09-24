@@ -42,6 +42,7 @@ export default function PurchasePage() {
                 <th className="px-4 py-2">Delivery Date</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Total Qty</th>
+                <th className="px-4 py-2">Pending Qty</th>
                 <th className="px-4 py-2">Total Price</th>
                 <th className="px-4 py-2"></th>
               </tr>
@@ -56,6 +57,7 @@ export default function PurchasePage() {
                   <td className="px-4 py-2">{o.expectedDeliveryDate ? new Date(o.expectedDeliveryDate).toLocaleDateString() : "-"}</td>
                   <td className="px-4 py-2 capitalize">{o.status.replace("_", " ")}</td>
                   <td className="px-4 py-2">{o.totalQty}</td>
+                  <td className="px-4 py-2">{o.pendingQty}</td>
                   <td className="px-4 py-2">₹{o.totalPrice.toFixed(2)}</td>
                   <td className="px-4 py-2">
                     <a href={`/purchase/${o._id}`} className="text-blue-600 hover:underline">View</a>

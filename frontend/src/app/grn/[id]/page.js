@@ -20,7 +20,13 @@ export default function GrnDetailPage() {
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-xl font-semibold">{grn.grnNumber}</h1>
-        <p className="text-sm text-gray-500">Against PO {grn.poNumber}</p>
+        <p className="text-sm text-gray-500">
+          Against PO {grn.purchaseOrder?._id ? (
+            <a href={`/purchase/${grn.purchaseOrder._id}`} className="text-blue-600 hover:underline">
+              {grn.purchaseOrder.poNumber}
+            </a>
+          ) : grn.poNumber}
+        </p>
       </div>
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
@@ -29,6 +35,8 @@ export default function GrnDetailPage() {
         <div><div className="text-gray-500 text-xs">Purchase invoice number</div>{grn.purchaseInvoiceNumber}</div>
         <div><div className="text-gray-500 text-xs">Purchase invoice date</div>{new Date(grn.purchaseInvoiceDate).toLocaleDateString()}</div>
         <div><div className="text-gray-500 text-xs">Created by</div>{grn.createdBy?.name || "-"}</div>
+        <div><div className="text-gray-500 text-xs">Last updated by</div>{grn.createdBy?.name || "-"}</div>
+        <div><div className="text-gray-500 text-xs">Last updated at</div>{grn.updatedAt ? new Date(grn.updatedAt).toLocaleString() : "-"}</div>
       </div>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">

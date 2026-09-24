@@ -19,6 +19,35 @@ router.post("/", requireAuth, async (req, res) => {
     const po = await PurchaseOrder.findById(purchaseOrderId);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
 
+    const existingGrns = await Grn.find({ purchaseOrder: po._id }).select("items.sku items.qtyReceived");
+    const receivedBySku = {};
+    for (const grn of existingGrns) {
+      for (const item of grn.items) {
+        receivedBySku[String(item.sku)] = (receivedBySku[String(item.sku)] || 0) + item.qtyReceived;
+      }
+    }
+
+    const orderedBySku = {};
+    for (const item of po.items) orderedBySku[String(item.sku)] = (orderedBySku[String(item.sku)] || 0) + item.qty;
+
+    const requestedBySku = {};
+    for (const item of items) {
+      const skuId = String(item.sku);
+      const qtyReceived = Number(item.qtyReceived);
+      if (!orderedBySku[skuId]) return res.status(400).json({ error: `SKU ${item.skuName || skuId} is not part of this purchase order` });
+      if (!Number.isFinite(qtyReceived) || qtyReceived < 0) {
+        return res.status(400).json({ error: `Received quantity for ${item.skuName || skuId} must be a non-negative number` });
+      }
+      requestedBySku[skuId] = (requestedBySku[skuId] || 0) + qtyReceived;
+    }
+
+    for (const [skuId, requestedQty] of Object.entries(requestedBySku)) {
+      const pendingQty = orderedBySku[skuId] - (receivedBySku[skuId] || 0);
+      if (requestedQty > pendingQty) {
+        return res.status(400).json({ error: `Received quantity for SKU ${skuId} exceeds the pending quantity of ${pendingQty}` });
+      }
+    }
+
     const itemsWithAmount = items.map((i) => ({ ...i, amount: i.qtyReceived * i.rate }));
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
     const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
@@ -48,18 +77,12 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     // Figure out if the PO is now fully received, or only partially.
-    const totalOrderedBySku = {};
-    for (const i of po.items) totalOrderedBySku[String(i.sku)] = i.qty;
-
-    const allGrnsForPo = await Grn.find({ purchaseOrder: po._id });
-    const totalReceivedBySku = {};
-    for (const g of allGrnsForPo) {
-      for (const i of g.items) {
-        totalReceivedBySku[String(i.sku)] = (totalReceivedBySku[String(i.sku)] || 0) + i.qtyReceived;
-      }
+    const totalReceivedBySku = { ...receivedBySku };
+    for (const [skuId, qty] of Object.entries(requestedBySku)) {
+      totalReceivedBySku[skuId] = (totalReceivedBySku[skuId] || 0) + qty;
     }
-    const fullyReceived = Object.keys(totalOrderedBySku).every(
-      (skuId) => (totalReceivedBySku[skuId] || 0) >= totalOrderedBySku[skuId]
+    const fullyReceived = Object.keys(orderedBySku).every(
+      (skuId) => (totalReceivedBySku[skuId] || 0) >= orderedBySku[skuId]
     );
 
     po.status = fullyReceived ? "received" : "partially_received";
@@ -86,7 +109,9 @@ router.get("/", async (req, res) => {
 // GET /api/grn/:id - full detail
 router.get("/:id", async (req, res) => {
   try {
-    const grn = await Grn.findById(req.params.id).populate("createdBy", "name");
+    const grn = await Grn.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("purchaseOrder", "poNumber");
     if (!grn) return res.status(404).json({ error: "GRN not found" });
     return res.json({ grn });
   } catch (err) {
