@@ -50,4 +50,22 @@ export const api = {
   listInvoices: () => apiFetch("/sales"),
   getInvoice: (id) => apiFetch(`/sales/${id}`),
   createInvoice: (payload, token) => apiFetch("/sales", { method: "POST", body: payload, token }),
+
+  // Reports
+  getSalesReport: (params, token) => {
+    const q = new URLSearchParams(params).toString();
+    return apiFetch(`/reports/sales${q ? `?${q}` : ""}`, { token });
+  },
+  getGrnReport: (params, token) => {
+    const q = new URLSearchParams(params).toString();
+    return apiFetch(`/reports/grn${q ? `?${q}` : ""}`, { token });
+  },
+  getPoReport: (params, token) => {
+    const q = new URLSearchParams(params).toString();
+    return apiFetch(`/reports/po${q ? `?${q}` : ""}`, { token });
+  },
+  getNearExpiredReport: (days, token) => apiFetch(`/reports/near-expired?days=${days || 30}`, { token }),
+  getExpiredReport: (token) => apiFetch("/reports/expired", { token }),
+  getSlowMovingReport: (token) => apiFetch("/reports/slow-moving", { token }),
+  getNonMovingReport: (token) => apiFetch("/reports/non-moving", { token }),
 };
