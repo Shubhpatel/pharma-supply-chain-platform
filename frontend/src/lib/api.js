@@ -1,6 +1,9 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 async function apiFetch(path, { method = "GET", body, token } = {}) {
+  if (!token && typeof window !== "undefined") {
+    token = localStorage.getItem("token");
+  }
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers: {

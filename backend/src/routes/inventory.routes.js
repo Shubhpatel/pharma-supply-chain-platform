@@ -1,10 +1,11 @@
 const express = require("express");
 const Stock = require("../models/Stock");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
 // GET /api/inventory - stock on hand, joined with SKU details
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const stock = await Stock.find().populate("sku", "name category subCategory manufacturer uom");
     // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
