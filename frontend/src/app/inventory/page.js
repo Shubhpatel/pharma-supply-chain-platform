@@ -44,7 +44,7 @@ export default function InventoryPage() {
         <h1 className="text-xl font-semibold">Stock On Hand</h1>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input placeholder="Search SKU" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-64" />
         <input placeholder="Batch" value={batch} onChange={(e) => setBatch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-40" />
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
@@ -62,7 +62,7 @@ export default function InventoryPage() {
           <option value="out">Out of stock</option>
         </select>
         <button type="button" onClick={() => setAppliedFilters({ search, batch, category, manufacturer, stockLevel })} className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">Filter</button>
-        <button type="button" onClick={() => { setSearch(""); setBatch(""); setCategory(""); setManufacturer(""); setStockLevel(""); setAppliedFilters({ search: "", batch: "", category: "", manufacturer: "", stockLevel: "" }); }} className="px-1 py-2 text-sm text-gray-600 hover:text-gray-900 hover:underline">Clear Filters</button>
+        <button type="button" onClick={() => { setSearch(""); setBatch(""); setCategory(""); setManufacturer(""); setStockLevel(""); setAppliedFilters({ search: "", batch: "", category: "", manufacturer: "", stockLevel: "" }); }} className="text-sm text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

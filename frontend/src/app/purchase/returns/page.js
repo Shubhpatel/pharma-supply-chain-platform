@@ -60,10 +60,10 @@ export default function DebitNoteListPage() {
               <th className="px-4 py-3">GRN #</th>
               <th className="px-4 py-3">Supplier</th>
               <th className="px-4 py-3">Return Date</th>
-              <th className="px-4 py-3">Total Qty</th>
-              <th className="px-4 py-3">Total Amount</th>
-              <th className="px-4 py-3">GST</th>
-              <th className="px-4 py-3">Grand Total</th>
+              <th className="px-4 py-3 text-right">Total Qty</th>
+              <th className="px-4 py-3 text-right">Total Amount</th>
+              <th className="px-4 py-3 text-right">GST</th>
+              <th className="px-4 py-3 text-right">Grand Total</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -80,13 +80,18 @@ export default function DebitNoteListPage() {
                   <td className="px-4 py-3 text-gray-600">{dn.grnNumber}</td>
                   <td className="px-4 py-3 text-gray-900">{dn.supplierName}</td>
                   <td className="px-4 py-3 text-gray-600">{new Date(dn.returnDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-gray-600">{dn.totalQty}</td>
-                  <td className="px-4 py-3 text-gray-600">₹{(dn.totalAmount || 0).toFixed(2)}</td>
-                  <td className="px-4 py-3 text-gray-600">₹{(dn.gstAmount || 0).toFixed(2)}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">₹{(dn.grandTotal || 0).toFixed(2)}</td>
-                  <td className="px-4 py-3 capitalize">{dn.status}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-600">{dn.totalQty}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-600">₹{(dn.totalAmount || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-600">₹{(dn.gstAmount || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums font-semibold text-gray-900">₹{(dn.grandTotal || 0).toFixed(2)}</td>
                   <td className="px-4 py-3">
-                    <a href={`/purchase/returns/${dn._id}`} title="View debit note" aria-label="View debit note" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
+                    <span className={`status-badge status-${dn.status}`}>{dn.status}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <a href={`/purchase/returns/${dn._id}`} title="View debit note" aria-label="View debit note" className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 hover:text-teal-900">
+                      <img src="/icons/view.svg" alt="" className="h-3.5 w-3.5" />
+                      View
+                    </a>
                   </td>
                 </tr>
               ))

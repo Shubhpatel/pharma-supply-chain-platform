@@ -74,7 +74,7 @@ export default function PurchasePage() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input placeholder="Search PO or supplier" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-64" />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
           <option value="">All statuses</option>
@@ -84,14 +84,14 @@ export default function PurchasePage() {
           <option value="received">Received</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <fieldset className="flex items-center gap-2 border border-gray-300 rounded-md px-2 py-1">
-          <legend className="px-1 text-xs text-gray-500">Order date</legend>
-          <input type="date" aria-label="Order date from" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="px-1 py-1 text-sm" />
-          <span className="text-sm text-gray-400">to</span>
-          <input type="date" aria-label="Order date to" value={toDate} onChange={(e) => setToDate(e.target.value)} className="px-1 py-1 text-sm" />
+        <fieldset className="filter-fieldset">
+          <legend>Order date</legend>
+          <input type="date" aria-label="Order date from" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <span className="text-xs text-gray-400">—</span>
+          <input type="date" aria-label="Order date to" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </fieldset>
         <button type="button" onClick={() => setAppliedFilters({ search, status, fromDate, toDate })} className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">Filter</button>
-        <button type="button" onClick={() => { setSearch(""); setStatus(""); setFromDate(""); setToDate(""); setAppliedFilters({ search: "", status: "", fromDate: "", toDate: "" }); }} className="px-1 py-2 text-sm text-gray-600 hover:text-gray-900 hover:underline">Clear Filters</button>
+        <button type="button" onClick={() => { setSearch(""); setStatus(""); setFromDate(""); setToDate(""); setAppliedFilters({ search: "", status: "", fromDate: "", toDate: "" }); }} className="text-sm text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
       </div>
 
       {loading ? (
@@ -109,9 +109,9 @@ export default function PurchasePage() {
                 <th className="px-4 py-2">Payment Term</th>
                 <th className="px-4 py-2">Delivery Date</th>
                 <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Total Qty</th>
-                <th className="px-4 py-2">Pending Qty</th>
-                <th className="px-4 py-2">Total Price</th>
+                <th className="px-4 py-2 text-right">Total Qty</th>
+                <th className="px-4 py-2 text-right">Pending Qty</th>
+                <th className="px-4 py-2 text-right">Total Price</th>
                 <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
@@ -123,15 +123,22 @@ export default function PurchasePage() {
                   <td className="px-4 py-2">{new Date(o.orderDate).toLocaleDateString()}</td>
                   <td className="px-4 py-2">{o.paymentTerm || "-"}</td>
                   <td className="px-4 py-2">{o.expectedDeliveryDate ? new Date(o.expectedDeliveryDate).toLocaleDateString() : "-"}</td>
-                  <td className="px-4 py-2 capitalize">{o.status.replace("_", " ")}</td>
-                  <td className="px-4 py-2">{o.totalQty}</td>
-                  <td className="px-4 py-2">{o.pendingQty}</td>
-                  <td className="px-4 py-2">₹{o.totalPrice.toFixed(2)}</td>
-                  <td className="px-4 py-2 space-x-3 whitespace-nowrap">
-                    <a href={`/purchase/${o._id}`} title="View purchase order" aria-label="View purchase order" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
-                    <button type="button" onClick={() => handleDuplicate(o._id)} disabled={duplicatingId === o._id} className="text-blue-600 hover:underline disabled:opacity-50">
-                      {duplicatingId === o._id ? "Duplicating..." : "Duplicate"}
-                    </button>
+                  <td className="px-4 py-2">
+                    <span className={`status-badge status-${o.status}`}>{o.status.replace("_", " ")}</span>
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">{o.totalQty}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{o.pendingQty}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">₹{o.totalPrice.toFixed(2)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <a href={`/purchase/${o._id}`} title="View purchase order" aria-label="View purchase order" className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 hover:text-teal-900">
+                        <img src="/icons/view.svg" alt="" className="h-3.5 w-3.5" />
+                        View
+                      </a>
+                      <button type="button" onClick={() => handleDuplicate(o._id)} disabled={duplicatingId === o._id} className="text-xs font-medium text-gray-500 hover:text-gray-800 disabled:opacity-40">
+                        {duplicatingId === o._id ? "Duplicating…" : "Duplicate"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -82,7 +82,9 @@ export default function PurchaseOrderDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">{po.poNumber}</h1>
-          <p className="text-sm text-gray-500 capitalize">Status: {po.status.replace("_", " ")}</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Status: <span className={`status-badge status-${po.status} ml-1`}>{po.status.replace("_", " ")}</span>
+          </p>
         </div>
         <div className="no-print flex items-center gap-2">
           <button type="button" onClick={handleDuplicate} disabled={duplicating} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">{duplicating ? "Duplicating..." : "Duplicate"}</button>
@@ -105,32 +107,32 @@ export default function PurchaseOrderDetailPage() {
         </div>
       )}
 
-      <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-        <div><div className="text-gray-500 text-xs">Supplier</div>{po.supplierName}</div>
-        <div><div className="text-gray-500 text-xs">Order date</div>{new Date(po.orderDate).toLocaleDateString()}</div>
-        <div><div className="text-gray-500 text-xs">Payment term</div>{po.paymentTerm || "-"}</div>
-        <div><div className="text-gray-500 text-xs">Expected delivery</div>{po.expectedDeliveryDate ? new Date(po.expectedDeliveryDate).toLocaleDateString() : "-"}</div>
-        <div><div className="text-gray-500 text-xs">Created by</div>{po.createdBy?.name || "-"}</div>
-        <div><div className="text-gray-500 text-xs">Created at</div>{new Date(po.createdAt).toLocaleString()}</div>
-        <div><div className="text-gray-500 text-xs">Last updated by</div>{po.lastUpdatedBy}</div>
-        <div><div className="text-gray-500 text-xs">Last updated at</div>{po.lastUpdatedAt ? new Date(po.lastUpdatedAt).toLocaleString() : "-"}</div>
+      <div className="border border-gray-200 rounded-lg p-5 bg-white grid grid-cols-2 sm:grid-cols-3 gap-5 text-sm">
+        <div><div className="info-label">Supplier</div><div className="info-value">{po.supplierName}</div></div>
+        <div><div className="info-label">Order date</div><div className="info-value">{new Date(po.orderDate).toLocaleDateString()}</div></div>
+        <div><div className="info-label">Payment term</div><div className="info-value">{po.paymentTerm || "-"}</div></div>
+        <div><div className="info-label">Expected delivery</div><div className="info-value">{po.expectedDeliveryDate ? new Date(po.expectedDeliveryDate).toLocaleDateString() : "-"}</div></div>
+        <div><div className="info-label">Created by</div><div className="info-value">{po.createdBy?.name || "-"}</div></div>
+        <div><div className="info-label">Created at</div><div className="info-value">{new Date(po.createdAt).toLocaleString()}</div></div>
+        <div><div className="info-label">Last updated by</div><div className="info-value">{po.lastUpdatedBy || "-"}</div></div>
+        <div><div className="info-label">Last updated at</div><div className="info-value">{po.lastUpdatedAt ? new Date(po.lastUpdatedAt).toLocaleString() : "-"}</div></div>
         {po.supplier && (
-          <div className="sm:col-span-3 border-t border-gray-100 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div><div className="text-gray-500 text-xs">Vendor GST</div>{po.supplier.gstNumber || "-"}</div>
-            <div><div className="text-gray-500 text-xs">Contact person</div>{po.supplier.contactPerson || "-"}</div>
-            <div><div className="text-gray-500 text-xs">Phone / email</div>{[po.supplier.phone, po.supplier.email].filter(Boolean).join(" / ") || "-"}</div>
-            <div><div className="text-gray-500 text-xs">Address</div>{[po.supplier.addressLine1, po.supplier.addressLine2, po.supplier.city, po.supplier.state, po.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div>
+          <div className="sm:col-span-3 border-t border-gray-100 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div><div className="info-label">Vendor GST</div><div className="info-value">{po.supplier.gstNumber || "-"}</div></div>
+            <div><div className="info-label">Contact person</div><div className="info-value">{po.supplier.contactPerson || "-"}</div></div>
+            <div><div className="info-label">Phone / email</div><div className="info-value">{[po.supplier.phone, po.supplier.email].filter(Boolean).join(" / ") || "-"}</div></div>
+            <div><div className="info-label">Address</div><div className="info-value">{[po.supplier.addressLine1, po.supplier.addressLine2, po.supplier.city, po.supplier.state, po.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div></div>
           </div>
         )}
-        <div className="sm:col-span-3 border-t border-gray-100 pt-3">
-          <div className="text-gray-500 text-xs">Linked GRN</div>
+        <div className="sm:col-span-3 border-t border-gray-100 pt-4">
+          <div className="info-label">Linked GRN</div>
           {po.linkedGrns?.length ? (
-            <div className="flex flex-wrap gap-x-2">
+            <div className="flex flex-wrap gap-x-2 mt-0.5">
               {po.linkedGrns.map((grn) => (
-                <a key={grn._id} href={`/grn/${grn._id}`} className="text-blue-600 hover:underline">{grn.grnNumber}</a>
+                <a key={grn._id} href={`/grn/${grn._id}`} className="text-teal-700 hover:underline font-medium">{grn.grnNumber}</a>
               ))}
             </div>
-          ) : "-"}
+          ) : <div className="info-value">-</div>}
         </div>
       </div>
 
@@ -139,41 +141,41 @@ export default function PurchaseOrderDetailPage() {
           <thead className="bg-gray-50 text-left text-gray-500">
             <tr>
               <th className="px-4 py-2">SKU</th>
-              <th className="px-4 py-2">Qty</th>
-              <th className="px-4 py-2">Pending</th>
-              <th className="px-4 py-2">Rate</th>
-              <th className="px-4 py-2">GST</th>
-              <th className="px-4 py-2">Amount</th>
+              <th className="px-4 py-2 text-right">Qty</th>
+              <th className="px-4 py-2 text-right">Pending</th>
+              <th className="px-4 py-2 text-right">Rate</th>
+              <th className="px-4 py-2 text-right">GST</th>
+              <th className="px-4 py-2 text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
             {po.items.map((item, i) => (
               <tr key={i} className="border-t border-gray-100">
                 <td className="px-4 py-2">{item.skuName}</td>
-                <td className="px-4 py-2">{item.qty}</td>
-                <td className="px-4 py-2">{item.pendingQty}</td>
-                <td className="px-4 py-2">₹{item.rate.toFixed(2)}</td>
-                <td className="px-4 py-2">{item.gstRate || 0}%</td>
-                <td className="px-4 py-2">₹{item.amount.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{item.qty}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{item.pendingQty}</td>
+                <td className="px-4 py-2 text-right tabular-nums">₹{item.rate.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{item.gstRate || 0}%</td>
+                <td className="px-4 py-2 text-right tabular-nums">₹{item.amount.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t border-gray-200 font-medium">
+            <tr className="border-t-2 border-gray-200 font-semibold bg-gray-50">
               <td className="px-4 py-2">Total</td>
-              <td className="px-4 py-2">{po.totalQty}</td>
-              <td className="px-4 py-2">{po.pendingQty}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{po.totalQty}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{po.pendingQty}</td>
               <td></td>
               <td></td>
-              <td className="px-4 py-2 text-right">₹{po.totalPrice.toFixed(2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">₹{po.totalPrice.toFixed(2)}</td>
             </tr>
-            <tr>
-              <td colSpan="5" className="px-4 py-1 text-right">GST</td>
-              <td className="px-4 py-1 text-right">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
+            <tr className="border-t border-gray-100 text-gray-600">
+              <td colSpan="5" className="px-4 py-1 text-right text-xs font-medium uppercase tracking-wide text-gray-400">GST</td>
+              <td className="px-4 py-1 text-right tabular-nums">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
             </tr>
-            <tr className="font-semibold">
-              <td colSpan="5" className="px-4 py-1 text-right">Grand total</td>
-              <td className="px-4 py-1 text-right">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
+            <tr className="font-bold text-gray-900 bg-teal-50">
+              <td colSpan="5" className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-teal-700">Grand Total</td>
+              <td className="px-4 py-2 text-right tabular-nums text-teal-800">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

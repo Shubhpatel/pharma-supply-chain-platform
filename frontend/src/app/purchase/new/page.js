@@ -141,12 +141,12 @@ export default function NewPurchaseOrderPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <button type="submit" disabled={loading}
             className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-            {loading ? "Saving..." : editId ? "Update Purchase Order" : "Save Purchase Order"}
+            {loading ? "Saving…" : editId ? "Update Purchase Order" : "Save Purchase Order"}
           </button>
-          <a href="/purchase" className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</a>
+          <a href="/purchase" className="inline-flex items-center px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</a>
         </div>
       </form>
     </div>

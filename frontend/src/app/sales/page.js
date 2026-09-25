@@ -50,16 +50,16 @@ export default function SalesPage() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input placeholder="Search invoice or customer" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-72" />
-        <fieldset className="flex items-center gap-2 border border-gray-300 rounded-md px-2 py-1">
-          <legend className="px-1 text-xs text-gray-500">Sale date</legend>
-          <input type="date" aria-label="Sale date from" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="px-1 py-1 text-sm" />
-          <span className="text-sm text-gray-400">to</span>
-          <input type="date" aria-label="Sale date to" value={toDate} onChange={(e) => setToDate(e.target.value)} className="px-1 py-1 text-sm" />
+        <fieldset className="filter-fieldset">
+          <legend>Sale date</legend>
+          <input type="date" aria-label="Sale date from" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <span className="text-xs text-gray-400">—</span>
+          <input type="date" aria-label="Sale date to" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </fieldset>
         <button type="button" onClick={() => setAppliedFilters({ search, fromDate, toDate })} className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">Filter</button>
-        <button type="button" onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setAppliedFilters({ search: "", fromDate: "", toDate: "" }); }} className="px-1 py-2 text-sm text-gray-600 hover:text-gray-900 hover:underline">Clear Filters</button>
+        <button type="button" onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setAppliedFilters({ search: "", fromDate: "", toDate: "" }); }} className="text-sm text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
       </div>
 
       {loading ? (
@@ -74,8 +74,8 @@ export default function SalesPage() {
                 <th className="px-4 py-2">Invoice Number</th>
                 <th className="px-4 py-2">Customer</th>
                 <th className="px-4 py-2">Sale Date</th>
-                <th className="px-4 py-2">Total Qty</th>
-                <th className="px-4 py-2">Total Amount</th>
+                <th className="px-4 py-2 text-right">Total Qty</th>
+                <th className="px-4 py-2 text-right">Total Amount</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Actions</th>
               </tr>
@@ -86,14 +86,21 @@ export default function SalesPage() {
                   <td className="px-4 py-2">{inv.invoiceNumber}</td>
                   <td className="px-4 py-2">{inv.customerName}</td>
                   <td className="px-4 py-2">{new Date(inv.saleDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-2">{inv.totalQty}</td>
-                  <td className="px-4 py-2">₹{inv.totalAmount.toFixed(2)}</td>
-                  <td className="px-4 py-2 capitalize">{inv.status}</td>
-                  <td className="px-4 py-2 space-x-3 whitespace-nowrap">
-                    <a href={`/sales/${inv._id}`} title="View invoice" aria-label="View invoice" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
-                    <button type="button" onClick={() => handleDuplicate(inv._id)} disabled={duplicatingId === inv._id} className="text-blue-600 hover:underline disabled:opacity-50">
-                      {duplicatingId === inv._id ? "Duplicating..." : "Duplicate"}
-                    </button>
+                  <td className="px-4 py-2 text-right tabular-nums">{inv.totalQty}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">₹{inv.totalAmount.toFixed(2)}</td>
+                  <td className="px-4 py-2">
+                    <span className={`status-badge status-${inv.status}`}>{inv.status}</span>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <a href={`/sales/${inv._id}`} title="View invoice" aria-label="View invoice" className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 hover:text-teal-900">
+                        <img src="/icons/view.svg" alt="" className="h-3.5 w-3.5" />
+                        View
+                      </a>
+                      <button type="button" onClick={() => handleDuplicate(inv._id)} disabled={duplicatingId === inv._id} className="text-xs font-medium text-gray-500 hover:text-gray-800 disabled:opacity-40">
+                        {duplicatingId === inv._id ? "Duplicating…" : "Duplicate"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

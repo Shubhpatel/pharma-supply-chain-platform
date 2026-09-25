@@ -260,9 +260,11 @@ export default function MastersPage() {
                       {s.enabled ? "Enabled" : "Disabled"}
                     </button>
                   </td>
-                  <td className="px-4 py-2 space-x-2">
-                    <button onClick={() => startEdit(s)} title="Edit SKU" aria-label="Edit SKU" className="text-blue-600 hover:underline"><img src="/icons/edit.svg" alt="" className="h-4 w-4" /></button>
-                    <button onClick={() => handleDelete(s._id)} title="Delete SKU" aria-label="Delete SKU" className="text-red-500 hover:underline"><img src="/icons/delete.svg" alt="" className="h-4 w-4" /></button>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <button onClick={() => startEdit(s)} title="Edit SKU" aria-label="Edit SKU" className="text-blue-600 hover:underline"><img src="/icons/edit.svg" alt="" className="h-9 w-9" /></button>
+                      <button onClick={() => handleDelete(s._id)} title="Delete SKU" aria-label="Delete SKU" className="text-red-500 hover:underline"><img src="/icons/delete.svg" alt="" className="h-9 w-9" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
