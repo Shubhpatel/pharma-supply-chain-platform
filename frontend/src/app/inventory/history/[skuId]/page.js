@@ -4,14 +4,15 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function TransactionHistoryPage() {
   const params = useParams();
   const router = useRouter();
-  const skuIdParam = params.skuId || "all";
+  const selectedSkuId = params.skuId;
 
   const [skus, setSkus] = useState([]);
-  const [selectedSkuId, setSelectedSkuId] = useState(skuIdParam);
+  const [stock, setStock] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,34 +24,40 @@ export default function TransactionHistoryPage() {
   const [batchFilter, setBatchFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState({
+    type: "",
+    partyName: "",
+    docNumber: "",
+    batch: "",
+    startDate: "",
+    endDate: "",
+  });
 
-  // Load SKUs list for product dropdown
+  // Load product and stock data for the current product summary
   useEffect(() => {
-    api
-      .listSkus()
-      .then((data) => setSkus(data.skus || []))
-      .catch((err) => console.error("Failed to load SKUs:", err));
+    Promise.all([api.listSkus(), api.listStock()])
+      .then(([skuData, stockData]) => {
+        setSkus(skuData.skus || []);
+        setStock(stockData.stock || []);
+      })
+      .catch((err) => setError(err.message));
   }, []);
 
-  // Synchronize route param changes
   useEffect(() => {
-    if (params.skuId) {
-      setSelectedSkuId(params.skuId);
+    if (!selectedSkuId || selectedSkuId === "all") {
+      router.replace("/inventory");
     }
-  }, [params.skuId]);
+  }, [router, selectedSkuId]);
 
   // Load transactions
   const fetchTransactions = () => {
+    if (!selectedSkuId || selectedSkuId === "all") return;
+
     setLoading(true);
     setError("");
     api
       .getInventoryHistory(selectedSkuId, {
-        type: typeFilter,
-        partyName: partyFilter,
-        docNumber: docNumberFilter,
-        batch: batchFilter,
-        startDate,
-        endDate,
+        ...appliedFilters,
       })
       .then((data) => setTransactions(data.transactions || []))
       .catch((err) => setError(err.message))
@@ -59,33 +66,52 @@ export default function TransactionHistoryPage() {
 
   useEffect(() => {
     fetchTransactions();
-  }, [selectedSkuId, typeFilter, partyFilter, docNumberFilter, batchFilter, startDate, endDate]);
+  }, [selectedSkuId, appliedFilters]);
 
   const currentSku = useMemo(() => {
     return skus.find((s) => s._id === selectedSkuId);
   }, [skus, selectedSkuId]);
 
-  // Calculate Summary Metrics
-  const metrics = useMemo(() => {
-    let totalIn = 0;
-    let totalOut = 0;
-    transactions.forEach((t) => {
-      if (t.qty > 0) totalIn += t.qty;
-      else totalOut += Math.abs(t.qty);
-    });
-    return {
-      totalCount: transactions.length,
-      totalIn,
-      totalOut,
-      netChange: totalIn - totalOut,
-    };
+  const batchOptions = useMemo(() => {
+    return [...new Set(transactions.map((transaction) => transaction.batch).filter(Boolean))]
+      .sort()
+      .map((batch) => ({ value: batch, label: batch }));
   }, [transactions]);
 
-  // Handle SKU change in dropdown
-  const handleSkuChange = (newSkuId) => {
-    setSelectedSkuId(newSkuId);
-    router.push(`/inventory/history/${newSkuId}`);
-  };
+  // Calculate stock summary metrics for the current product.
+  const metrics = useMemo(() => {
+    const productStock = stock.filter((item) => item.skuId === selectedSkuId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const nearExpiryDate = new Date(today);
+    nearExpiryDate.setDate(today.getDate() + 30);
+
+    const nearExpiryQty = productStock.reduce((sum, item) => {
+      const expiryDate = new Date(item.expiryDate);
+      return item.qty > 0 && expiryDate >= today && expiryDate <= nearExpiryDate
+        ? sum + Number(item.qty)
+        : sum;
+    }, 0);
+    const expiredQty = productStock.reduce((sum, item) => {
+      return item.qty > 0 && new Date(item.expiryDate) < today
+        ? sum + Number(item.qty)
+        : sum;
+    }, 0);
+    const totalQty = productStock.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+    const sellableQty = productStock.reduce((sum, item) => {
+      return item.qty > 0 && new Date(item.expiryDate) >= today
+        ? sum + Number(item.qty)
+        : sum;
+    }, 0);
+
+    return {
+      totalBatchCount: productStock.length,
+      nearExpiryQty,
+      expiredQty,
+      totalQty,
+      sellableQty,
+    };
+  }, [selectedSkuId, stock]);
 
   // CSV Export
   const exportToCSV = () => {
@@ -148,11 +174,7 @@ export default function TransactionHistoryPage() {
             <span className="font-medium text-gray-800">Transaction History</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {selectedSkuId === "all"
-              ? "All Products Transaction History"
-              : currentSku
-              ? `History: ${currentSku.name}`
-              : "Product Transaction History"}
+            {currentSku ? `History: ${currentSku.name}` : "Product Transaction History"}
           </h1>
         </div>
 
@@ -171,43 +193,34 @@ export default function TransactionHistoryPage() {
         </div>
       </div>
 
-      {/* Product Selector Bar */}
+      {/* Product Summary Bar */}
       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="w-full md:w-auto flex-1 max-w-md">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Select Product:</label>
-          <select
-            value={selectedSkuId}
-            onChange={(e) => handleSkuChange(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">-- All Products --</option>
-            {skus.map((sku) => (
-              <option key={sku._id} value={sku._id}>
-                {sku.name} ({sku.category || "Master"})
-              </option>
-            ))}
-          </select>
+          <p className="text-xs font-semibold text-gray-700">Product</p>
+          <p className="text-sm text-gray-900 mt-1">{currentSku?.name || "Loading product..."}</p>
         </div>
 
         {/* Summary Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full md:w-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 w-full md:w-auto">
           <div className="bg-gray-50 border border-gray-100 p-3 rounded-md text-center">
-            <span className="block text-[11px] font-medium text-gray-500">Total Entries</span>
-            <span className="text-lg font-bold text-gray-800">{metrics.totalCount}</span>
+            <span className="block text-[11px] font-medium text-gray-500">Total Batches</span>
+            <span className="text-lg font-bold text-gray-800">{metrics.totalBatchCount}</span>
           </div>
           <div className="bg-green-50 border border-green-100 p-3 rounded-md text-center">
-            <span className="block text-[11px] font-medium text-green-600">Stock IN (+Qty)</span>
-            <span className="text-lg font-bold text-green-700">+{metrics.totalIn}</span>
+            <span className="block text-[11px] font-medium text-green-600">Near Expiry Qty</span>
+            <span className="text-lg font-bold text-green-700">{metrics.nearExpiryQty}</span>
           </div>
           <div className="bg-red-50 border border-red-100 p-3 rounded-md text-center">
-            <span className="block text-[11px] font-medium text-red-600">Stock OUT (-Qty)</span>
-            <span className="text-lg font-bold text-red-700">-{metrics.totalOut}</span>
+            <span className="block text-[11px] font-medium text-red-600">Expired Qty</span>
+            <span className="text-lg font-bold text-red-700">{metrics.expiredQty}</span>
           </div>
           <div className="bg-blue-50 border border-blue-100 p-3 rounded-md text-center">
-            <span className="block text-[11px] font-medium text-blue-600">Net Stock Change</span>
-            <span className={`text-lg font-bold ${metrics.netChange >= 0 ? "text-blue-700" : "text-red-700"}`}>
-              {metrics.netChange > 0 ? `+${metrics.netChange}` : metrics.netChange}
-            </span>
+            <span className="block text-[11px] font-medium text-blue-600">Total Qty</span>
+            <span className="text-lg font-bold text-blue-700">{metrics.totalQty}</span>
+          </div>
+          <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-md text-center">
+            <span className="block text-[11px] font-medium text-emerald-600">Sellable Qty</span>
+            <span className="text-lg font-bold text-emerald-700">{metrics.sellableQty}</span>
           </div>
         </div>
       </div>
@@ -255,12 +268,12 @@ export default function TransactionHistoryPage() {
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Batch Number</label>
-            <input
-              type="text"
-              placeholder="Search Batch..."
+            <SearchableSelect
               value={batchFilter}
-              onChange={(e) => setBatchFilter(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs"
+              onChange={setBatchFilter}
+              options={batchOptions}
+              placeholder="Search Batch..."
+              className="w-full"
             />
           </div>
 
@@ -285,8 +298,22 @@ export default function TransactionHistoryPage() {
           </div>
         </div>
 
-        {(typeFilter || partyFilter || docNumberFilter || batchFilter || startDate || endDate) && (
-          <div className="flex justify-end pt-2">
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setAppliedFilters({
+              type: typeFilter,
+              partyName: partyFilter,
+              docNumber: docNumberFilter,
+              batch: batchFilter,
+              startDate,
+              endDate,
+            })}
+            className="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700"
+          >
+            Filter
+          </button>
+          {(typeFilter || partyFilter || docNumberFilter || batchFilter || startDate || endDate) && (
             <button
               type="button"
               onClick={() => {
@@ -296,13 +323,21 @@ export default function TransactionHistoryPage() {
                 setBatchFilter("");
                 setStartDate("");
                 setEndDate("");
+                setAppliedFilters({
+                  type: "",
+                  partyName: "",
+                  docNumber: "",
+                  batch: "",
+                  startDate: "",
+                  endDate: "",
+                });
               }}
               className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline"
             >
               Reset All Filters
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Transactions Table */}

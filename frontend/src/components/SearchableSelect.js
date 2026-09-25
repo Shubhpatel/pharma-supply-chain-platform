@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 export default function SearchableSelect({ value, onChange, options, placeholder, required = false, className = "" }) {
   const selectedOption = options.find((option) => option.value === value);
@@ -8,6 +8,10 @@ export default function SearchableSelect({ value, onChange, options, placeholder
   const [query, setQuery] = useState(selectedOption?.label || "");
   const [open, setOpen] = useState(false);
   const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase()));
+
+  useEffect(() => {
+    setQuery(selectedOption?.label || "");
+  }, [value, selectedOption?.label]);
 
   function selectOption(option) {
     onChange(option.value);
