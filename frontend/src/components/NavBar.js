@@ -207,6 +207,8 @@ export default function NavBar() {
                 <div className="absolute right-0 top-full z-10 mt-2 min-w-36 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
                   <a href="/masters?tab=sku" onClick={() => setMastersOpen(false)}
                     className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKUs</a>
+                  <a href="/masters?tab=location" onClick={() => setMastersOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKU Locations</a>
                   <a href="/masters?tab=vendor" onClick={() => setMastersOpen(false)}
                     className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Vendors</a>
                   <a href="/masters?tab=customer" onClick={() => setMastersOpen(false)}

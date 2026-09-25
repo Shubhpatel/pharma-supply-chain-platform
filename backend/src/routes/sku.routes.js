@@ -37,10 +37,15 @@ router.post("/", requireAuth, async (req, res) => {
     const payload = { ...req.body };
     delete payload.uid;
     delete payload._id;
+    payload.name = typeof payload.name === "string" ? payload.name.trim() : payload.name;
+    const duplicate = await Sku.findOne({ name: payload.name }).collation({ locale: "en", strength: 2 });
+    if (duplicate) return res.status(409).json({ error: "A SKU with this name already exists" });
     const sku = await Sku.create(payload);
     return res.status(201).json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(err.code === 11000 ? 409 : 500).json({
+      error: err.code === 11000 ? "A SKU with this name already exists" : err.message,
+    });
   }
 });
 
@@ -51,12 +56,20 @@ router.put("/:id", requireAuth, async (req, res) => {
     const changes = { ...req.body };
     delete changes.uid;
     delete changes._id;
+    if (changes.name !== undefined) {
+      changes.name = typeof changes.name === "string" ? changes.name.trim() : changes.name;
+      const duplicate = await Sku.findOne({ name: changes.name, _id: { $ne: sku._id } })
+        .collation({ locale: "en", strength: 2 });
+      if (duplicate) return res.status(409).json({ error: "A SKU with this name already exists" });
+    }
     Object.assign(sku, changes);
     if (!sku.uid) sku.uid = crypto.randomUUID();
     await sku.save();
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(err.code === 11000 ? 409 : 500).json({
+      error: err.code === 11000 ? "A SKU with this name already exists" : err.message,
+    });
   }
 });
 

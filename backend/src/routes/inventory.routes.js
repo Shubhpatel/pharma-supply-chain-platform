@@ -1,5 +1,6 @@
 const express = require("express");
 const Stock = require("../models/Stock");
+const SkuLocation = require("../models/SkuLocation");
 
 const router = express.Router();
 
@@ -7,11 +8,15 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
+    const skuIds = stock.filter((item) => item.sku).map((item) => item.sku._id);
+    const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
+    const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
     // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
     const rows = stock
       .filter((s) => s.sku)
       .map((s) => ({
         skuId: s.sku._id,
+        location: locationsBySku.get(String(s.sku._id)) || "-",
         name: s.sku.name,
         category: s.sku.category,
         subCategory: s.sku.subCategory,
@@ -41,12 +46,13 @@ router.get("/history/:skuId", async (req, res) => {
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;
 
     const queryFilter = skuId === "all" ? {} : { "items.sku": skuId };
+    const confirmedFilter = { ...queryFilter, status: "confirmed" };
 
     const [grns, sales, debitNotes, creditNotes] = await Promise.all([
-      Grn.find(queryFilter).populate("createdBy", "name"),
-      SaleInvoice.find(queryFilter).populate("createdBy", "name"),
-      DebitNote.find(queryFilter).populate("createdBy", "name"),
-      CreditNote.find(queryFilter).populate("createdBy", "name"),
+      Grn.find(confirmedFilter).populate("createdBy", "name"),
+      SaleInvoice.find(confirmedFilter).populate("createdBy", "name"),
+      DebitNote.find(confirmedFilter).populate("createdBy", "name"),
+      CreditNote.find(confirmedFilter).populate("createdBy", "name"),
     ]);
 
     let allTransactions = [];

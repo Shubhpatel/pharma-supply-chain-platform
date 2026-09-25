@@ -142,6 +142,7 @@ export default function GrnDetailPage() {
               <th className="px-4 py-2">Rate</th>
               <th className="px-4 py-2">GST</th>
               <th className="px-4 py-2">Amount</th>
+              <th className="px-4 py-2">Location</th>
             </tr>
           </thead>
           <tbody>
@@ -156,6 +157,7 @@ export default function GrnDetailPage() {
                 <td className="px-4 py-2">₹{Number(item.rate || 0).toFixed(2)}</td>
                 <td className="px-4 py-2">{item.gstRate || 0}%</td>
                 <td className="px-4 py-2">₹{Number(item.amount || 0).toFixed(2)}</td>
+                <td className="px-4 py-2">{item.skuLocation || "-"}</td>
               </tr>
             ))}
           </tbody>
@@ -170,14 +172,17 @@ export default function GrnDetailPage() {
               <td></td>
               <td></td>
               <td className="px-4 py-2 text-right">₹{grn.totalValue.toFixed(2)}</td>
+              <td></td>
             </tr>
             <tr>
               <td colSpan="8" className="px-4 py-1 text-right">GST</td>
               <td className="px-4 py-1 text-right">₹{Number(grn.gstAmount || 0).toFixed(2)}</td>
+              <td></td>
             </tr>
             <tr className="font-semibold">
               <td colSpan="8" className="px-4 py-1 text-right">Grand total</td>
               <td className="px-4 py-1 text-right">₹{Number(grn.grandTotal ?? grn.totalValue).toFixed(2)}</td>
+              <td></td>
             </tr>
           </tfoot>
         </table>

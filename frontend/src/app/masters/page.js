@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import PartyManager from "@/components/PartyManager";
+import SkuLocationManager from "@/components/SkuLocationManager";
 import BulkUploadModal from "@/components/BulkUploadModal";
 import BulkUploadHistory from "@/components/BulkUploadHistory";
 
@@ -39,7 +40,7 @@ export default function MastersPage() {
 
   useEffect(() => {
     const requestedView = new URLSearchParams(window.location.search).get("tab");
-    if (requestedView === "vendor" || requestedView === "customer" || requestedView === "bulk") {
+    if (requestedView === "vendor" || requestedView === "customer" || requestedView === "location" || requestedView === "bulk") {
       setActiveView(requestedView);
     }
   }, []);
@@ -121,6 +122,8 @@ export default function MastersPage() {
             ? "Master Vendors"
             : activeView === "customer"
             ? "Master Customers"
+            : activeView === "location"
+            ? "Master SKU Locations"
             : activeView === "bulk"
             ? "Bulk Generic Upload"
             : "Master SKUs"}
@@ -148,6 +151,8 @@ export default function MastersPage() {
         <PartyManager type="vendor" title="Vendor" />
       ) : activeView === "customer" ? (
         <PartyManager type="customer" title="Customer" />
+      ) : activeView === "location" ? (
+        <SkuLocationManager />
       ) : activeView === "bulk" ? (
         <BulkUploadHistory onOpenModal={() => setShowBulkModal(true)} />
       ) : (
@@ -172,34 +177,43 @@ export default function MastersPage() {
       </div>
 
       {(editingId || showForm) && (
-        <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
-          <h2 className="text-sm font-semibold">{editingId ? "Edit SKU" : "Add a new SKU"}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input required placeholder="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            <input placeholder="HSN code" value={form.hsnCode} onChange={(e) => setForm((f) => ({ ...f, hsnCode: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            <input placeholder="Category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            <input placeholder="Sub category" value={form.subCategory} onChange={(e) => setForm((f) => ({ ...f, subCategory: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            <input placeholder="Manufacturer" value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            <input placeholder="UOM (e.g. UNIT, STRIP)" value={form.uom} onChange={(e) => setForm((f) => ({ ...f, uom: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            <input type="number" placeholder="MRP" value={form.mrp} onChange={(e) => setForm((f) => ({ ...f, mrp: e.target.value }))}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-lg font-semibold text-gray-900">{editingId ? "Edit SKU" : "Add a new SKU"}</h2>
+              <button type="button" onClick={cancelEdit} aria-label="Close" className="text-xl font-bold leading-none text-gray-400 hover:text-gray-600">
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input required placeholder="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input placeholder="HSN code" value={form.hsnCode} onChange={(e) => setForm((f) => ({ ...f, hsnCode: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input placeholder="Category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input placeholder="Sub category" value={form.subCategory} onChange={(e) => setForm((f) => ({ ...f, subCategory: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input placeholder="Manufacturer" value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input placeholder="UOM (e.g. UNIT, STRIP)" value={form.uom} onChange={(e) => setForm((f) => ({ ...f, uom: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input type="number" placeholder="MRP" value={form.mrp} onChange={(e) => setForm((f) => ({ ...f, mrp: e.target.value }))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">
+                  Cancel
+                </button>
+                <button type="submit" disabled={busy}
+                  className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
+                  {editingId ? "Save changes" : "Add SKU"}
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="flex gap-3">
-            <button type="submit" disabled={busy}
-              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-              {editingId ? "Save changes" : "Add SKU"}
-            </button>
-            <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">
-              Cancel
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -237,8 +251,8 @@ export default function MastersPage() {
                     </button>
                   </td>
                   <td className="px-4 py-2 space-x-2">
-                    <button onClick={() => startEdit(s)} className="text-blue-600 hover:underline">Edit</button>
-                    <button onClick={() => handleDelete(s._id)} className="text-red-500 hover:underline">Delete</button>
+                    <button onClick={() => startEdit(s)} title="Edit SKU" aria-label="Edit SKU" className="text-blue-600 hover:underline"><img src="/icons/edit.svg" alt="" className="h-4 w-4" /></button>
+                    <button onClick={() => handleDelete(s._id)} title="Delete SKU" aria-label="Delete SKU" className="text-red-500 hover:underline"><img src="/icons/delete.svg" alt="" className="h-4 w-4" /></button>
                   </td>
                 </tr>
               ))}

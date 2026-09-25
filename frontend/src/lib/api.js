@@ -26,6 +26,12 @@ export const api = {
   toggleSku: (id, token) => apiFetch(`/skus/${id}/toggle`, { method: "PATCH", token }),
   deleteSku: (id, token) => apiFetch(`/skus/${id}`, { method: "DELETE", token }),
 
+  // SKU locations
+  listSkuLocations: (enabledOnly) => apiFetch(`/sku-locations${enabledOnly ? "?enabled=true" : ""}`),
+  createSkuLocation: (payload, token) => apiFetch("/sku-locations", { method: "POST", body: payload, token }),
+  updateSkuLocation: (id, payload, token) => apiFetch(`/sku-locations/${id}`, { method: "PUT", body: payload, token }),
+  deleteSkuLocation: (id, token) => apiFetch(`/sku-locations/${id}`, { method: "DELETE", token }),
+
   // Vendors and customers
   listParties: (type) => apiFetch(`/parties?type=${type}`),
   createParty: (payload, token) => apiFetch("/parties", { method: "POST", body: payload, token }),
@@ -40,6 +46,23 @@ export const api = {
   updatePurchaseOrder: (id, payload, token) => apiFetch(`/purchase-orders/${id}`, { method: "PUT", body: payload, token }),
   deletePurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}`, { method: "DELETE", token }),
   duplicatePurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}/duplicate`, { method: "POST", token }),
+  uploadBulkPurchaseOrders: async (formData, token) => {
+    const res = await fetch(`${API_URL}/purchase-orders/bulk-upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const error = new Error(data.error || `Upload failed: ${res.status}`);
+      error.bulkUploadId = data.bulkUploadId;
+      throw error;
+    }
+    return data;
+  },
+  downloadPurchaseOrderSample: (format = "csv") => {
+    window.open(`${API_URL}/purchase-orders/bulk-sample?format=${format}`, "_blank");
+  },
   confirmPurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}/confirm`, { method: "PATCH", token }),
 
   // GRN

@@ -86,7 +86,7 @@ export default function DebitNoteListPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">₹{(dn.grandTotal || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 capitalize">{dn.status}</td>
                   <td className="px-4 py-3">
-                    <a href={`/purchase/returns/${dn._id}`} className="text-blue-600 hover:underline">View</a>
+                    <a href={`/purchase/returns/${dn._id}`} title="View debit note" aria-label="View debit note" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
                   </td>
                 </tr>
               ))

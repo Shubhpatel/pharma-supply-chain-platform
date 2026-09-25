@@ -90,7 +90,7 @@ export default function SalesPage() {
                   <td className="px-4 py-2">₹{inv.totalAmount.toFixed(2)}</td>
                   <td className="px-4 py-2 capitalize">{inv.status}</td>
                   <td className="px-4 py-2 space-x-3 whitespace-nowrap">
-                    <a href={`/sales/${inv._id}`} className="text-blue-600 hover:underline">View</a>
+                    <a href={`/sales/${inv._id}`} title="View invoice" aria-label="View invoice" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
                     <button type="button" onClick={() => handleDuplicate(inv._id)} disabled={duplicatingId === inv._id} className="text-blue-600 hover:underline disabled:opacity-50">
                       {duplicatingId === inv._id ? "Duplicating..." : "Duplicate"}
                     </button>

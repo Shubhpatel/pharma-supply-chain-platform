@@ -75,7 +75,7 @@ export default function GrnPage() {
                   <td className="px-4 py-2">{g.totalQty}</td>
                   <td className="px-4 py-2">₹{g.totalValue.toFixed(2)}</td>
                   <td className="px-4 py-2 capitalize">{g.status}</td>
-                  <td className="px-4 py-2"><a href={`/grn/${g._id}`} className="text-blue-600 hover:underline">View</a></td>
+                  <td className="px-4 py-2"><a href={`/grn/${g._id}`} title="View GRN" aria-label="View GRN" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a></td>
                 </tr>
               ))}
             </tbody>
