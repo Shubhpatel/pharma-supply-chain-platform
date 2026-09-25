@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 export default function PurchasePage() {
   const [orders, setOrders] = useState([]);
@@ -12,6 +13,8 @@ export default function PurchasePage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ search: "", status: "", fromDate: "", toDate: "" });
+  const [duplicatingId, setDuplicatingId] = useState("");
+  const { token, showToast } = useApp();
 
   useEffect(() => {
     api.listPurchaseOrders()
@@ -19,6 +22,19 @@ export default function PurchasePage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleDuplicate(id) {
+    setDuplicatingId(id);
+    try {
+      const data = await api.duplicatePurchaseOrder(id, token);
+      showToast("Purchase order duplicated successfully.");
+      window.location.href = `/purchase/${data.purchaseOrder._id}`;
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setDuplicatingId("");
+    }
+  }
 
   const filteredOrders = orders.filter((order) => {
     const query = appliedFilters.search.toLowerCase();
@@ -45,6 +61,7 @@ export default function PurchasePage() {
         <input placeholder="Search PO or supplier" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-64" />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
           <option value="">All statuses</option>
+          <option value="draft">Draft</option>
           <option value="placed">Placed</option>
           <option value="partially_received">Partially received</option>
           <option value="received">Received</option>
@@ -78,7 +95,7 @@ export default function PurchasePage() {
                 <th className="px-4 py-2">Total Qty</th>
                 <th className="px-4 py-2">Pending Qty</th>
                 <th className="px-4 py-2">Total Price</th>
-                <th className="px-4 py-2"></th>
+                <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -93,8 +110,11 @@ export default function PurchasePage() {
                   <td className="px-4 py-2">{o.totalQty}</td>
                   <td className="px-4 py-2">{o.pendingQty}</td>
                   <td className="px-4 py-2">₹{o.totalPrice.toFixed(2)}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 space-x-3 whitespace-nowrap">
                     <a href={`/purchase/${o._id}`} className="text-blue-600 hover:underline">View</a>
+                    <button type="button" onClick={() => handleDuplicate(o._id)} disabled={duplicatingId === o._id} className="text-blue-600 hover:underline disabled:opacity-50">
+                      {duplicatingId === o._id ? "Duplicating..." : "Duplicate"}
+                    </button>
                   </td>
                 </tr>
               ))}

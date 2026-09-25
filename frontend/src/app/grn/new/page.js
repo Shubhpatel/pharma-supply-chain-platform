@@ -8,6 +8,7 @@ import SearchableSelect from "@/components/SearchableSelect";
 
 export default function NewGrnPage() {
   const router = useRouter();
+  const [editId, setEditId] = useState(undefined);
   const { token, user, showToast } = useApp();
   const [openPos, setOpenPos] = useState([]);
   const [selectedPoId, setSelectedPoId] = useState("");
@@ -19,7 +20,22 @@ export default function NewGrnPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.listOpenPurchaseOrders().then((d) => setOpenPos(d.purchaseOrders)).catch((e) => setError(e.message));
+    const currentEditId = new URLSearchParams(window.location.search).get("edit");
+    setEditId(currentEditId);
+    Promise.all([
+      api.listOpenPurchaseOrders(),
+      currentEditId ? api.getGrn(currentEditId) : Promise.resolve(null),
+    ]).then(([poData, grnData]) => {
+      setOpenPos(poData.purchaseOrders);
+      if (grnData) {
+        const grn = grnData.grn;
+        setSelectedPoId(grn.purchaseOrder?._id || grn.purchaseOrder || "");
+        setGrnDate(new Date(grn.grnDate).toISOString().slice(0, 10));
+        setPurchaseInvoiceNumber(grn.purchaseInvoiceNumber || "");
+        setPurchaseInvoiceDate(new Date(grn.purchaseInvoiceDate).toISOString().slice(0, 10));
+        setItems(grn.items.map((item) => ({ ...item, qtyOrdered: item.qtyOrdered, qtyReceived: String(item.qtyReceived), mrp: String(item.mrp), rate: String(item.rate), gstRate: String(item.gstRate || 0) })));
+      }
+    }).catch((e) => setError(e.message));
   }, []);
 
   function handleSelectPo(poId) {
@@ -68,8 +84,8 @@ export default function NewGrnPage() {
         purchaseInvoiceDate,
         items: items.map((i) => ({ ...i, qtyReceived: Number(i.qtyReceived) })),
       };
-      const data = await api.createGrn(payload, token);
-      showToast("GRN created successfully.");
+      const data = editId ? await api.updateGrn(editId, payload, token) : await api.createGrn(payload, token);
+      showToast(editId ? "GRN updated successfully." : "GRN created successfully.");
       router.push(`/grn/${data.grn._id}`);
     } catch (err) {
       setError(err.message);
@@ -81,7 +97,7 @@ export default function NewGrnPage() {
 
   return (
     <div className="w-full space-y-6">
-      <h1 className="text-xl font-semibold">Add a GRN</h1>
+      <h1 className="text-xl font-semibold">{editId ? "Edit GRN" : "Add a GRN"}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -164,7 +180,7 @@ export default function NewGrnPage() {
         <div className="flex gap-3">
           <button type="submit" disabled={loading || items.length === 0}
             className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-            {loading ? "Saving..." : "Confirm GRN"}
+            {loading ? "Saving..." : editId ? "Update GRN" : "Save GRN"}
           </button>
           <a href="/grn" className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</a>
         </div>

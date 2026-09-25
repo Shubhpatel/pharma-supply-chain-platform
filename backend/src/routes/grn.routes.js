@@ -18,8 +18,11 @@ router.post("/", requireAuth, async (req, res) => {
 
     const po = await PurchaseOrder.findById(purchaseOrderId);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!["placed", "partially_received"].includes(po.status)) {
+      return res.status(400).json({ error: "GRNs can only be created against confirmed purchase orders" });
+    }
 
-    const existingGrns = await Grn.find({ purchaseOrder: po._id }).select("items.sku items.qtyReceived");
+    const existingGrns = await Grn.find({ purchaseOrder: po._id, status: "confirmed" }).select("items.sku items.qtyReceived");
     const receivedBySku = {};
     for (const grn of existingGrns) {
       for (const item of grn.items) {
@@ -81,8 +84,101 @@ router.post("/", requireAuth, async (req, res) => {
       createdBy: req.user.id,
     });
 
-    // Keep stock separated by lot and pricing details.
-    for (const item of itemsWithAmount) {
+    return res.status(201).json({ grn });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/grn/:id - updates a draft GRN before it affects inventory
+router.put("/:id", requireAuth, async (req, res) => {
+  try {
+    const { grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
+    const grn = await Grn.findById(req.params.id);
+    if (!grn) return res.status(404).json({ error: "GRN not found" });
+    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be edited" });
+    if (!grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
+      return res.status(400).json({ error: "grnDate, purchaseInvoiceNumber, purchaseInvoiceDate and at least one item are required" });
+    }
+
+    const po = await PurchaseOrder.findById(grn.purchaseOrder);
+    if (!po || !["placed", "partially_received"].includes(po.status)) {
+      return res.status(400).json({ error: "The linked purchase order is not confirmed" });
+    }
+    const existingGrns = await Grn.find({ purchaseOrder: po._id, status: "confirmed" }).select("items.sku items.qtyReceived");
+    const receivedBySku = {};
+    for (const existingGrn of existingGrns) {
+      for (const item of existingGrn.items) receivedBySku[String(item.sku)] = (receivedBySku[String(item.sku)] || 0) + item.qtyReceived;
+    }
+    const orderedBySku = {};
+    for (const item of po.items) orderedBySku[String(item.sku)] = (orderedBySku[String(item.sku)] || 0) + item.qty;
+    const requestedBySku = {};
+    for (const item of items) {
+      const skuId = String(item.sku);
+      const qtyReceived = Number(item.qtyReceived);
+      const poItem = po.items.find((currentItem) => String(currentItem.sku) === skuId);
+      if (!poItem) return res.status(400).json({ error: `SKU ${item.skuName || skuId} is not part of this purchase order` });
+      if (Number(item.gstRate || 0) !== Number(poItem.gstRate || 0)) return res.status(400).json({ error: `GST for ${item.skuName || skuId} must match the purchase order` });
+      if (!Number.isFinite(qtyReceived) || qtyReceived < 0) return res.status(400).json({ error: `Received quantity for ${item.skuName || skuId} must be a non-negative number` });
+      requestedBySku[skuId] = (requestedBySku[skuId] || 0) + qtyReceived;
+    }
+    for (const [skuId, requestedQty] of Object.entries(requestedBySku)) {
+      const pendingQty = orderedBySku[skuId] - (receivedBySku[skuId] || 0);
+      if (requestedQty > pendingQty) return res.status(400).json({ error: `Received quantity for SKU ${skuId} exceeds the pending quantity of ${pendingQty}` });
+    }
+    const itemsWithAmount = items.map((i) => {
+      const itemGstRate = Number(i.gstRate || 0);
+      if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
+      const amount = Number(i.qtyReceived) * Number(i.rate);
+      return { ...i, qtyReceived: Number(i.qtyReceived), rate: Number(i.rate), mrp: Number(i.mrp), gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
+    });
+    const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
+    const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
+    const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
+    Object.assign(grn, {
+      grnDate,
+      purchaseInvoiceNumber: purchaseInvoiceNumber.trim(),
+      purchaseInvoiceDate,
+      items: itemsWithAmount,
+      totalQty,
+      totalValue,
+      gstRate: 0,
+      gstAmount,
+      grandTotal: totalValue + gstAmount,
+    });
+    await grn.save();
+    return res.json({ grn });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/grn/:id - deletes a draft GRN
+router.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const grn = await Grn.findById(req.params.id);
+    if (!grn) return res.status(404).json({ error: "GRN not found" });
+    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be deleted" });
+    await grn.deleteOne();
+    return res.json({ message: "GRN deleted" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/grn/:id/confirm - adds received stock and updates the linked PO
+router.patch("/:id/confirm", requireAuth, async (req, res) => {
+  try {
+    const grn = await Grn.findById(req.params.id);
+    if (!grn) return res.status(404).json({ error: "GRN not found" });
+    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be confirmed" });
+
+    const po = await PurchaseOrder.findById(grn.purchaseOrder);
+    if (!po || !["placed", "partially_received"].includes(po.status)) {
+      return res.status(400).json({ error: "The linked purchase order is not confirmed" });
+    }
+
+    for (const item of grn.items) {
       await Stock.findOneAndUpdate(
         { sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate },
         { $inc: { qty: item.qtyReceived } },
@@ -90,19 +186,23 @@ router.post("/", requireAuth, async (req, res) => {
       );
     }
 
-    // Figure out if the PO is now fully received, or only partially.
-    const totalReceivedBySku = { ...receivedBySku };
-    for (const [skuId, qty] of Object.entries(requestedBySku)) {
-      totalReceivedBySku[skuId] = (totalReceivedBySku[skuId] || 0) + qty;
+    const existingGrns = await Grn.find({ purchaseOrder: po._id, status: "confirmed" }).select("items.sku items.qtyReceived");
+    const receivedBySku = {};
+    for (const existingGrn of existingGrns) {
+      for (const item of existingGrn.items) {
+        receivedBySku[String(item.sku)] = (receivedBySku[String(item.sku)] || 0) + item.qtyReceived;
+      }
     }
-    const fullyReceived = Object.keys(orderedBySku).every(
-      (skuId) => (totalReceivedBySku[skuId] || 0) >= orderedBySku[skuId]
-    );
-
+    for (const item of grn.items) {
+      receivedBySku[String(item.sku)] = (receivedBySku[String(item.sku)] || 0) + item.qtyReceived;
+    }
+    const fullyReceived = po.items.every((item) => receivedBySku[String(item.sku)] >= item.qty);
     po.status = fullyReceived ? "received" : "partially_received";
     await po.save();
 
-    return res.status(201).json({ grn });
+    grn.status = "confirmed";
+    await grn.save();
+    return res.json({ grn });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

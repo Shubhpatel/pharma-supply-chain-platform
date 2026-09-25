@@ -64,21 +64,19 @@ export default function CreditNoteListPage() {
               <th className="px-4 py-3">Total Amount</th>
               <th className="px-4 py-3">GST</th>
               <th className="px-4 py-3">Grand Total</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan="8" className="p-4 text-center text-gray-500">Loading credit notes...</td></tr>
+              <tr><td colSpan="10" className="p-4 text-center text-gray-500">Loading credit notes...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan="8" className="p-4 text-center text-gray-500">No credit notes found.</td></tr>
+              <tr><td colSpan="10" className="p-4 text-center text-gray-500">No credit notes found.</td></tr>
             ) : (
               filtered.map((cn) => (
                 <tr key={cn._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
-                    <a href={`/sales/returns/${cn._id}`} className="text-teal-700 hover:underline">
-                      {cn.creditNoteNumber}
-                    </a>
-                  </td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{cn.creditNoteNumber}</td>
                   <td className="px-4 py-3 text-gray-600">{cn.invoiceNumber}</td>
                   <td className="px-4 py-3 text-gray-900">{cn.customerName}</td>
                   <td className="px-4 py-3 text-gray-600">{new Date(cn.returnDate).toLocaleDateString()}</td>
@@ -86,6 +84,10 @@ export default function CreditNoteListPage() {
                   <td className="px-4 py-3 text-gray-600">₹{(cn.totalAmount || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-gray-600">₹{(cn.gstAmount || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">₹{(cn.grandTotal || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 capitalize">{cn.status}</td>
+                  <td className="px-4 py-3">
+                    <a href={`/sales/returns/${cn._id}`} className="text-blue-600 hover:underline">View</a>
+                  </td>
                 </tr>
               ))
             )}

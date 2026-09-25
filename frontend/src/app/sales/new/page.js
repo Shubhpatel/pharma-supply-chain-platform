@@ -9,6 +9,8 @@ import SearchableSelect from "@/components/SearchableSelect";
 
 export default function NewInvoicePage() {
   const router = useRouter();
+  const [duplicateId, setDuplicateId] = useState(undefined);
+  const [editId, setEditId] = useState(undefined);
   const { token, user, showToast } = useApp();
   const [skus, setSkus] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -19,14 +21,40 @@ export default function NewInvoicePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.listSkus(true), api.listStock(), api.listParties("customer")])
-      .then(([skuData, stockData, customerData]) => {
+    setDuplicateId(new URLSearchParams(window.location.search).get("duplicate"));
+    setEditId(new URLSearchParams(window.location.search).get("edit"));
+  }, []);
+
+  useEffect(() => {
+    if (duplicateId === undefined || editId === undefined) return;
+    const sourceId = editId || duplicateId;
+    const sourceRequest = sourceId ? api.getInvoice(sourceId) : Promise.resolve(null);
+    Promise.all([api.listSkus(true), api.listStock(), api.listParties("customer"), sourceRequest])
+      .then(([skuData, stockData, customerData, sourceData]) => {
         setSkus(skuData.skus);
         setInventory(stockData.stock || []);
         setCustomers(customerData.parties);
+        if (sourceData) {
+          const source = sourceData.invoice;
+          setForm({
+            customerId: source.customer?._id || source.customer || "",
+            customerName: source.customerName || "",
+            saleDate: editId ? new Date(source.saleDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+          });
+          setItems(source.items.map((item) => ({
+            sku: item.sku,
+            skuName: item.skuName,
+            batch: item.batch || "",
+            expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString().slice(0, 10) : "",
+            mrp: String(item.mrp),
+            qty: String(item.qty),
+            rate: String(item.rate),
+            gstRate: String(item.gstRate || 0),
+          })));
+        }
       })
       .catch((e) => setError(e.message));
-  }, []);
+  }, [duplicateId, editId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -50,8 +78,8 @@ export default function NewInvoicePage() {
           gstRate: Number(i.gstRate),
         })),
       };
-      const data = await api.createInvoice(payload, token);
-      showToast("Invoice created successfully.");
+      const data = editId ? await api.updateInvoice(editId, payload, token) : await api.createInvoice(payload, token);
+      showToast(editId ? "Invoice updated successfully." : "Invoice created successfully.");
       router.push(`/sales/${data.invoice._id}`);
     } catch (err) {
       setError(err.message);
@@ -63,7 +91,7 @@ export default function NewInvoicePage() {
 
   return (
     <div className="w-full space-y-6">
-      <h1 className="text-xl font-semibold">Add Invoice</h1>
+      <h1 className="text-xl font-semibold">{editId ? "Edit Invoice" : duplicateId ? "Duplicate Invoice" : "Add Invoice"}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -91,7 +119,7 @@ export default function NewInvoicePage() {
         <div className="flex gap-3">
           <button type="submit" disabled={loading}
             className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-            {loading ? "Saving..." : "Save Invoice"}
+            {loading ? "Saving..." : editId ? "Update Invoice" : "Save Invoice"}
           </button>
           <a href="/sales" className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</a>
         </div>

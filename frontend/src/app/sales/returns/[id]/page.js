@@ -3,11 +3,25 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 export default function CreditNoteDetailPage() {
   const { id } = useParams();
   const [creditNote, setCreditNote] = useState(null);
   const [error, setError] = useState("");
+  const { token, showToast } = useApp();
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this draft credit note?")) return;
+    try {
+      await api.deleteCreditNote(id, token);
+      showToast("Credit note deleted.");
+      window.location.href = "/sales/returns";
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
 
   useEffect(() => {
     api.getCreditNote(id)
@@ -18,6 +32,17 @@ export default function CreditNoteDetailPage() {
   if (error) return <p className="text-sm text-red-600 p-4">{error}</p>;
   if (!creditNote) return <p className="text-sm text-gray-500 p-4">Loading Credit Note...</p>;
 
+  async function handleConfirm() {
+    try {
+      const data = await api.confirmCreditNote(id, token);
+      setCreditNote(data.creditNote);
+      showToast("Credit note confirmed and inventory updated.");
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
+
   return (
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between print:hidden">
@@ -25,12 +50,12 @@ export default function CreditNoteDetailPage() {
           <h1 className="text-xl font-semibold text-gray-900">{creditNote.creditNoteNumber}</h1>
           <p className="text-sm text-gray-500">Credit Note / Sales Return</p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition"
-        >
-          Print Credit Note
-        </button>
+        <div className="flex gap-2">
+          {creditNote.status === "draft" && <a href={`/sales/returns/new?edit=${creditNote._id}`} className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 text-sm rounded-lg">Edit</a>}
+          {creditNote.status === "draft" && <button onClick={handleDelete} className="border border-red-600 text-red-700 hover:bg-red-50 font-medium px-4 py-2 text-sm rounded-lg">Delete</button>}
+          {creditNote.status === "draft" && <button onClick={handleConfirm} className="bg-teal-700 text-white hover:bg-teal-800 font-medium px-4 py-2 text-sm rounded-lg">Confirm</button>}
+          <button onClick={() => window.print()} className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition">Print Credit Note</button>
+        </div>
       </div>
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm shadow-sm">
@@ -40,6 +65,7 @@ export default function CreditNoteDetailPage() {
         <div><div className="text-gray-500 text-xs">Customer Name</div>{creditNote.customerName}</div>
         <div><div className="text-gray-500 text-xs">Created By</div>{creditNote.createdBy?.name || "-"}</div>
         <div><div className="text-gray-500 text-xs">Reason for Return</div>{creditNote.reason || "N/A"}</div>
+        <div><div className="text-gray-500 text-xs">Status</div>{creditNote.status}</div>
       </div>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">

@@ -21,7 +21,7 @@ const purchaseOrderSchema = new mongoose.Schema(
     orderDate: { type: Date, required: true },
     paymentTerm: { type: String, default: "" }, // e.g. "Net 30", "Advance"
     expectedDeliveryDate: { type: Date },
-    status: { type: String, enum: ["placed", "partially_received", "received", "cancelled"], default: "placed" },
+    status: { type: String, enum: ["draft", "placed", "partially_received", "received", "cancelled"], default: "draft" },
     items: { type: [poItemSchema], validate: (v) => v.length > 0 },
     totalQty: { type: Number, required: true },
     totalPrice: { type: Number, required: true },
