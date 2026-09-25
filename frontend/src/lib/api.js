@@ -25,12 +25,38 @@ export const api = {
   updateSku: (id, payload, token) => apiFetch(`/skus/${id}`, { method: "PUT", body: payload, token }),
   toggleSku: (id, token) => apiFetch(`/skus/${id}/toggle`, { method: "PATCH", token }),
   deleteSku: (id, token) => apiFetch(`/skus/${id}`, { method: "DELETE", token }),
+  downloadSkus: async (format, token) => {
+    const res = await fetch(`${API_URL}/skus/export?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `skus.${format === "xlsx" ? "xlsx" : "csv"}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  },
 
   // SKU locations
   listSkuLocations: (enabledOnly) => apiFetch(`/sku-locations${enabledOnly ? "?enabled=true" : ""}`),
   createSkuLocation: (payload, token) => apiFetch("/sku-locations", { method: "POST", body: payload, token }),
   updateSkuLocation: (id, payload, token) => apiFetch(`/sku-locations/${id}`, { method: "PUT", body: payload, token }),
   deleteSkuLocation: (id, token) => apiFetch(`/sku-locations/${id}`, { method: "DELETE", token }),
+  downloadSkuLocations: async (format, token) => {
+    const res = await fetch(`${API_URL}/sku-locations/export?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sku_locations.${format === "xlsx" ? "xlsx" : "csv"}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  },
 
   // Vendors and customers
   listParties: (type) => apiFetch(`/parties?type=${type}`),

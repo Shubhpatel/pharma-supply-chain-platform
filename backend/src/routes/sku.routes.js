@@ -1,5 +1,6 @@
 const express = require("express");
 const crypto = require("crypto");
+const XLSX = require("xlsx");
 const { requireAuth } = require("../middleware/auth");
 const Sku = require("../models/Sku");
 
@@ -17,6 +18,37 @@ router.get("/", async (req, res) => {
       await sku.save();
     }));
     return res.json({ skus });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/export", requireAuth, async (req, res) => {
+  try {
+    const skus = await Sku.find().sort({ name: 1 });
+    const rows = skus.map((sku) => ({
+      "Master UID": sku.uid || "",
+      Name: sku.name,
+      "HSN Code": sku.hsnCode || "",
+      Category: sku.category || "",
+      "Sub Category": sku.subCategory || "",
+      Manufacturer: sku.manufacturer || "",
+      UOM: sku.uom || "",
+      MRP: sku.mrp,
+      Status: sku.enabled ? "Enabled" : "Disabled",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: ["Master UID", "Name", "HSN Code", "Category", "Sub Category", "Manufacturer", "UOM", "MRP", "Status"] });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "SKUs");
+    const format = (req.query.format || "csv").toLowerCase();
+    if (format === "xlsx" || format === "excel") {
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=skus.xlsx");
+      return res.send(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
+    }
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=skus.csv");
+    return res.send(XLSX.utils.sheet_to_csv(worksheet));
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

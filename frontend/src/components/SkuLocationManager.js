@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
+import BulkUploadModal from "@/components/BulkUploadModal";
 
 const BLANK_FORM = { sku: "", location: "" };
 
@@ -17,6 +18,7 @@ export default function SkuLocationManager() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [showBulkModal, setShowBulkModal] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -104,9 +106,33 @@ export default function SkuLocationManager() {
     }
   }
 
+  async function handleExport(format) {
+    try {
+      await api.downloadSkuLocations(format, token);
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-end">
+      <BulkUploadModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        initialMasterType="sku-location"
+        onSuccess={load}
+      />
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button type="button" onClick={() => handleExport("csv")} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Export CSV
+        </button>
+        <button type="button" onClick={() => handleExport("xlsx")} className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          Export Excel
+        </button>
+        <button type="button" onClick={() => setShowBulkModal(true)} className="rounded-md border border-teal-700 px-4 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50">
+          Add Bulk Location
+        </button>
         <button type="button" onClick={startAdd} className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">
           Add SKU Location
         </button>
