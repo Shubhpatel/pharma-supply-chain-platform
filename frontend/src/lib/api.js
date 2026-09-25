@@ -51,6 +51,15 @@ export const api = {
   getInvoice: (id) => apiFetch(`/sales/${id}`),
   createInvoice: (payload, token) => apiFetch("/sales", { method: "POST", body: payload, token }),
 
+  // Purchase Returns (Debit Notes)
+  listDebitNotes: () => apiFetch("/debit-notes"),
+  getDebitNote: (id) => apiFetch(`/debit-notes/${id}`),
+  createDebitNote: (payload, token) => apiFetch("/debit-notes", { method: "POST", body: payload, token }),
+
+  // Sales Returns (Credit Notes)
+  listCreditNotes: () => apiFetch("/credit-notes"),
+  getCreditNote: (id) => apiFetch(`/credit-notes/${id}`),
+  createCreditNote: (payload, token) => apiFetch("/credit-notes", { method: "POST", body: payload, token }),
   // Reports
   getSalesReport: (params, token) => {
     const q = new URLSearchParams(params).toString();
