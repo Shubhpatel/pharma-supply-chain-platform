@@ -106,7 +106,7 @@ router.put("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
     const { grnId, returnDate, reason, items } = req.body;
     const debitNote = await DebitNote.findById(req.params.id);
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
-    if (debitNote.status !== "draft") return res.status(400).json({ error: "Only draft debit notes can be edited" });
+    if (debitNote.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft debit notes can be edited" });
     if (!grnId || !returnDate || !items || items.length === 0) {
       return res.status(400).json({ error: "grnId, returnDate and at least one item are required" });
     }
@@ -196,7 +196,7 @@ router.delete("/:id", requireAuth, requirePermission("pr"), async (req, res) => 
   try {
     const debitNote = await DebitNote.findById(req.params.id);
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
-    if (debitNote.status !== "draft") return res.status(400).json({ error: "Only draft debit notes can be deleted" });
+    if (debitNote.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft debit notes can be deleted" });
     await debitNote.deleteOne();
     return res.json({ message: "Debit note deleted" });
   } catch (err) {

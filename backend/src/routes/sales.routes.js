@@ -66,7 +66,7 @@ router.put("/:id", requireAuth, requirePermission("invoice"), async (req, res) =
     const { customerId, customerName, saleDate, items } = req.body;
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
-    if (invoice.status !== "draft") return res.status(400).json({ error: "Only draft invoices can be edited" });
+    if (invoice.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft invoices can be edited" });
     if ((!customerId && !customerName) || !saleDate || !items || items.length === 0) {
       return res.status(400).json({ error: "customer, saleDate and at least one item are required" });
     }
@@ -105,7 +105,7 @@ router.delete("/:id", requireAuth, requirePermission("invoice"), async (req, res
   try {
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
-    if (invoice.status !== "draft") return res.status(400).json({ error: "Only draft invoices can be deleted" });
+    if (invoice.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft invoices can be deleted" });
     await invoice.deleteOne();
     return res.json({ message: "Invoice deleted" });
   } catch (err) {

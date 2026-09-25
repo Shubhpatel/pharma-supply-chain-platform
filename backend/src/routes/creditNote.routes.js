@@ -106,7 +106,7 @@ router.put("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
     const { invoiceId, returnDate, reason, items } = req.body;
     const creditNote = await CreditNote.findById(req.params.id);
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
-    if (creditNote.status !== "draft") return res.status(400).json({ error: "Only draft credit notes can be edited" });
+    if (creditNote.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft credit notes can be edited" });
     if (!invoiceId || !returnDate || !items || items.length === 0) {
       return res.status(400).json({ error: "invoiceId, returnDate and at least one item are required" });
     }
@@ -196,7 +196,7 @@ router.delete("/:id", requireAuth, requirePermission("sr"), async (req, res) => 
   try {
     const creditNote = await CreditNote.findById(req.params.id);
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
-    if (creditNote.status !== "draft") return res.status(400).json({ error: "Only draft credit notes can be deleted" });
+    if (creditNote.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft credit notes can be deleted" });
     await creditNote.deleteOne();
     return res.json({ message: "Credit note deleted" });
   } catch (err) {

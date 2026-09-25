@@ -84,7 +84,7 @@ router.put("/:id", requireAuth, requirePermission("po"), async (req, res) => {
     const { items } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
-    if (!["draft", "placed"].includes(po.status)) return res.status(400).json({ error: "Only draft or confirmed purchase orders can be edited" });
+    if (!["draft", "placed"].includes(po.status) && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft or confirmed purchase orders can be edited" });
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "At least one item is required" });
     }
@@ -118,7 +118,7 @@ router.delete("/:id", requireAuth, requirePermission("po"), async (req, res) => 
   try {
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
-    if (!["draft", "placed"].includes(po.status)) return res.status(400).json({ error: "Only draft or placed purchase orders can be deleted" });
+    if (!["draft", "placed"].includes(po.status) && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft or placed purchase orders can be deleted" });
     await po.deleteOne();
     return res.json({ message: "Purchase order deleted" });
   } catch (err) {

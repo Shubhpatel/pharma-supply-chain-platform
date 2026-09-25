@@ -1,5 +1,4 @@
-// Run once: `npm run seed` (from backend/). Creates a login user and a
-// handful of sample SKUs so Purchase/Sales dropdowns aren't empty on first run.
+// Run `npm run seed` from backend/ to provision the admin account and sample SKUs.
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const connectDB = require("../config/db");
@@ -12,16 +11,22 @@ async function seed() {
   const name = process.env.SEED_NAME || "Admin";
   const email = (process.env.SEED_EMAIL || "admin@pharma.local").toLowerCase();
   const password = process.env.SEED_PASSWORD || "admin123";
+  const passwordHash = await bcrypt.hash(password, 10);
+  const permissions = User.getDefaultPermissions("ADMIN");
 
   const existingUser = await User.findOne({ email });
   if (!existingUser) {
-    const passwordHash = await bcrypt.hash(password, 10);
-    await User.create({ name, email, passwordHash });
+    await User.create({ name, email, passwordHash, role: "ADMIN", permissions });
     console.log("User created:");
     console.log("  email:   ", email);
     console.log("  password:", password);
   } else {
-    console.log(`User already exists: ${email}`);
+    existingUser.name = name;
+    existingUser.passwordHash = passwordHash;
+    existingUser.role = "ADMIN";
+    existingUser.permissions = permissions;
+    await existingUser.save();
+    console.log(`Admin user updated: ${email}`);
   }
 
   const sampleSkus = [

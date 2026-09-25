@@ -96,13 +96,13 @@ router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
     const { grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
-    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be edited" });
+    if (grn.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft GRNs can be edited" });
     if (!grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
       return res.status(400).json({ error: "grnDate, purchaseInvoiceNumber, purchaseInvoiceDate and at least one item are required" });
     }
 
     const po = await PurchaseOrder.findById(grn.purchaseOrder);
-    if (!po || !["placed", "partially_received"].includes(po.status)) {
+    if (!po || (!["placed", "partially_received"].includes(po.status) && req.user.role !== "ADMIN")) {
       return res.status(400).json({ error: "The linked purchase order is not confirmed" });
     }
     const existingGrns = await Grn.find({ purchaseOrder: po._id, status: "confirmed" }).select("items.sku items.qtyReceived");
@@ -158,7 +158,7 @@ router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res) =>
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
-    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be deleted" });
+    if (grn.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft GRNs can be deleted" });
     await grn.deleteOne();
     return res.json({ message: "GRN deleted" });
   } catch (err) {

@@ -86,8 +86,8 @@ export default function PurchaseOrderDetailPage() {
         </div>
         <div className="no-print flex items-center gap-2">
           <button type="button" onClick={handleDuplicate} disabled={duplicating} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">{duplicating ? "Duplicating..." : "Duplicate"}</button>
-          {["draft", "placed"].includes(po.status) && <a href={`/purchase/new?edit=${po._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
-          {["draft", "placed"].includes(po.status) && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
+          {(["draft", "placed"].includes(po.status) || user?.role === "ADMIN") && <a href={`/purchase/new?edit=${po._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
+          {(["draft", "placed"].includes(po.status) || user?.role === "ADMIN") && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
           {po.status === "draft" && <button type="button" onClick={handleConfirm} className="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Confirm PO</button>}
           <button onClick={handlePrint} type="button" className="inline-flex items-center gap-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

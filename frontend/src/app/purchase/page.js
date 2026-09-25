@@ -17,11 +17,12 @@ export default function PurchasePage() {
   const { token, showToast } = useApp();
 
   useEffect(() => {
-    api.listPurchaseOrders()
+    if (!token) return;
+    api.listPurchaseOrders(token)
       .then((d) => setOrders(d.purchaseOrders))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   async function handleDuplicate(id) {
     setDuplicatingId(id);

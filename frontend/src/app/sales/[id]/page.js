@@ -85,8 +85,8 @@ export default function InvoiceDetailPage() {
         </div>
         <div className="no-print flex items-center gap-2">
           <button type="button" onClick={handleDuplicate} disabled={duplicating} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">{duplicating ? "Duplicating..." : "Duplicate"}</button>
-          {invoice.status === "draft" && <a href={`/sales/new?edit=${invoice._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
-          {invoice.status === "draft" && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
+          {(invoice.status === "draft" || user?.role === "ADMIN") && <a href={`/sales/new?edit=${invoice._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
+          {(invoice.status === "draft" || user?.role === "ADMIN") && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 text-red-700 hover:bg-red-50 font-medium px-4 py-2 text-sm rounded-lg">Delete</button>}
           {invoice.status === "draft" && <button type="button" onClick={handleConfirm} className="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Confirm Invoice</button>}
           {invoice.status === "confirmed" && <a href={`/sales/returns/new?invoiceId=${invoice._id}`} className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">Sales Return</a>}
           <button onClick={handlePrint} type="button" className="inline-flex items-center gap-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 shadow-sm">
