@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const DebitNote = require("../models/DebitNote");
 const Grn = require("../models/Grn");
 const Stock = require("../models/Stock");
@@ -8,7 +8,7 @@ const { nextNumber } = require("../utils/idGenerator");
 const router = express.Router();
 
 // POST /api/debit-notes
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     const { grnId, returnDate, reason, items } = req.body;
     if (!grnId || !returnDate || !items || items.length === 0) {
@@ -19,7 +19,6 @@ router.post("/", requireAuth, async (req, res) => {
     if (!grn) return res.status(404).json({ error: "GRN not found" });
     if (grn.status !== "confirmed") return res.status(400).json({ error: "Purchase returns require a confirmed GRN" });
 
-    // Fetch existing debit notes for this GRN to calculate already returned quantities
     const existingDebitNotes = await DebitNote.find({ grn: grn._id });
     const returnedQtyBySkuBatch = {};
     for (const dn of existingDebitNotes) {
@@ -29,13 +28,11 @@ router.post("/", requireAuth, async (req, res) => {
       }
     }
 
-    // Process and validate items
     const itemsToReturn = [];
     for (const item of items) {
       const returnQty = Number(item.qty || 0);
       if (returnQty <= 0) continue;
 
-      // Find item in original GRN
       const grnItem = grn.items.find(
         (gi) => String(gi.sku) === String(item.sku) && gi.batch === item.batch
       );
@@ -103,8 +100,8 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/debit-notes/:id - update a draft purchase return
-router.put("/:id", requireAuth, async (req, res) => {
+// PUT /api/debit-notes/:id
+router.put("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     const { grnId, returnDate, reason, items } = req.body;
     const debitNote = await DebitNote.findById(req.params.id);
@@ -194,8 +191,8 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/debit-notes/:id - delete a draft purchase return
-router.delete("/:id", requireAuth, async (req, res) => {
+// DELETE /api/debit-notes/:id
+router.delete("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     const debitNote = await DebitNote.findById(req.params.id);
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
@@ -207,8 +204,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/debit-notes/:id/confirm - deducts returned stock
-router.patch("/:id/confirm", requireAuth, async (req, res) => {
+// PATCH /api/debit-notes/:id/confirm
+router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     const debitNote = await DebitNote.findById(req.params.id);
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
@@ -239,8 +236,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/debit-notes - list summary
-router.get("/", async (req, res) => {
+// GET /api/debit-notes
+router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     const debitNotes = await DebitNote.find()
       .select("debitNoteNumber grnNumber supplierName returnDate totalQty totalAmount gstAmount grandTotal reason status")
@@ -251,8 +248,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/debit-notes/:id - full detail
-router.get("/:id", async (req, res) => {
+// GET /api/debit-notes/:id
+router.get("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     const debitNote = await DebitNote.findById(req.params.id)
       .populate("createdBy", "name")

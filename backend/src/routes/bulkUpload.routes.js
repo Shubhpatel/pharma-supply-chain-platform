@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const XLSX = require("xlsx");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const BulkUpload = require("../models/BulkUpload");
 const Sku = require("../models/Sku");
 const Party = require("../models/Party");
@@ -28,7 +28,6 @@ const SAMPLE_DATA = {
   ],
 };
 
-// GET /api/bulk-uploads/sample?masterType=sku&format=csv|excel
 router.get("/sample", (req, res) => {
   try {
     const masterType = (req.query.masterType || "sku").toLowerCase();
@@ -59,8 +58,7 @@ router.get("/sample", (req, res) => {
   }
 });
 
-// GET /api/bulk-uploads - List all bulk upload history
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const history = await BulkUpload.find()
       .populate("createdBy", "name email")
@@ -71,8 +69,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/bulk-uploads/:id/error-file?format=csv|excel
-router.get("/:id/error-file", requireAuth, async (req, res) => {
+router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const uploadJob = await BulkUpload.findById(req.params.id);
     if (!uploadJob) return res.status(404).json({ error: "Upload job not found" });
@@ -83,7 +80,6 @@ router.get("/:id/error-file", requireAuth, async (req, res) => {
 
     const format = (req.query.format || "csv").toLowerCase();
 
-    // Map error rows to include original row data + Error Details column
     const errorRows = uploadJob.errorDetails.map((item) => {
       const rowObj = { ...item.data };
       rowObj["Row Number"] = item.rowNumber;
@@ -111,8 +107,7 @@ router.get("/:id/error-file", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bulk-uploads
-router.post("/", requireAuth, upload.single("file"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -123,7 +118,6 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "Invalid master type specified" });
     }
 
-    // Parse CSV / Excel
     let workbook;
     try {
       workbook = XLSX.read(req.file.buffer, { type: "buffer" });
@@ -147,15 +141,13 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     const validatedRecords = [];
     const errorDetails = [];
 
-    // Helper function to get row value case-insensitively
     const getVal = (row, fieldName) => {
       const key = Object.keys(row).find((k) => k.trim().toLowerCase() === fieldName.toLowerCase());
       return key !== undefined ? String(row[key]).trim() : "";
     };
 
-    // Validate every row
     rawRows.forEach((row, idx) => {
-      const rowNumber = idx + 2; // header is row 1
+      const rowNumber = idx + 2;
       const rowErrors = [];
 
       if (masterType === "sku") {
@@ -218,7 +210,6 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
 
     let bulkRecord;
     if (hasErrors) {
-      // If ANY row has error -> do NOT save any data, record status as 'error'
       bulkRecord = await BulkUpload.create({
         fileName: req.file.originalname,
         masterType,
@@ -236,7 +227,6 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
         upload: bulkRecord,
       });
     } else {
-      // Save all records
       if (masterType === "sku") {
         await Sku.insertMany(validatedRecords);
       } else {

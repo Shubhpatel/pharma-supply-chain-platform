@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const PurchaseOrder = require("../models/PurchaseOrder");
 const Grn = require("../models/Grn");
 const Party = require("../models/Party");
@@ -34,8 +34,8 @@ async function receivedQuantitiesByPo(poIds) {
   return byPo;
 }
 
-// POST /api/purchase-orders  { supplierName, orderDate, paymentTerm, expectedDeliveryDate, items: [{sku, skuName, qty, rate}] }
-router.post("/", requireAuth, async (req, res) => {
+// POST /api/purchase-orders
+router.post("/", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const { supplierId, supplierName, orderDate, paymentTerm, expectedDeliveryDate, gstRate, items } = req.body;
     if ((!supplierId && !supplierName) || !orderDate || !items || items.length === 0) {
@@ -78,8 +78,8 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/purchase-orders/:id - updates a draft or placed purchase order
-router.put("/:id", requireAuth, async (req, res) => {
+// PUT /api/purchase-orders/:id
+router.put("/:id", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const { items } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
@@ -113,8 +113,8 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/purchase-orders/:id - deletes a draft or placed purchase order
-router.delete("/:id", requireAuth, async (req, res) => {
+// DELETE /api/purchase-orders/:id
+router.delete("/:id", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
@@ -126,8 +126,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/purchase-orders/:id/duplicate - creates a new draft from an existing PO
-router.post("/:id/duplicate", requireAuth, async (req, res) => {
+// POST /api/purchase-orders/:id/duplicate
+router.post("/:id/duplicate", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const source = await PurchaseOrder.findById(req.params.id);
     if (!source) return res.status(404).json({ error: "Purchase order not found" });
@@ -155,8 +155,8 @@ router.post("/:id/duplicate", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/purchase-orders/:id/confirm - confirms a draft PO for receiving
-router.patch("/:id/confirm", requireAuth, async (req, res) => {
+// PATCH /api/purchase-orders/:id/confirm
+router.patch("/:id/confirm", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
@@ -169,8 +169,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/purchase-orders - list (summary columns)
-router.get("/", async (req, res) => {
+// GET /api/purchase-orders
+router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const orders = await PurchaseOrder.find()
       .select("poNumber supplierName orderDate paymentTerm expectedDeliveryDate status totalQty totalPrice gstAmount grandTotal items")
@@ -182,9 +182,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/purchase-orders/open/list - POs that still have something pending to receive
-// (used by the GRN "create against a PO" picker)
-router.get("/open/list", async (req, res) => {
+// GET /api/purchase-orders/open/list
+router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req, res) => {
   try {
     const orders = await PurchaseOrder.find({ status: { $in: ["placed", "partially_received"] } })
       .select("poNumber supplier supplierName orderDate items totalQty status")
@@ -197,8 +196,8 @@ router.get("/open/list", async (req, res) => {
   }
 });
 
-// GET /api/purchase-orders/:id - full detail
-router.get("/:id", async (req, res) => {
+// GET /api/purchase-orders/:id
+router.get("/:id", requireAuth, requirePermission("po", "grn"), async (req, res) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id).populate("createdBy", "name").populate("supplier");
     if (!po) return res.status(404).json({ error: "Purchase order not found" });

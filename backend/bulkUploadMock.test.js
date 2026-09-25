@@ -1,7 +1,6 @@
 const express = require("express");
 const request = require("supertest");
 const XLSX = require("xlsx");
-const bulkUploadRoutes = require("./src/routes/bulkUpload.routes");
 
 // Mock Sku, Party, BulkUpload models
 jest.mock("./src/models/Sku", () => ({
@@ -29,11 +28,13 @@ jest.mock("./src/models/BulkUpload", () => ({
 }));
 jest.mock("./src/middleware/auth", () => ({
   requireAuth: (req, res, next) => {
-    req.user = { _id: "user123", name: "Test User" };
+    req.user = { _id: "user123", name: "Test User", role: "ADMIN", permissions: ["masters"] };
     next();
-  }
+  },
+  requirePermission: () => (req, res, next) => next(),
 }));
 
+const bulkUploadRoutes = require("./src/routes/bulkUpload.routes");
 const Sku = require("./src/models/Sku");
 const Party = require("./src/models/Party");
 const BulkUpload = require("./src/models/BulkUpload");

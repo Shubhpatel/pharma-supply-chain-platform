@@ -1,13 +1,16 @@
 const express = require("express");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const Stock = require("../models/Stock");
+const Grn = require("../models/Grn");
+const SaleInvoice = require("../models/SaleInvoice");
+const DebitNote = require("../models/DebitNote");
+const CreditNote = require("../models/CreditNote");
 
 const router = express.Router();
 
-// GET /api/inventory - stock on hand, joined with SKU details
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, requirePermission("inventory"), async (req, res) => {
   try {
     const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
-    // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
     const rows = stock
       .filter((s) => s.sku)
       .map((s) => ({
@@ -29,13 +32,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-const Grn = require("../models/Grn");
-const SaleInvoice = require("../models/SaleInvoice");
-const DebitNote = require("../models/DebitNote");
-const CreditNote = require("../models/CreditNote");
-
-// GET /api/inventory/history/:skuId - transaction history for a product (or "all")
-router.get("/history/:skuId", async (req, res) => {
+router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async (req, res) => {
   try {
     const { skuId } = req.params;
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;
@@ -51,7 +48,6 @@ router.get("/history/:skuId", async (req, res) => {
 
     let allTransactions = [];
 
-    // Process GRNs (Stock IN)
     grns.forEach((grn) => {
       grn.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -77,7 +73,6 @@ router.get("/history/:skuId", async (req, res) => {
       });
     });
 
-    // Process Sales (Stock OUT)
     sales.forEach((sale) => {
       sale.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -103,7 +98,6 @@ router.get("/history/:skuId", async (req, res) => {
       });
     });
 
-    // Process Purchase Returns / Debit Notes (Stock OUT)
     debitNotes.forEach((dn) => {
       dn.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -129,7 +123,6 @@ router.get("/history/:skuId", async (req, res) => {
       });
     });
 
-    // Process Sales Returns / Credit Notes (Stock IN)
     creditNotes.forEach((cn) => {
       cn.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -155,17 +148,14 @@ router.get("/history/:skuId", async (req, res) => {
       });
     });
 
-    // Filter by batch if requested before running balance calculation
     if (batch) {
       allTransactions = allTransactions.filter(
         (t) => t.batch && t.batch.toLowerCase().includes(batch.toLowerCase())
       );
     }
 
-    // Sort chronologically (oldest first) to calculate running stock balance per product/batch
     allTransactions.sort((a, b) => new Date(a.date) - new Date(b.date) || new Date(a.createdAt) - new Date(b.createdAt));
 
-    // Calculate running stock balance
     if (skuId !== "all") {
       let currentBalance = 0;
       allTransactions.forEach((t) => {
@@ -173,7 +163,6 @@ router.get("/history/:skuId", async (req, res) => {
         t.runningBalance = currentBalance;
       });
     } else {
-      // Per-SKU running balance map
       const skuBalances = {};
       allTransactions.forEach((t) => {
         if (!skuBalances[t.skuId]) skuBalances[t.skuId] = 0;
@@ -182,7 +171,6 @@ router.get("/history/:skuId", async (req, res) => {
       });
     }
 
-    // Additional filters
     if (type) {
       allTransactions = allTransactions.filter((t) => t.type === type);
     }
@@ -210,7 +198,6 @@ router.get("/history/:skuId", async (req, res) => {
       allTransactions = allTransactions.filter((t) => new Date(t.date) <= end);
     }
 
-    // Return newest first
     allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt) - new Date(a.createdAt));
 
     return res.json({ transactions: allTransactions });

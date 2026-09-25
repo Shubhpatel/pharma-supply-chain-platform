@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const SaleInvoice = require("../models/SaleInvoice");
 const Grn = require("../models/Grn");
 const PurchaseOrder = require("../models/PurchaseOrder");
@@ -8,8 +8,7 @@ const Sku = require("../models/Sku");
 
 const router = express.Router();
 
-// 1. Sales Report: GET /api/reports/sales?startDate=...&endDate=...
-router.get("/sales", requireAuth, async (req, res) => {
+router.get("/sales", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const filter = {};
@@ -40,8 +39,7 @@ router.get("/sales", requireAuth, async (req, res) => {
   }
 });
 
-// 2. GRN Report: GET /api/reports/grn?startDate=...&endDate=...
-router.get("/grn", requireAuth, async (req, res) => {
+router.get("/grn", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const filter = {};
@@ -72,8 +70,7 @@ router.get("/grn", requireAuth, async (req, res) => {
   }
 });
 
-// 3. PO Report: GET /api/reports/po?startDate=...&endDate=...
-router.get("/po", requireAuth, async (req, res) => {
+router.get("/po", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const filter = {};
@@ -104,8 +101,7 @@ router.get("/po", requireAuth, async (req, res) => {
   }
 });
 
-// 4. Near Expired Report: GET /api/reports/near-expired?days=30
-router.get("/near-expired", requireAuth, async (req, res) => {
+router.get("/near-expired", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const days = parseInt(req.query.days, 10) || 30;
     const today = new Date();
@@ -150,8 +146,7 @@ router.get("/near-expired", requireAuth, async (req, res) => {
   }
 });
 
-// 5. Expired Report: GET /api/reports/expired
-router.get("/expired", requireAuth, async (req, res) => {
+router.get("/expired", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -190,12 +185,10 @@ router.get("/expired", requireAuth, async (req, res) => {
   }
 });
 
-// Helper function to get SKU sale activity summary
 async function getSkuSalesActivity(daysLimit) {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysLimit);
 
-  // Aggregate total sales per SKU in recent timeframe and overall last sale date
   const pipeline = [
     { $unwind: "$items" },
     {
@@ -222,8 +215,7 @@ async function getSkuSalesActivity(daysLimit) {
   return salesMap;
 }
 
-// 6. Slow Moving Report: GET /api/reports/slow-moving (no sales in last 1 month / 30 days)
-router.get("/slow-moving", requireAuth, async (req, res) => {
+router.get("/slow-moving", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const salesMap = await getSkuSalesActivity(30);
 
@@ -242,7 +234,7 @@ router.get("/slow-moving", requireAuth, async (req, res) => {
     for (const sku of allSkus) {
       const skuIdStr = String(sku._id);
       const stockQty = stockMap[skuIdStr] || 0;
-      if (stockQty <= 0) continue; // only items currently in stock
+      if (stockQty <= 0) continue;
 
       const activity = salesMap[skuIdStr] || { recentQtySold: 0, lastSaleDate: null };
 
@@ -272,8 +264,7 @@ router.get("/slow-moving", requireAuth, async (req, res) => {
   }
 });
 
-// 7. Non Moving Report: GET /api/reports/non-moving (no sales in 2+ months / 60 days)
-router.get("/non-moving", requireAuth, async (req, res) => {
+router.get("/non-moving", requireAuth, requirePermission("reports"), async (req, res) => {
   try {
     const salesMap = await getSkuSalesActivity(60);
 

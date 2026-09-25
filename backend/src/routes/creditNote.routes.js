@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const CreditNote = require("../models/CreditNote");
 const SaleInvoice = require("../models/SaleInvoice");
 const Stock = require("../models/Stock");
@@ -8,7 +8,7 @@ const { nextNumber } = require("../utils/idGenerator");
 const router = express.Router();
 
 // POST /api/credit-notes
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     const { invoiceId, returnDate, reason, items } = req.body;
     if (!invoiceId || !returnDate || !items || items.length === 0) {
@@ -19,7 +19,6 @@ router.post("/", requireAuth, async (req, res) => {
     if (!saleInvoice) return res.status(404).json({ error: "Sales invoice not found" });
     if (saleInvoice.status !== "confirmed") return res.status(400).json({ error: "Sales returns require a confirmed invoice" });
 
-    // Fetch existing credit notes for this invoice to calculate already returned quantities
     const existingCreditNotes = await CreditNote.find({ saleInvoice: saleInvoice._id });
     const returnedQtyBySkuBatch = {};
     for (const cn of existingCreditNotes) {
@@ -29,13 +28,11 @@ router.post("/", requireAuth, async (req, res) => {
       }
     }
 
-    // Process and validate items
     const itemsToReturn = [];
     for (const item of items) {
       const returnQty = Number(item.qty || 0);
       if (returnQty <= 0) continue;
 
-      // Find item in original invoice
       const invoiceItem = saleInvoice.items.find(
         (si) => String(si.sku) === String(item.sku) && si.batch === item.batch
       );
@@ -103,8 +100,8 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/credit-notes/:id - update a draft sales return
-router.put("/:id", requireAuth, async (req, res) => {
+// PUT /api/credit-notes/:id
+router.put("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     const { invoiceId, returnDate, reason, items } = req.body;
     const creditNote = await CreditNote.findById(req.params.id);
@@ -194,8 +191,8 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/credit-notes/:id - delete a draft sales return
-router.delete("/:id", requireAuth, async (req, res) => {
+// DELETE /api/credit-notes/:id
+router.delete("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     const creditNote = await CreditNote.findById(req.params.id);
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
@@ -207,8 +204,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/credit-notes/:id/confirm - re-adds returned stock
-router.patch("/:id/confirm", requireAuth, async (req, res) => {
+// PATCH /api/credit-notes/:id/confirm
+router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     const creditNote = await CreditNote.findById(req.params.id);
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
@@ -230,8 +227,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/credit-notes - list summary
-router.get("/", async (req, res) => {
+// GET /api/credit-notes
+router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     const creditNotes = await CreditNote.find()
       .select("creditNoteNumber invoiceNumber customerName returnDate totalQty totalAmount gstAmount grandTotal reason status")
@@ -242,8 +239,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/credit-notes/:id - full detail
-router.get("/:id", async (req, res) => {
+// GET /api/credit-notes/:id
+router.get("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     const creditNote = await CreditNote.findById(req.params.id)
       .populate("createdBy", "name")

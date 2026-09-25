@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const Grn = require("../models/Grn");
 const PurchaseOrder = require("../models/PurchaseOrder");
 const DebitNote = require("../models/DebitNote");
@@ -8,9 +8,8 @@ const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
-// POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
-// Creates the GRN, adds the received quantities to stock, and updates the PO's status.
-router.post("/", requireAuth, async (req, res) => {
+// POST /api/grn
+router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, gstRate, items } = req.body;
     if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
@@ -91,8 +90,8 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/grn/:id - updates a draft GRN before it affects inventory
-router.put("/:id", requireAuth, async (req, res) => {
+// PUT /api/grn/:id
+router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const { grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
     const grn = await Grn.findById(req.params.id);
@@ -154,8 +153,8 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/grn/:id - deletes a draft GRN
-router.delete("/:id", requireAuth, async (req, res) => {
+// DELETE /api/grn/:id
+router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
@@ -167,8 +166,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/grn/:id/confirm - adds received stock and updates the linked PO
-router.patch("/:id/confirm", requireAuth, async (req, res) => {
+// PATCH /api/grn/:id/confirm
+router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
@@ -209,8 +208,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/grn - list (summary columns)
-router.get("/", async (req, res) => {
+// GET /api/grn
+router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {
     const grns = await Grn.find()
       .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue gstAmount grandTotal status")
@@ -221,8 +220,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/grn/:id - full detail
-router.get("/:id", async (req, res) => {
+// GET /api/grn/:id
+router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id)
       .populate("createdBy", "name")

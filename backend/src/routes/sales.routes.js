@@ -1,5 +1,5 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const SaleInvoice = require("../models/SaleInvoice");
 const CreditNote = require("../models/CreditNote");
 const Stock = require("../models/Stock");
@@ -8,8 +8,8 @@ const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
-// POST /api/sales  { customerName, saleDate, items: [{sku, skuName, batch, expiryDate, mrp, qty, rate}] }
-router.post("/", requireAuth, async (req, res) => {
+// POST /api/sales
+router.post("/", requireAuth, requirePermission("invoice"), async (req, res) => {
   try {
     const { customerId, customerName, saleDate, gstRate, items } = req.body;
     if ((!customerId && !customerName) || !saleDate || !items || items.length === 0) {
@@ -60,8 +60,8 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/sales/:id - updates a draft invoice before stock is deducted
-router.put("/:id", requireAuth, async (req, res) => {
+// PUT /api/sales/:id
+router.put("/:id", requireAuth, requirePermission("invoice"), async (req, res) => {
   try {
     const { customerId, customerName, saleDate, items } = req.body;
     const invoice = await SaleInvoice.findById(req.params.id);
@@ -100,8 +100,8 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/sales/:id - deletes a draft invoice
-router.delete("/:id", requireAuth, async (req, res) => {
+// DELETE /api/sales/:id
+router.delete("/:id", requireAuth, requirePermission("invoice"), async (req, res) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
@@ -113,8 +113,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/sales/:id/duplicate - creates a new draft from an existing invoice
-router.post("/:id/duplicate", requireAuth, async (req, res) => {
+// POST /api/sales/:id/duplicate
+router.post("/:id/duplicate", requireAuth, requirePermission("invoice"), async (req, res) => {
   try {
     const source = await SaleInvoice.findById(req.params.id);
     if (!source) return res.status(404).json({ error: "Invoice not found" });
@@ -140,8 +140,8 @@ router.post("/:id/duplicate", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/sales/:id/confirm - deducts stock for a draft invoice
-router.patch("/:id/confirm", requireAuth, async (req, res) => {
+// PATCH /api/sales/:id/confirm
+router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (req, res) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
@@ -186,8 +186,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/sales - list (summary columns)
-router.get("/", async (req, res) => {
+// GET /api/sales
+router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
   try {
     const invoices = await SaleInvoice.find()
       .select("invoiceNumber customerName saleDate totalQty totalAmount gstRate gstAmount grandTotal status")
@@ -198,8 +198,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/sales/:id - full invoice detail
-router.get("/:id", async (req, res) => {
+// GET /api/sales/:id
+router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id).populate("createdBy", "name").populate("customer");
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });

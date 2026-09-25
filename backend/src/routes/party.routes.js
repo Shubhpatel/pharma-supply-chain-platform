@@ -1,10 +1,10 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const Party = require("../models/Party");
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
   try {
     const filter = req.query.type ? { partyType: req.query.type } : {};
     const parties = await Party.find(filter).sort({ name: 1 });
@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const party = await Party.create({ ...req.body, createdBy: req.user.id });
     return res.status(201).json({ party });
@@ -23,7 +23,7 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const party = await Party.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!party) return res.status(404).json({ error: "Party not found" });
@@ -33,7 +33,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const party = await Party.findByIdAndDelete(req.params.id);
     if (!party) return res.status(404).json({ error: "Party not found" });
