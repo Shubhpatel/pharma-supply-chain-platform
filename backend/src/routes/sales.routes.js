@@ -1,6 +1,7 @@
 const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const SaleInvoice = require("../models/SaleInvoice");
+const CreditNote = require("../models/CreditNote");
 const Stock = require("../models/Stock");
 const Party = require("../models/Party");
 const { nextNumber } = require("../utils/idGenerator");
@@ -202,7 +203,14 @@ router.get("/:id", async (req, res) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id).populate("createdBy", "name").populate("customer");
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
-    return res.json({ invoice });
+
+    const linkedSalesReturns = await CreditNote.find({ saleInvoice: invoice._id })
+      .select("creditNoteNumber status returnDate createdAt")
+      .sort({ createdAt: -1 });
+
+    const invoicePayload = invoice.toObject();
+    invoicePayload.linkedSalesReturns = linkedSalesReturns;
+    return res.json({ invoice: invoicePayload });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

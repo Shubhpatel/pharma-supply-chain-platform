@@ -121,6 +121,19 @@ export default function InvoiceDetailPage() {
         )}
       </div>
 
+      <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <div className="sm:col-span-4">
+          <div className="text-gray-500 text-xs">Linked Sales Return</div>
+          {invoice.linkedSalesReturns?.length ? (
+            <div className="flex flex-wrap gap-x-2">
+              {invoice.linkedSalesReturns.map((note) => (
+                <a key={note._id} href={`/sales/returns/${note._id}`} className="text-violet-700 hover:underline">{note.creditNoteNumber}</a>
+              ))}
+            </div>
+          ) : "-"}
+        </div>
+      </div>
+
       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
@@ -154,15 +167,19 @@ export default function InvoiceDetailPage() {
               <td className="px-4 py-2">Total</td>
               <td className="px-4 py-2">{invoice.totalQty}</td>
               <td></td>
-              <td className="px-4 py-2">₹{invoice.totalAmount.toFixed(2)}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td className="px-4 py-2 text-right">₹{invoice.totalAmount.toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan="7" className="px-4 py-1 text-right">GST</td>
-              <td className="px-4 py-1">₹{Number(invoice.gstAmount || 0).toFixed(2)}</td>
+              <td className="px-4 py-1 text-right">₹{Number(invoice.gstAmount || 0).toFixed(2)}</td>
             </tr>
             <tr className="font-semibold">
-              <td colSpan="6" className="px-4 py-1 text-right">Grand total</td>
-              <td className="px-4 py-1">₹{Number(invoice.grandTotal ?? invoice.totalAmount).toFixed(2)}</td>
+              <td colSpan="7" className="px-4 py-1 text-right">Grand total</td>
+              <td className="px-4 py-1 text-right">₹{Number(invoice.grandTotal ?? invoice.totalAmount).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

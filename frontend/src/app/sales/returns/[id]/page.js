@@ -105,11 +105,11 @@ export default function CreditNoteDetailPage() {
             </tr>
             <tr>
               <td colSpan="7" className="px-4 py-1 text-right text-gray-600">GST Amount:</td>
-              <td className="px-4 py-1 text-gray-600">₹{(creditNote.gstAmount || 0).toFixed(2)}</td>
+              <td className="px-4 py-1 text-right text-gray-600">₹{(creditNote.gstAmount || 0).toFixed(2)}</td>
             </tr>
             <tr className="font-semibold text-gray-900 border-t border-gray-200">
               <td colSpan="7" className="px-4 py-2 text-right">Grand Total:</td>
-              <td className="px-4 py-2">₹{(creditNote.grandTotal || creditNote.totalAmount).toFixed(2)}</td>
+              <td className="px-4 py-2 text-right">₹{(creditNote.grandTotal || creditNote.totalAmount).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>
