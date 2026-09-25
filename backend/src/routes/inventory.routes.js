@@ -43,10 +43,10 @@ router.get("/history/:skuId", async (req, res) => {
     const queryFilter = skuId === "all" ? {} : { "items.sku": skuId };
 
     const [grns, sales, debitNotes, creditNotes] = await Promise.all([
-      Grn.find(queryFilter),
-      SaleInvoice.find(queryFilter),
-      DebitNote.find(queryFilter),
-      CreditNote.find(queryFilter),
+      Grn.find(queryFilter).populate("createdBy", "name"),
+      SaleInvoice.find(queryFilter).populate("createdBy", "name"),
+      DebitNote.find(queryFilter).populate("createdBy", "name"),
+      CreditNote.find(queryFilter).populate("createdBy", "name"),
     ]);
 
     let allTransactions = [];
@@ -71,6 +71,7 @@ router.get("/history/:skuId", async (req, res) => {
             qty: Number(item.qtyReceived) || 0,
             amount: item.amount,
             docLink: `/grn/${grn._id}`,
+            createdByName: grn.createdBy?.name || "-",
             createdAt: grn.createdAt || grn.grnDate,
           });
         }
@@ -97,6 +98,7 @@ router.get("/history/:skuId", async (req, res) => {
             qty: -(Number(item.qty) || 0),
             amount: item.amount,
             docLink: `/sales/${sale._id}`,
+            createdByName: sale.createdBy?.name || "-",
             createdAt: sale.createdAt || sale.saleDate,
           });
         }
@@ -123,6 +125,7 @@ router.get("/history/:skuId", async (req, res) => {
             qty: -(Number(item.qty) || 0),
             amount: item.amount,
             docLink: `/purchase/returns/${dn._id}`,
+            createdByName: dn.createdBy?.name || "-",
             createdAt: dn.createdAt || dn.returnDate,
           });
         }
@@ -149,6 +152,7 @@ router.get("/history/:skuId", async (req, res) => {
             qty: Number(item.qty) || 0,
             amount: item.amount,
             docLink: `/sales/returns/${cn._id}`,
+            createdByName: cn.createdBy?.name || "-",
             createdAt: cn.createdAt || cn.returnDate,
           });
         }

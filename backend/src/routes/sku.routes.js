@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const { requireAuth } = require("../middleware/auth");
 const Sku = require("../models/Sku");
 
@@ -11,6 +12,10 @@ router.get("/", async (req, res) => {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
     const skus = await Sku.find(filter).sort({ name: 1 });
+    await Promise.all(skus.filter((sku) => !sku.uid).map(async (sku) => {
+      sku.uid = crypto.randomUUID();
+      await sku.save();
+    }));
     return res.json({ skus });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -29,7 +34,10 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const sku = await Sku.create(req.body);
+    const payload = { ...req.body };
+    delete payload.uid;
+    delete payload._id;
+    const sku = await Sku.create(payload);
     return res.status(201).json({ sku });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -38,8 +46,14 @@ router.post("/", requireAuth, async (req, res) => {
 
 router.put("/:id", requireAuth, async (req, res) => {
   try {
-    const sku = await Sku.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
+    const changes = { ...req.body };
+    delete changes.uid;
+    delete changes._id;
+    Object.assign(sku, changes);
+    if (!sku.uid) sku.uid = crypto.randomUUID();
+    await sku.save();
     return res.json({ sku });
   } catch (err) {
     return res.status(500).json({ error: err.message });

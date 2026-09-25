@@ -130,6 +130,7 @@ export default function TransactionHistoryPage() {
       "Qty",
       "Amount",
       "Running Balance",
+      "Created By",
     ];
 
     const rows = transactions.map((t) => [
@@ -145,6 +146,7 @@ export default function TransactionHistoryPage() {
       t.qty,
       t.amount == null ? "" : Number(t.amount).toFixed(2),
       t.runningBalance != null ? t.runningBalance : "",
+      `"${(t.createdByName || "").replace(/"/g, '""')}"`,
     ]);
 
     const csvContent =
@@ -372,6 +374,7 @@ export default function TransactionHistoryPage() {
                 <th className="px-4 py-3">Qty</th>
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Running Balance</th>
+                <th className="px-4 py-3">Created By</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-gray-700">
@@ -431,6 +434,7 @@ export default function TransactionHistoryPage() {
                   <td className="px-4 py-3 whitespace-nowrap font-bold text-gray-900 text-xs">
                     {t.runningBalance != null ? t.runningBalance : "-"}
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-xs">{t.createdByName || "-"}</td>
                 </tr>
               ))}
             </tbody>

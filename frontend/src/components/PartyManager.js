@@ -166,6 +166,7 @@ export default function PartyManager({ type, title }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-gray-500">
               <tr>
+                <th className="px-4 py-2">Master UID</th>
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">GST number</th>
                 <th className="px-4 py-2">Contact</th>
@@ -178,6 +179,7 @@ export default function PartyManager({ type, title }) {
             <tbody>
               {parties.map((party) => (
                 <tr key={party._id} className="border-t border-gray-100">
+                  <td className="px-4 py-2 font-mono text-xs text-gray-500">{party.uid || "-"}</td>
                   <td className="px-4 py-2 font-medium">{party.name}</td>
                   <td className="px-4 py-2">{party.gstNumber || "-"}</td>
                   <td className="px-4 py-2">{party.contactPerson || "-"}</td>

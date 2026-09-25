@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 const skuSchema = new mongoose.Schema(
   {
+    uid: { type: String, unique: true, sparse: true, default: () => crypto.randomUUID() },
     name: { type: String, required: true, trim: true },
     hsnCode: { type: String, default: "" },
     category: { type: String, default: "" },

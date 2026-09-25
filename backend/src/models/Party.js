@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 const partySchema = new mongoose.Schema(
   {
+    uid: { type: String, unique: true, sparse: true, default: () => crypto.randomUUID() },
     partyType: { type: String, enum: ["vendor", "customer"], required: true },
     name: { type: String, required: true, trim: true },
     gstNumber: { type: String, trim: true, uppercase: true, default: "" },

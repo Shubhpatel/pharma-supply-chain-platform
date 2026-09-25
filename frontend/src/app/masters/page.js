@@ -211,6 +211,7 @@ export default function MastersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-gray-500">
               <tr>
+                <th className="px-4 py-2">Master UID</th>
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Category</th>
                 <th className="px-4 py-2">Manufacturer</th>
@@ -223,6 +224,7 @@ export default function MastersPage() {
             <tbody>
               {skus.map((s) => (
                 <tr key={s._id} className="border-t border-gray-100">
+                  <td className="px-4 py-2 font-mono text-xs text-gray-500">{s.uid || "-"}</td>
                   <td className="px-4 py-2">{s.name}</td>
                   <td className="px-4 py-2">{s.category || "-"}</td>
                   <td className="px-4 py-2">{s.manufacturer || "-"}</td>
