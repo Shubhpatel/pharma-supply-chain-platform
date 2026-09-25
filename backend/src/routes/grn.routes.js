@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const Grn = require("../models/Grn");
 const PurchaseOrder = require("../models/PurchaseOrder");
+const DebitNote = require("../models/DebitNote");
 const Stock = require("../models/Stock");
 const { nextNumber } = require("../utils/idGenerator");
 
@@ -228,7 +229,14 @@ router.get("/:id", async (req, res) => {
       .populate("purchaseOrder", "poNumber")
       .populate("supplier");
     if (!grn) return res.status(404).json({ error: "GRN not found" });
-    return res.json({ grn });
+
+    const linkedPurchaseReturns = await DebitNote.find({ grn: grn._id })
+      .select("debitNoteNumber status returnDate createdAt")
+      .sort({ createdAt: -1 });
+
+    const grnPayload = grn.toObject();
+    grnPayload.linkedPurchaseReturns = linkedPurchaseReturns;
+    return res.json({ grn: grnPayload });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

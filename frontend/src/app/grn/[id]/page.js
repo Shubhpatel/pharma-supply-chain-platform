@@ -116,6 +116,19 @@ export default function GrnDetailPage() {
         )}
       </div>
 
+      <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <div className="sm:col-span-4">
+          <div className="text-gray-500 text-xs">Linked Purchase Return</div>
+          {grn.linkedPurchaseReturns?.length ? (
+            <div className="flex flex-wrap gap-x-2">
+              {grn.linkedPurchaseReturns.map((note) => (
+                <a key={note._id} href={`/purchase/returns/${note._id}`} className="text-amber-700 hover:underline">{note.debitNoteNumber}</a>
+              ))}
+            </div>
+          ) : "-"}
+        </div>
+      </div>
+
       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
@@ -152,15 +165,19 @@ export default function GrnDetailPage() {
               <td></td>
               <td className="px-4 py-2">{grn.totalQty}</td>
               <td></td>
-              <td className="px-4 py-2">₹{grn.totalValue.toFixed(2)}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td className="px-4 py-2 text-right">₹{grn.totalValue.toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan="8" className="px-4 py-1 text-right">GST</td>
-              <td className="px-4 py-1">₹{Number(grn.gstAmount || 0).toFixed(2)}</td>
+              <td className="px-4 py-1 text-right">₹{Number(grn.gstAmount || 0).toFixed(2)}</td>
             </tr>
             <tr className="font-semibold">
-              <td colSpan="7" className="px-4 py-1 text-right">Grand total</td>
-              <td className="px-4 py-1">₹{Number(grn.grandTotal ?? grn.totalValue).toFixed(2)}</td>
+              <td colSpan="8" className="px-4 py-1 text-right">Grand total</td>
+              <td className="px-4 py-1 text-right">₹{Number(grn.grandTotal ?? grn.totalValue).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

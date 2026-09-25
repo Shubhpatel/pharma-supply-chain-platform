@@ -122,7 +122,7 @@ export default function PurchaseOrderDetailPage() {
             <div><div className="text-gray-500 text-xs">Address</div>{[po.supplier.addressLine1, po.supplier.addressLine2, po.supplier.city, po.supplier.state, po.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div>
           </div>
         )}
-        <div>
+        <div className="sm:col-span-3 border-t border-gray-100 pt-3">
           <div className="text-gray-500 text-xs">Linked GRN</div>
           {po.linkedGrns?.length ? (
             <div className="flex flex-wrap gap-x-2">
@@ -165,15 +165,15 @@ export default function PurchaseOrderDetailPage() {
               <td className="px-4 py-2">{po.pendingQty}</td>
               <td></td>
               <td></td>
-              <td className="px-4 py-2">₹{po.totalPrice.toFixed(2)}</td>
+              <td className="px-4 py-2 text-right">₹{po.totalPrice.toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan="5" className="px-4 py-1 text-right">GST</td>
-              <td className="px-4 py-1">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
+              <td className="px-4 py-1 text-right">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
             </tr>
             <tr className="font-semibold">
-              <td colSpan="4" className="px-4 py-1 text-right">Grand total</td>
-              <td className="px-4 py-1">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
+              <td colSpan="5" className="px-4 py-1 text-right">Grand total</td>
+              <td className="px-4 py-1 text-right">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>
