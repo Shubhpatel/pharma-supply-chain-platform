@@ -9,8 +9,6 @@ const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
-// POST /api/grn
-router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
 async function addSkuLocationSnapshots(items) {
   const skuIds = [...new Set(items.map((item) => String(item.sku)))];
   const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
@@ -20,7 +18,7 @@ async function addSkuLocationSnapshots(items) {
 
 // POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, gstRate, items } = req.body;
     if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {

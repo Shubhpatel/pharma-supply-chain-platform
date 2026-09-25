@@ -3,7 +3,6 @@ const { requireAuth, requirePermission } = require("../middleware/auth");
 const crypto = require("crypto");
 const multer = require("multer");
 const XLSX = require("xlsx");
-const { requireAuth } = require("../middleware/auth");
 const PurchaseOrder = require("../models/PurchaseOrder");
 const Grn = require("../models/Grn");
 const BulkUpload = require("../models/BulkUpload");
@@ -110,10 +109,6 @@ router.post("/", requireAuth, requirePermission("po"), async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// PUT /api/purchase-orders/:id
-router.put("/:id", requireAuth, requirePermission("po"), async (req, res) => {
-=======
 router.get("/bulk-sample", (req, res) => {
   const sample = [{
     "Vendor UID": "PASTE-VENDOR-UID-HERE",
@@ -269,8 +264,7 @@ router.post("/bulk-upload", requireAuth, upload.single("file"), async (req, res)
 });
 
 // PUT /api/purchase-orders/:id - updates a draft or placed purchase order
-router.put("/:id", requireAuth, async (req, res) => {
->>>>>>> origin/feat--add-unique-identifier-(UID)-to-Party-and-SKU-models,-enhance-transaction-history-with-creator-details,-and-update-UI-to-display-UID
+router.put("/:id", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     const { items } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);

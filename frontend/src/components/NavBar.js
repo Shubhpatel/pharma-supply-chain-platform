@@ -244,6 +244,8 @@ export default function NavBar() {
                   <div className="absolute right-0 top-full z-10 mt-2 min-w-36 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
                     <a href="/masters?tab=sku" onClick={() => setMastersOpen(false)}
                       className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKUs</a>
+                    <a href="/masters?tab=location" onClick={() => setMastersOpen(false)}
+                      className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKU Locations</a>
                     <a href="/masters?tab=vendor" onClick={() => setMastersOpen(false)}
                       className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Vendors</a>
                     <a href="/masters?tab=customer" onClick={() => setMastersOpen(false)}
@@ -258,50 +260,6 @@ export default function NavBar() {
             {hasUsers && (
               <a href="/users" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Users</a>
             )}
-            <div className="relative">
-              <button type="button" onClick={() => { setReportsOpen((open) => !open); setMastersOpen(false); }}
-                className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">
-                Reports
-              </button>
-              {reportsOpen && (
-                <div className="absolute left-0 top-full z-10 mt-2 w-48 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
-                  <a href="/reports?tab=sales" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Sales Report</a>
-                  <a href="/reports?tab=grn" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">GRN Report</a>
-                  <a href="/reports?tab=near-expired" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Near Expired Report</a>
-                  <a href="/reports?tab=expired" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Expired Report</a>
-                  <a href="/reports?tab=po" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">PO Report</a>
-                  <a href="/reports?tab=slow-moving" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Slow Moving Report</a>
-                  <a href="/reports?tab=non-moving" onClick={() => setReportsOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Non Moving Report</a>
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <button type="button" onClick={() => { setMastersOpen((open) => !open); setReportsOpen(false); }}
-                className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">
-                Masters
-              </button>
-              {mastersOpen && (
-                <div className="absolute right-0 top-full z-10 mt-2 min-w-36 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
-                  <a href="/masters?tab=sku" onClick={() => setMastersOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKUs</a>
-                  <a href="/masters?tab=location" onClick={() => setMastersOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">SKU Locations</a>
-                  <a href="/masters?tab=vendor" onClick={() => setMastersOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Vendors</a>
-                  <a href="/masters?tab=customer" onClick={() => setMastersOpen(false)}
-                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Customers</a>
-                  <a href="/masters?tab=bulk" onClick={() => setMastersOpen(false)}
-                    className="block rounded px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50 border-t border-gray-100">Bulk Generic Upload</a>
-                </div>
-              )}
-            </div>
           </div>
         )}
 

@@ -2,7 +2,6 @@ const express = require("express");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const crypto = require("crypto");
 const XLSX = require("xlsx");
-const { requireAuth } = require("../middleware/auth");
 const Sku = require("../models/Sku");
 
 const router = express.Router();
@@ -22,9 +21,6 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
   }
 });
 
-<<<<<<< HEAD
-router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
-=======
 router.get("/export", requireAuth, async (req, res) => {
   try {
     const skus = await Sku.find().sort({ name: 1 });
@@ -56,8 +52,7 @@ router.get("/export", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
->>>>>>> origin/feat--add-unique-identifier-(UID)-to-Party-and-SKU-models,-enhance-transaction-history-with-creator-details,-and-update-UI-to-display-UID
+router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
   try {
     const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });

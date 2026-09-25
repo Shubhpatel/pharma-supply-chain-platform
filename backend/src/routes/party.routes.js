@@ -1,7 +1,6 @@
 const express = require("express");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const crypto = require("crypto");
-const { requireAuth } = require("../middleware/auth");
 const Party = require("../models/Party");
 
 const router = express.Router();
