@@ -127,30 +127,6 @@ export default function MastersPage() {
         </h1>
         <div className="flex items-center gap-2">
           <a
-            href="/masters?tab=sku"
-            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
-              activeView === "sku" ? "bg-teal-800 text-white" : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            SKUs
-          </a>
-          <a
-            href="/masters?tab=vendor"
-            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
-              activeView === "vendor" ? "bg-teal-800 text-white" : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            Vendors
-          </a>
-          <a
-            href="/masters?tab=customer"
-            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
-              activeView === "customer" ? "bg-teal-800 text-white" : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            Customers
-          </a>
-          <a
             href="/masters?tab=bulk"
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${
               activeView === "bulk" ? "bg-teal-800 text-white" : "text-teal-700 bg-teal-50 hover:bg-teal-100"
