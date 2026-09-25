@@ -52,6 +52,10 @@ export const api = {
 
   // Inventory
   listStock: () => apiFetch("/inventory"),
+  getInventoryHistory: (skuId, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiFetch(`/inventory/history/${skuId}${q ? `?${q}` : ""}`);
+  },
 
   // Sales
   listInvoices: () => apiFetch("/sales"),
