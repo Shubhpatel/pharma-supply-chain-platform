@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import PartyManager from "@/components/PartyManager";
+import BulkUploadModal from "@/components/BulkUploadModal";
+import BulkUploadHistory from "@/components/BulkUploadHistory";
 
 const BLANK_FORM = { name: "", hsnCode: "", category: "", subCategory: "", manufacturer: "", uom: "UNIT", mrp: "" };
 
@@ -17,6 +19,7 @@ export default function MastersPage() {
   const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [activeView, setActiveView] = useState("sku");
+  const [showBulkModal, setShowBulkModal] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -36,7 +39,7 @@ export default function MastersPage() {
 
   useEffect(() => {
     const requestedView = new URLSearchParams(window.location.search).get("tab");
-    if (requestedView === "vendor" || requestedView === "customer") {
+    if (requestedView === "vendor" || requestedView === "customer" || requestedView === "bulk") {
       setActiveView(requestedView);
     }
   }, []);
@@ -112,19 +115,83 @@ export default function MastersPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold">
-        {activeView === "vendor" ? "Master Vendors" : activeView === "customer" ? "Master Customers" : "Master SKUs"}
-      </h1>
+      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+        <h1 className="text-xl font-semibold text-gray-900">
+          {activeView === "vendor"
+            ? "Master Vendors"
+            : activeView === "customer"
+            ? "Master Customers"
+            : activeView === "bulk"
+            ? "Bulk Generic Upload"
+            : "Master SKUs"}
+        </h1>
+        <div className="flex items-center gap-2">
+          <a
+            href="/masters?tab=sku"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
+              activeView === "sku" ? "bg-teal-800 text-white" : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            SKUs
+          </a>
+          <a
+            href="/masters?tab=vendor"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
+              activeView === "vendor" ? "bg-teal-800 text-white" : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Vendors
+          </a>
+          <a
+            href="/masters?tab=customer"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
+              activeView === "customer" ? "bg-teal-800 text-white" : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Customers
+          </a>
+          <a
+            href="/masters?tab=bulk"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${
+              activeView === "bulk" ? "bg-teal-800 text-white" : "text-teal-700 bg-teal-50 hover:bg-teal-100"
+            }`}
+          >
+            Bulk Generic Upload
+          </a>
+        </div>
+      </div>
 
-      {activeView === "vendor" ? <PartyManager type="vendor" title="Vendor" /> : activeView === "customer" ? <PartyManager type="customer" title="Customer" /> : (
+      <BulkUploadModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        initialMasterType={activeView === "vendor" ? "vendor" : activeView === "customer" ? "customer" : "sku"}
+        onSuccess={load}
+      />
+
+      {activeView === "vendor" ? (
+        <PartyManager type="vendor" title="Vendor" />
+      ) : activeView === "customer" ? (
+        <PartyManager type="customer" title="Customer" />
+      ) : activeView === "bulk" ? (
+        <BulkUploadHistory onOpenModal={() => setShowBulkModal(true)} />
+      ) : (
         <>
 
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-3">
         {!editingId && (
-          <button type="button" onClick={() => setShowForm(true)}
-            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
-            Add New SKU
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setShowBulkModal(true)}
+              className="px-4 py-2 rounded-md border border-teal-700 text-teal-800 text-sm font-medium hover:bg-teal-50"
+            >
+              Add Bulk
+            </button>
+            <button type="button" onClick={() => setShowForm(true)}
+              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
+              Add New SKU
+            </button>
+          </>
         )}
       </div>
 

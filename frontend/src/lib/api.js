@@ -94,4 +94,30 @@ export const api = {
   getExpiredReport: (token) => apiFetch("/reports/expired", { token }),
   getSlowMovingReport: (token) => apiFetch("/reports/slow-moving", { token }),
   getNonMovingReport: (token) => apiFetch("/reports/non-moving", { token }),
+
+  // Bulk Uploads
+  listBulkUploads: (token) => apiFetch("/bulk-uploads", { token }),
+  uploadBulkMaster: async (formData, token) => {
+    const res = await fetch(`${API_URL}/bulk-uploads`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || `Upload failed: ${res.status}`);
+      err.bulkUploadId = data.bulkUploadId;
+      throw err;
+    }
+    return data;
+  },
+  downloadSampleFile: (masterType, format = "csv") => {
+    window.open(`${API_URL}/bulk-uploads/sample?masterType=${masterType}&format=${format}`, "_blank");
+  },
+  downloadErrorFile: (uploadId, format = "csv", token) => {
+    const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
+    window.open(`${API_URL}/bulk-uploads/${uploadId}/error-file?format=${format}${tokenQuery}`, "_blank");
+  },
 };

@@ -211,6 +211,8 @@ export default function NavBar() {
                     className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Vendors</a>
                   <a href="/masters?tab=customer" onClick={() => setMastersOpen(false)}
                     className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Customers</a>
+                  <a href="/masters?tab=bulk" onClick={() => setMastersOpen(false)}
+                    className="block rounded px-3 py-2 text-sm font-medium text-teal-700 hover:bg-teal-50 border-t border-gray-100">Bulk Generic Upload</a>
                 </div>
               )}
             </div>
