@@ -34,4 +34,10 @@ const saleInvoiceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes to optimize query performance for reports and history lookups
+// 1. Index on saleDate speeds up date-range filtering and sorting in sales reports
+saleInvoiceSchema.index({ saleDate: -1 });
+// 2. Index on items.sku speeds up item-level history queries and slow/non-moving aggregation pipelines
+saleInvoiceSchema.index({ "items.sku": 1 });
+
 module.exports = mongoose.model("SaleInvoice", saleInvoiceSchema);

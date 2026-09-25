@@ -13,5 +13,7 @@ const stockSchema = new mongoose.Schema(
 );
 
 stockSchema.index({ sku: 1, batch: 1, expiryDate: 1, mrp: 1, rate: 1 }, { unique: true });
+// Index on qty speeds up active stock filtering (e.g. qty > 0) in inventory queries and reports
+stockSchema.index({ qty: 1 });
 
 module.exports = mongoose.model("Stock", stockSchema);
