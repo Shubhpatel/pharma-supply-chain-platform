@@ -86,7 +86,7 @@ export default function CreditNoteListPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">₹{(cn.grandTotal || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 capitalize">{cn.status}</td>
                   <td className="px-4 py-3">
-                    <a href={`/sales/returns/${cn._id}`} className="text-blue-600 hover:underline">View</a>
+                    <a href={`/sales/returns/${cn._id}`} title="View credit note" aria-label="View credit note" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
                   </td>
                 </tr>
               ))

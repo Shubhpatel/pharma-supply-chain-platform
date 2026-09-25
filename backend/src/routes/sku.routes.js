@@ -1,5 +1,8 @@
 const express = require("express");
 const { requireAuth, requirePermission } = require("../middleware/auth");
+const crypto = require("crypto");
+const XLSX = require("xlsx");
+const { requireAuth } = require("../middleware/auth");
 const Sku = require("../models/Sku");
 
 const router = express.Router();
@@ -9,13 +12,52 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
     const skus = await Sku.find(filter).sort({ name: 1 });
+    await Promise.all(skus.filter((sku) => !sku.uid).map(async (sku) => {
+      sku.uid = crypto.randomUUID();
+      await sku.save();
+    }));
     return res.json({ skus });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
+<<<<<<< HEAD
 router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
+=======
+router.get("/export", requireAuth, async (req, res) => {
+  try {
+    const skus = await Sku.find().sort({ name: 1 });
+    const rows = skus.map((sku) => ({
+      "Master UID": sku.uid || "",
+      Name: sku.name,
+      "HSN Code": sku.hsnCode || "",
+      Category: sku.category || "",
+      "Sub Category": sku.subCategory || "",
+      Manufacturer: sku.manufacturer || "",
+      UOM: sku.uom || "",
+      MRP: sku.mrp,
+      Status: sku.enabled ? "Enabled" : "Disabled",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: ["Master UID", "Name", "HSN Code", "Category", "Sub Category", "Manufacturer", "UOM", "MRP", "Status"] });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "SKUs");
+    const format = (req.query.format || "csv").toLowerCase();
+    if (format === "xlsx" || format === "excel") {
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=skus.xlsx");
+      return res.send(XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }));
+    }
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=skus.csv");
+    return res.send(XLSX.utils.sheet_to_csv(worksheet));
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+>>>>>>> origin/feat--add-unique-identifier-(UID)-to-Party-and-SKU-models,-enhance-transaction-history-with-creator-details,-and-update-UI-to-display-UID
   try {
     const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
@@ -27,20 +69,42 @@ router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoi
 
 router.post("/", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
-    const sku = await Sku.create(req.body);
+    const payload = { ...req.body };
+    delete payload.uid;
+    delete payload._id;
+    payload.name = typeof payload.name === "string" ? payload.name.trim() : payload.name;
+    const duplicate = await Sku.findOne({ name: payload.name }).collation({ locale: "en", strength: 2 });
+    if (duplicate) return res.status(409).json({ error: "A SKU with this name already exists" });
+    const sku = await Sku.create(payload);
     return res.status(201).json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(err.code === 11000 ? 409 : 500).json({
+      error: err.code === 11000 ? "A SKU with this name already exists" : err.message,
+    });
   }
 });
 
 router.put("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
-    const sku = await Sku.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
+    const changes = { ...req.body };
+    delete changes.uid;
+    delete changes._id;
+    if (changes.name !== undefined) {
+      changes.name = typeof changes.name === "string" ? changes.name.trim() : changes.name;
+      const duplicate = await Sku.findOne({ name: changes.name, _id: { $ne: sku._id } })
+        .collation({ locale: "en", strength: 2 });
+      if (duplicate) return res.status(409).json({ error: "A SKU with this name already exists" });
+    }
+    Object.assign(sku, changes);
+    if (!sku.uid) sku.uid = crypto.randomUUID();
+    await sku.save();
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(err.code === 11000 ? 409 : 500).json({
+      error: err.code === 11000 ? "A SKU with this name already exists" : err.message,
+    });
   }
 });
 

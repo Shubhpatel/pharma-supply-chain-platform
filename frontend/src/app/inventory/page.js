@@ -83,6 +83,7 @@ export default function InventoryPage() {
                 <th className="px-4 py-2">Rate</th>
                 <th className="px-4 py-2">Qty</th>
                 <th className="px-4 py-2">UOM</th>
+                <th className="px-4 py-2">Location</th>
                 <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -97,6 +98,7 @@ export default function InventoryPage() {
                     <td className="px-4 py-2">{s.rate == null ? "-" : `₹${Number(s.rate).toFixed(2)}`}</td>
                     <td className={`px-4 py-2 font-medium ${s.qty === 0 ? "text-red-500" : ""}`}>{s.qty}</td>
                     <td className="px-4 py-2">{s.uom}</td>
+                    <td className="px-4 py-2">{s.location || "-"}</td>
                     <td className="px-4 py-2 text-right">
                       <Link
                         href={`/inventory/history/${s.skuId}`}
@@ -112,9 +114,9 @@ export default function InventoryPage() {
                     </td>
                   </tr>
                   <tr className="border-t border-gray-100">
-                    <td colSpan="8" className="px-4 py-2">
+                    <td colSpan="9" className="px-4 py-2">
                       <details>
-                        <summary className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">Show Details</summary>
+                        <summary className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800"><img src="/icons/view.svg" alt="" className="mr-1 inline-block h-4 w-4 align-text-bottom" />Show Details</summary>
                         <div className="mt-3 overflow-x-auto">
                           <table className="w-full min-w-[28rem] text-xs text-gray-600">
                             <thead className="bg-gray-50 text-left">

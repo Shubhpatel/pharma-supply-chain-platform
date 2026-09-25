@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
+import BulkPurchaseOrderModal from "@/components/BulkPurchaseOrderModal";
 
 export default function PurchasePage() {
   const [orders, setOrders] = useState([]);
@@ -14,6 +15,7 @@ export default function PurchasePage() {
   const [toDate, setToDate] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ search: "", status: "", fromDate: "", toDate: "" });
   const [duplicatingId, setDuplicatingId] = useState("");
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const { token, showToast } = useApp();
 
   useEffect(() => {
@@ -23,6 +25,17 @@ export default function PurchasePage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [token]);
+  function loadOrders() {
+    setLoading(true);
+    api.listPurchaseOrders()
+      .then((d) => setOrders(d.purchaseOrders))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
   async function handleDuplicate(id) {
     setDuplicatingId(id);
@@ -51,10 +64,13 @@ export default function PurchasePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Purchase Orders</h1>
-        <a href="/purchase/new" className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
-          + Add Purchase Order
-        </a>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setShowBulkModal(true)} className="rounded-md border border-teal-700 px-4 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50">Add Bulk PO</button>
+          <a href="/purchase/new" className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">+ Add Purchase Order</a>
+        </div>
       </div>
+
+      <BulkPurchaseOrderModal isOpen={showBulkModal} onClose={() => setShowBulkModal(false)} onSuccess={loadOrders} />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -112,7 +128,7 @@ export default function PurchasePage() {
                   <td className="px-4 py-2">{o.pendingQty}</td>
                   <td className="px-4 py-2">₹{o.totalPrice.toFixed(2)}</td>
                   <td className="px-4 py-2 space-x-3 whitespace-nowrap">
-                    <a href={`/purchase/${o._id}`} className="text-blue-600 hover:underline">View</a>
+                    <a href={`/purchase/${o._id}`} title="View purchase order" aria-label="View purchase order" className="text-blue-600 hover:underline"><img src="/icons/view.svg" alt="" className="h-4 w-4" /></a>
                     <button type="button" onClick={() => handleDuplicate(o._id)} disabled={duplicatingId === o._id} className="text-blue-600 hover:underline disabled:opacity-50">
                       {duplicatingId === o._id ? "Duplicating..." : "Duplicate"}
                     </button>

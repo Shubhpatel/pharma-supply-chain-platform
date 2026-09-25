@@ -59,7 +59,7 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl space-y-5">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-          <h2 className="text-lg font-semibold text-gray-900">Add Bulk Masters</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{masterType === "sku-location" ? "Add Bulk SKU Locations" : "Add Bulk Masters"}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -80,6 +80,7 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-600 outline-none"
             >
               <option value="sku">SKU Master</option>
+              <option value="sku-location">SKU Location</option>
               <option value="vendor">Vendor Master</option>
               <option value="customer">Customer Master</option>
             </select>

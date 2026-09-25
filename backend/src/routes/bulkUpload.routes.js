@@ -4,6 +4,7 @@ const XLSX = require("xlsx");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const BulkUpload = require("../models/BulkUpload");
 const Sku = require("../models/Sku");
+const SkuLocation = require("../models/SkuLocation");
 const Party = require("../models/Party");
 
 const router = express.Router();
@@ -11,6 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const MASTER_COLUMNS = {
   sku: ["Name", "HSN Code", "Category", "Sub Category", "Manufacturer", "UOM", "MRP"],
+  "sku-location": ["Product UID", "SKU", "Location"],
   vendor: ["Name", "GST Number", "Contact Person", "Phone", "Email", "Address Line 1", "Address Line 2", "City", "State", "Postal Code"],
   customer: ["Name", "GST Number", "Contact Person", "Phone", "Email", "Address Line 1", "Address Line 2", "City", "State", "Postal Code"],
 };
@@ -19,6 +21,9 @@ const SAMPLE_DATA = {
   sku: [
     { "Name": "Paracetamol 500mg", "HSN Code": "300490", "Category": "Tablet", "Sub Category": "Analgesic", "Manufacturer": "PharmaCorp", "UOM": "STRIP", "MRP": 25.5 },
     { "Name": "Amoxicillin 250mg", "HSN Code": "300410", "Category": "Capsule", "Sub Category": "Antibiotic", "Manufacturer": "HealthMed", "UOM": "BOX", "MRP": 120.0 },
+  ],
+  "sku-location": [
+    { "Product UID": "PASTE-PRODUCT-UID-HERE", "SKU": "Paracetamol 500mg", "Location": "A01-S12-001-001" },
   ],
   vendor: [
     { "Name": "Apex Healthcare Pvt Ltd", "GST Number": "27AAAAA0000A1Z5", "Contact Person": "John Doe", "Phone": "9876543210", "Email": "apex@example.com", "Address Line 1": "Plot 12, Industrial Area", "Address Line 2": "Phase 1", "City": "Mumbai", "State": "Maharashtra", "Postal Code": "400001" },
@@ -114,7 +119,7 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
     }
 
     const masterType = (req.body.masterType || "sku").toLowerCase();
-    if (!["sku", "vendor", "customer"].includes(masterType)) {
+    if (!["sku", "vendor", "customer", "sku-location"].includes(masterType)) {
       return res.status(400).json({ error: "Invalid master type specified" });
     }
 
@@ -140,6 +145,20 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
     const totalRecords = rawRows.length;
     const validatedRecords = [];
     const errorDetails = [];
+    let skuLookup = new Map();
+    let existingSkuLocationIds = new Set();
+    if (masterType === "sku-location") {
+      const [skus, mappings] = await Promise.all([
+        Sku.find().select("name uid"),
+        SkuLocation.find().select("sku"),
+      ]);
+      skus.forEach((sku) => {
+        skuLookup.set(sku.name.trim().toLowerCase(), sku);
+        if (sku.uid) skuLookup.set(sku.uid.trim().toLowerCase(), sku);
+      });
+      existingSkuLocationIds = new Set(mappings.map((mapping) => String(mapping.sku)));
+    }
+    const uploadedSkuLocationIds = new Set();
 
     const getVal = (row, fieldName) => {
       const key = Object.keys(row).find((k) => k.trim().toLowerCase() === fieldName.toLowerCase());
@@ -165,6 +184,22 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
 
         if (rowErrors.length === 0) {
           validatedRecords.push({ name, hsnCode, category, subCategory, manufacturer, uom, mrp });
+        }
+      } else if (masterType === "sku-location") {
+        const productUid = getVal(row, "product uid") || getVal(row, "sku uid");
+        const skuName = getVal(row, "sku");
+        const location = getVal(row, "location");
+        const sku = skuLookup.get(productUid.toLowerCase()) || skuLookup.get(skuName.toLowerCase());
+
+        if (!productUid && !skuName) rowErrors.push("Product UID or SKU name is required");
+        if (!sku) rowErrors.push(`SKU not found: ${productUid || skuName}`);
+        if (!location) rowErrors.push("Location is required");
+        if (sku && existingSkuLocationIds.has(String(sku._id))) rowErrors.push("This SKU already has a location mapping");
+        if (sku && uploadedSkuLocationIds.has(String(sku._id))) rowErrors.push("This SKU is repeated in the upload");
+
+        if (rowErrors.length === 0) {
+          uploadedSkuLocationIds.add(String(sku._id));
+          validatedRecords.push({ sku: sku._id, location });
         }
       } else if (masterType === "vendor" || masterType === "customer") {
         const name = getVal(row, "name");
@@ -229,6 +264,8 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
     } else {
       if (masterType === "sku") {
         await Sku.insertMany(validatedRecords);
+      } else if (masterType === "sku-location") {
+        await SkuLocation.insertMany(validatedRecords);
       } else {
         await Party.insertMany(validatedRecords);
       }

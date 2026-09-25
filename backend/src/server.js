@@ -3,10 +3,12 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const Stock = require("./models/Stock");
+const SkuLocation = require("./models/SkuLocation");
 
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const skuRoutes = require("./routes/sku.routes");
+const skuLocationRoutes = require("./routes/skuLocation.routes");
 const purchaseOrderRoutes = require("./routes/purchaseOrder.routes");
 const grnRoutes = require("./routes/grn.routes");
 const inventoryRoutes = require("./routes/inventory.routes");
@@ -27,6 +29,7 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/skus", skuRoutes);
+app.use("/api/sku-locations", skuLocationRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/grn", grnRoutes);
 app.use("/api/inventory", inventoryRoutes);
@@ -42,10 +45,10 @@ app.use((req, res) => res.status(404).json({ error: "Not found" }));
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
-  Stock.syncIndexes()
+  Promise.all([Stock.syncIndexes(), SkuLocation.syncIndexes()])
     .then(() => app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`)))
     .catch((err) => {
-      console.error("Stock index synchronization error:", err.message);
+      console.error("Index synchronization error:", err.message);
       process.exit(1);
     });
 });

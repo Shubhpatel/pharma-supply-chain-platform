@@ -5,16 +5,22 @@ const Grn = require("../models/Grn");
 const SaleInvoice = require("../models/SaleInvoice");
 const DebitNote = require("../models/DebitNote");
 const CreditNote = require("../models/CreditNote");
+const SkuLocation = require("../models/SkuLocation");
 
 const router = express.Router();
 
 router.get("/", requireAuth, requirePermission("inventory"), async (req, res) => {
   try {
     const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
+    const skuIds = stock.filter((item) => item.sku).map((item) => item.sku._id);
+    const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
+    const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
+    // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
     const rows = stock
       .filter((s) => s.sku)
       .map((s) => ({
         skuId: s.sku._id,
+        location: locationsBySku.get(String(s.sku._id)) || "-",
         name: s.sku.name,
         category: s.sku.category,
         subCategory: s.sku.subCategory,
@@ -38,12 +44,13 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;
 
     const queryFilter = skuId === "all" ? {} : { "items.sku": skuId };
+    const confirmedFilter = { ...queryFilter, status: "confirmed" };
 
     const [grns, sales, debitNotes, creditNotes] = await Promise.all([
-      Grn.find(queryFilter),
-      SaleInvoice.find(queryFilter),
-      DebitNote.find(queryFilter),
-      CreditNote.find(queryFilter),
+      Grn.find(confirmedFilter).populate("createdBy", "name"),
+      SaleInvoice.find(confirmedFilter).populate("createdBy", "name"),
+      DebitNote.find(confirmedFilter).populate("createdBy", "name"),
+      CreditNote.find(confirmedFilter).populate("createdBy", "name"),
     ]);
 
     let allTransactions = [];
@@ -67,6 +74,7 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
             qty: Number(item.qtyReceived) || 0,
             amount: item.amount,
             docLink: `/grn/${grn._id}`,
+            createdByName: grn.createdBy?.name || "-",
             createdAt: grn.createdAt || grn.grnDate,
           });
         }
@@ -92,6 +100,7 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
             qty: -(Number(item.qty) || 0),
             amount: item.amount,
             docLink: `/sales/${sale._id}`,
+            createdByName: sale.createdBy?.name || "-",
             createdAt: sale.createdAt || sale.saleDate,
           });
         }
@@ -117,6 +126,7 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
             qty: -(Number(item.qty) || 0),
             amount: item.amount,
             docLink: `/purchase/returns/${dn._id}`,
+            createdByName: dn.createdBy?.name || "-",
             createdAt: dn.createdAt || dn.returnDate,
           });
         }
@@ -142,6 +152,7 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
             qty: Number(item.qty) || 0,
             amount: item.amount,
             docLink: `/sales/returns/${cn._id}`,
+            createdByName: cn.createdBy?.name || "-",
             createdAt: cn.createdAt || cn.returnDate,
           });
         }

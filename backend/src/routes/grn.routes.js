@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const Grn = require("../models/Grn");
 const PurchaseOrder = require("../models/PurchaseOrder");
+const SkuLocation = require("../models/SkuLocation");
 const DebitNote = require("../models/DebitNote");
 const Stock = require("../models/Stock");
 const { nextNumber } = require("../utils/idGenerator");
@@ -10,6 +11,16 @@ const router = express.Router();
 
 // POST /api/grn
 router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
+async function addSkuLocationSnapshots(items) {
+  const skuIds = [...new Set(items.map((item) => String(item.sku)))];
+  const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
+  const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
+  return items.map((item) => ({ ...item, skuLocation: locationsBySku.get(String(item.sku)) || "" }));
+}
+
+// POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
+// Creates the GRN, adds the received quantities to stock, and updates the PO's status.
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, gstRate, items } = req.body;
     if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
@@ -55,12 +66,12 @@ router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
       }
     }
 
-    const itemsWithAmount = items.map((i) => {
+    const itemsWithAmount = await addSkuLocationSnapshots(items.map((i) => {
       const itemGstRate = Number(i.gstRate || 0);
       if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
       const amount = i.qtyReceived * i.rate;
       return { ...i, gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
-    });
+    }));
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
     const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
     const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
@@ -126,12 +137,12 @@ router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
       const pendingQty = orderedBySku[skuId] - (receivedBySku[skuId] || 0);
       if (requestedQty > pendingQty) return res.status(400).json({ error: `Received quantity for SKU ${skuId} exceeds the pending quantity of ${pendingQty}` });
     }
-    const itemsWithAmount = items.map((i) => {
+    const itemsWithAmount = await addSkuLocationSnapshots(items.map((i) => {
       const itemGstRate = Number(i.gstRate || 0);
       if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
       const amount = Number(i.qtyReceived) * Number(i.rate);
       return { ...i, qtyReceived: Number(i.qtyReceived), rate: Number(i.rate), mrp: Number(i.mrp), gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
-    });
+    }));
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
     const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
     const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
