@@ -7,10 +7,11 @@ import { useApp } from "@/context/AppContext";
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams();
-  const { user } = useApp();
+  const { user, token, showToast } = useApp();
   const [po, setPo] = useState(null);
   const [error, setError] = useState("");
   const [lastPrinted, setLastPrinted] = useState(null);
+  const [duplicating, setDuplicating] = useState(false);
 
   useEffect(() => {
     api.getPurchaseOrder(id).then((d) => setPo(d.purchaseOrder)).catch((e) => setError(e.message));
@@ -36,6 +37,43 @@ export default function PurchaseOrderDetailPage() {
     }, 100);
   }
 
+  async function handleConfirm() {
+    try {
+      const data = await api.confirmPurchaseOrder(id, token);
+      setPo(data.purchaseOrder);
+      showToast("Purchase order confirmed.");
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
+
+  async function handleDuplicate() {
+    setDuplicating(true);
+    try {
+      const data = await api.duplicatePurchaseOrder(id, token);
+      showToast("Purchase order duplicated successfully.");
+      window.location.href = `/purchase/${data.purchaseOrder._id}`;
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    } finally {
+      setDuplicating(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this purchase order?")) return;
+    try {
+      await api.deletePurchaseOrder(id, token);
+      showToast("Purchase order deleted.");
+      window.location.href = "/purchase";
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
+
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!po) return <p className="text-sm text-gray-500">Loading...</p>;
 
@@ -46,16 +84,18 @@ export default function PurchaseOrderDetailPage() {
           <h1 className="text-xl font-semibold">{po.poNumber}</h1>
           <p className="text-sm text-gray-500 capitalize">Status: {po.status.replace("_", " ")}</p>
         </div>
-        <button
-          onClick={handlePrint}
-          type="button"
-          className="no-print inline-flex items-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 shadow-sm"
-        >
+        <div className="no-print flex items-center gap-2">
+          <button type="button" onClick={handleDuplicate} disabled={duplicating} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50">{duplicating ? "Duplicating..." : "Duplicate"}</button>
+          {["draft", "placed"].includes(po.status) && <a href={`/purchase/new?edit=${po._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
+          {["draft", "placed"].includes(po.status) && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
+          {po.status === "draft" && <button type="button" onClick={handleConfirm} className="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Confirm PO</button>}
+          <button onClick={handlePrint} type="button" className="inline-flex items-center gap-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
           Print / PDF
-        </button>
+          </button>
+        </div>
       </div>
 
       {lastPrinted && (
@@ -82,7 +122,7 @@ export default function PurchaseOrderDetailPage() {
             <div><div className="text-gray-500 text-xs">Address</div>{[po.supplier.addressLine1, po.supplier.addressLine2, po.supplier.city, po.supplier.state, po.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div>
           </div>
         )}
-        <div>
+        <div className="sm:col-span-3 border-t border-gray-100 pt-3">
           <div className="text-gray-500 text-xs">Linked GRN</div>
           {po.linkedGrns?.length ? (
             <div className="flex flex-wrap gap-x-2">
@@ -125,15 +165,15 @@ export default function PurchaseOrderDetailPage() {
               <td className="px-4 py-2">{po.pendingQty}</td>
               <td></td>
               <td></td>
-              <td className="px-4 py-2">₹{po.totalPrice.toFixed(2)}</td>
+              <td className="px-4 py-2 text-right">₹{po.totalPrice.toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan="5" className="px-4 py-1 text-right">GST</td>
-              <td className="px-4 py-1">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
+              <td className="px-4 py-1 text-right">₹{Number(po.gstAmount || 0).toFixed(2)}</td>
             </tr>
             <tr className="font-semibold">
-              <td colSpan="4" className="px-4 py-1 text-right">Grand total</td>
-              <td className="px-4 py-1">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
+              <td colSpan="5" className="px-4 py-1 text-right">Grand total</td>
+              <td className="px-4 py-1 text-right">₹{Number(po.grandTotal ?? po.totalPrice).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

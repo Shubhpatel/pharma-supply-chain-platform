@@ -6,7 +6,7 @@ const router = express.Router();
 // GET /api/inventory - stock on hand, joined with SKU details
 router.get("/", async (req, res) => {
   try {
-    const stock = await Stock.find().populate("sku", "name category subCategory manufacturer uom");
+    const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
     // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
     const rows = stock
       .filter((s) => s.sku)

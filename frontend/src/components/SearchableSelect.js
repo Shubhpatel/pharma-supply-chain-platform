@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 
-export default function SearchableSelect({ value, onChange, options, placeholder, required = false, className = "" }) {
+export default function SearchableSelect({ value, onChange, options, placeholder, required = false, className = "", disabled = false }) {
   const selectedOption = options.find((option) => option.value === value);
   const listId = `searchable-select-options-${useId().replaceAll(":", "")}`;
   const [query, setQuery] = useState(selectedOption?.label || "");
@@ -10,8 +10,10 @@ export default function SearchableSelect({ value, onChange, options, placeholder
   const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase()));
 
   useEffect(() => {
-    setQuery(selectedOption?.label || "");
-  }, [value, selectedOption?.label]);
+    if (!open) {
+      setQuery(selectedOption?.label || "");
+    }
+  }, [selectedOption, open]);
 
   function selectOption(option) {
     onChange(option.value);
@@ -27,17 +29,20 @@ export default function SearchableSelect({ value, onChange, options, placeholder
         placeholder={placeholder}
         autoComplete="off"
         required={required && !value}
+        disabled={disabled}
         onFocus={() => {
+          if (disabled) return;
           setQuery("");
           setOpen(true);
         }}
         onChange={(event) => {
+          if (disabled) return;
           setQuery(event.target.value);
           setOpen(true);
           if (!event.target.value) onChange("");
         }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+        className={`w-full border border-gray-300 rounded-md px-3 py-2 text-sm ${disabled ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}

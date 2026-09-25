@@ -78,6 +78,97 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+// PUT /api/purchase-orders/:id - updates a draft or placed purchase order
+router.put("/:id", requireAuth, async (req, res) => {
+  try {
+    const { items } = req.body;
+    const po = await PurchaseOrder.findById(req.params.id);
+    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!["draft", "placed"].includes(po.status)) return res.status(400).json({ error: "Only draft or confirmed purchase orders can be edited" });
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "At least one item is required" });
+    }
+
+    const itemsWithAmount = items.map((i) => {
+      const itemGstRate = Number(i.gstRate || 0);
+      if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
+      const amount = Number(i.qty) * Number(i.rate);
+      return { ...i, qty: Number(i.qty), rate: Number(i.rate), gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
+    });
+    const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qty, 0);
+    const totalPrice = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
+    const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
+    Object.assign(po, {
+      items: itemsWithAmount,
+      totalQty,
+      totalPrice,
+      gstRate: 0,
+      gstAmount,
+      grandTotal: totalPrice + gstAmount,
+    });
+    await po.save();
+    return res.json({ purchaseOrder: po });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/purchase-orders/:id - deletes a draft or placed purchase order
+router.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const po = await PurchaseOrder.findById(req.params.id);
+    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!["draft", "placed"].includes(po.status)) return res.status(400).json({ error: "Only draft or placed purchase orders can be deleted" });
+    await po.deleteOne();
+    return res.json({ message: "Purchase order deleted" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/purchase-orders/:id/duplicate - creates a new draft from an existing PO
+router.post("/:id/duplicate", requireAuth, async (req, res) => {
+  try {
+    const source = await PurchaseOrder.findById(req.params.id);
+    if (!source) return res.status(404).json({ error: "Purchase order not found" });
+
+    const po = await PurchaseOrder.create({
+      poNumber: await nextNumber(PurchaseOrder, "poNumber", "PO"),
+      supplier: source.supplier,
+      supplierName: source.supplierName,
+      orderDate: source.orderDate,
+      paymentTerm: source.paymentTerm,
+      expectedDeliveryDate: source.expectedDeliveryDate,
+      status: "draft",
+      items: source.items.map((item) => item.toObject()),
+      totalQty: source.totalQty,
+      totalPrice: source.totalPrice,
+      gstRate: source.gstRate,
+      gstAmount: source.gstAmount,
+      grandTotal: source.grandTotal,
+      createdBy: req.user.id,
+    });
+
+    return res.status(201).json({ purchaseOrder: po });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/purchase-orders/:id/confirm - confirms a draft PO for receiving
+router.patch("/:id/confirm", requireAuth, async (req, res) => {
+  try {
+    const po = await PurchaseOrder.findById(req.params.id);
+    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (po.status !== "draft") return res.status(400).json({ error: "Only draft purchase orders can be confirmed" });
+    po.status = "placed";
+    await po.save();
+    return res.json({ purchaseOrder: po });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/purchase-orders - list (summary columns)
 router.get("/", async (req, res) => {
   try {

@@ -33,7 +33,7 @@ const grnSchema = new mongoose.Schema(
     gstRate: { type: Number, min: 0, max: 100, default: 0 },
     gstAmount: { type: Number, default: 0 },
     grandTotal: { type: Number, default: 0 },
-    status: { type: String, enum: ["confirmed"], default: "confirmed" },
+    status: { type: String, enum: ["draft", "confirmed"], default: "draft" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

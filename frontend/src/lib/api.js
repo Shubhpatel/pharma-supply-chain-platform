@@ -37,11 +37,18 @@ export const api = {
   listOpenPurchaseOrders: () => apiFetch("/purchase-orders/open/list"),
   getPurchaseOrder: (id) => apiFetch(`/purchase-orders/${id}`),
   createPurchaseOrder: (payload, token) => apiFetch("/purchase-orders", { method: "POST", body: payload, token }),
+  updatePurchaseOrder: (id, payload, token) => apiFetch(`/purchase-orders/${id}`, { method: "PUT", body: payload, token }),
+  deletePurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}`, { method: "DELETE", token }),
+  duplicatePurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}/duplicate`, { method: "POST", token }),
+  confirmPurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}/confirm`, { method: "PATCH", token }),
 
   // GRN
   listGrns: () => apiFetch("/grn"),
   getGrn: (id) => apiFetch(`/grn/${id}`),
   createGrn: (payload, token) => apiFetch("/grn", { method: "POST", body: payload, token }),
+  updateGrn: (id, payload, token) => apiFetch(`/grn/${id}`, { method: "PUT", body: payload, token }),
+  deleteGrn: (id, token) => apiFetch(`/grn/${id}`, { method: "DELETE", token }),
+  confirmGrn: (id, token) => apiFetch(`/grn/${id}/confirm`, { method: "PATCH", token }),
 
   // Inventory
   listStock: () => apiFetch("/inventory"),
@@ -54,16 +61,26 @@ export const api = {
   listInvoices: () => apiFetch("/sales"),
   getInvoice: (id) => apiFetch(`/sales/${id}`),
   createInvoice: (payload, token) => apiFetch("/sales", { method: "POST", body: payload, token }),
+  updateInvoice: (id, payload, token) => apiFetch(`/sales/${id}`, { method: "PUT", body: payload, token }),
+  deleteInvoice: (id, token) => apiFetch(`/sales/${id}`, { method: "DELETE", token }),
+  duplicateInvoice: (id, token) => apiFetch(`/sales/${id}/duplicate`, { method: "POST", token }),
+  confirmInvoice: (id, token) => apiFetch(`/sales/${id}/confirm`, { method: "PATCH", token }),
 
   // Purchase Returns (Debit Notes)
   listDebitNotes: () => apiFetch("/debit-notes"),
   getDebitNote: (id) => apiFetch(`/debit-notes/${id}`),
   createDebitNote: (payload, token) => apiFetch("/debit-notes", { method: "POST", body: payload, token }),
+  updateDebitNote: (id, payload, token) => apiFetch(`/debit-notes/${id}`, { method: "PUT", body: payload, token }),
+  deleteDebitNote: (id, token) => apiFetch(`/debit-notes/${id}`, { method: "DELETE", token }),
+  confirmDebitNote: (id, token) => apiFetch(`/debit-notes/${id}/confirm`, { method: "PATCH", token }),
 
   // Sales Returns (Credit Notes)
   listCreditNotes: () => apiFetch("/credit-notes"),
   getCreditNote: (id) => apiFetch(`/credit-notes/${id}`),
   createCreditNote: (payload, token) => apiFetch("/credit-notes", { method: "POST", body: payload, token }),
+  updateCreditNote: (id, payload, token) => apiFetch(`/credit-notes/${id}`, { method: "PUT", body: payload, token }),
+  deleteCreditNote: (id, token) => apiFetch(`/credit-notes/${id}`, { method: "DELETE", token }),
+  confirmCreditNote: (id, token) => apiFetch(`/credit-notes/${id}/confirm`, { method: "PATCH", token }),
   // Reports
   getSalesReport: (params, token) => {
     const q = new URLSearchParams(params).toString();

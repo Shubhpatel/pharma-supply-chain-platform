@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 export default function SalesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -11,10 +12,25 @@ export default function SalesPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ search: "", fromDate: "", toDate: "" });
+  const [duplicatingId, setDuplicatingId] = useState("");
+  const { token, showToast } = useApp();
 
   useEffect(() => {
     api.listInvoices().then((d) => setInvoices(d.invoices)).catch((e) => setError(e.message)).finally(() => setLoading(false));
   }, []);
+
+  async function handleDuplicate(id) {
+    setDuplicatingId(id);
+    try {
+      const data = await api.duplicateInvoice(id, token);
+      showToast("Invoice duplicated successfully.");
+      window.location.href = `/sales/${data.invoice._id}`;
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setDuplicatingId("");
+    }
+  }
 
   const filteredInvoices = invoices.filter((invoice) => {
     const query = appliedFilters.search.toLowerCase();
@@ -60,7 +76,8 @@ export default function SalesPage() {
                 <th className="px-4 py-2">Sale Date</th>
                 <th className="px-4 py-2">Total Qty</th>
                 <th className="px-4 py-2">Total Amount</th>
-                <th className="px-4 py-2"></th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -71,7 +88,13 @@ export default function SalesPage() {
                   <td className="px-4 py-2">{new Date(inv.saleDate).toLocaleDateString()}</td>
                   <td className="px-4 py-2">{inv.totalQty}</td>
                   <td className="px-4 py-2">₹{inv.totalAmount.toFixed(2)}</td>
-                  <td className="px-4 py-2"><a href={`/sales/${inv._id}`} className="text-blue-600 hover:underline">View</a></td>
+                  <td className="px-4 py-2 capitalize">{inv.status}</td>
+                  <td className="px-4 py-2 space-x-3 whitespace-nowrap">
+                    <a href={`/sales/${inv._id}`} className="text-blue-600 hover:underline">View</a>
+                    <button type="button" onClick={() => handleDuplicate(inv._id)} disabled={duplicatingId === inv._id} className="text-blue-600 hover:underline disabled:opacity-50">
+                      {duplicatingId === inv._id ? "Duplicating..." : "Duplicate"}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

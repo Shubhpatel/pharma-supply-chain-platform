@@ -146,13 +146,14 @@ export default function NavBar() {
                 <div className="absolute left-0 top-full z-10 mt-2 min-w-44 rounded-md border border-gray-200 bg-white p-1 shadow-lg">
                   <a href="/purchase" onClick={() => setPurchaseOpen(false)}
                     className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Purchase Orders</a>
+                  <a href="/grn" onClick={() => setPurchaseOpen(false)}
+                    className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">GRN</a>
                   <a href="/purchase/returns" onClick={() => setPurchaseOpen(false)}
                     className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-teal-50 hover:text-teal-800">Purchase Returns (Debit Note)</a>
                 </div>
               )}
             </div>
 
-            <a href="/grn" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">GRN</a>
             <a href="/inventory" className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">Inventory</a>
 
             <div className="relative">
