@@ -174,7 +174,6 @@ export default function NavBar() {
             </div>
 
             <div className="relative">
-              <button type="button" onClick={() => { setMastersOpen((open) => !open); setPurchaseOpen(false); setSalesOpen(false); }}
               <button type="button" onClick={() => { setReportsOpen((open) => !open); setMastersOpen(false); }}
                 className="rounded-md px-3 py-2 text-gray-600 hover:bg-teal-50 hover:text-teal-800">
                 Reports

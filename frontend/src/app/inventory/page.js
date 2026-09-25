@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 
 export default function InventoryPage() {
@@ -39,7 +40,21 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Stock On Hand</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold">Stock On Hand</h1>
+
+        <Link
+          href="/inventory/history/all"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          View All Transactions History
+        </Link>
+      </div>
 
       <div className="flex flex-wrap items-end gap-3">
         <input placeholder="Search SKU" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-64" />
@@ -80,24 +95,38 @@ export default function InventoryPage() {
                 <th className="px-4 py-2">Rate</th>
                 <th className="px-4 py-2">Qty</th>
                 <th className="px-4 py-2">UOM</th>
+                <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {products.map((s) => (
                 <Fragment key={s.skuId}>
-                  <tr className="border-t border-gray-100">
+                  <tr className="border-t border-gray-100 hover:bg-gray-50/50">
                     <td className="px-4 py-2">{s.category || "-"}</td>
                     <td className="px-4 py-2">{s.subCategory || "-"}</td>
-                    <td className="px-4 py-2">{s.name}</td>
+                    <td className="px-4 py-2 font-medium text-gray-900">{s.name}</td>
                     <td className="px-4 py-2">{s.manufacturer || "-"}</td>
                     <td className="px-4 py-2">{s.rate == null ? "-" : `₹${Number(s.rate).toFixed(2)}`}</td>
                     <td className={`px-4 py-2 font-medium ${s.qty === 0 ? "text-red-500" : ""}`}>{s.qty}</td>
                     <td className="px-4 py-2">{s.uom}</td>
+                    <td className="px-4 py-2 text-right">
+                      <Link
+                        href={`/inventory/history/${s.skuId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Transaction History
+                      </Link>
+                    </td>
                   </tr>
                   <tr className="border-t border-gray-100">
-                    <td colSpan="7" className="px-4 py-2">
+                    <td colSpan="8" className="px-4 py-2">
                       <details>
-                        <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Show Details</summary>
+                        <summary className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">Show Details</summary>
                         <div className="mt-3 overflow-x-auto">
                           <table className="w-full min-w-[28rem] text-xs text-gray-600">
                             <thead className="bg-gray-50 text-left">
@@ -114,7 +143,7 @@ export default function InventoryPage() {
                                   <td className="px-3 py-2 font-medium text-gray-900">{batch.batch || "-"}</td>
                                   <td className="px-3 py-2">{batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : "-"}</td>
                                   <td className="px-3 py-2">{batch.mrp == null ? "-" : `₹${Number(batch.mrp).toFixed(2)}`}</td>
-                                  <td className="px-3 py-2">{batch.qty}</td>
+                                  <td className="px-3 py-2 font-medium">{batch.qty}</td>
                                 </tr>
                               ))}
                             </tbody>
