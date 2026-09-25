@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function NewCreditNotePage() {
   const router = useRouter();
+  const [editId, setEditId] = useState(undefined);
   const { token, showToast } = useApp();
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
@@ -19,8 +20,53 @@ export default function NewCreditNotePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.listInvoices().then((d) => setInvoices(d.invoices || [])).catch((e) => setError(e.message));
+    const params = new URLSearchParams(window.location.search);
+    setEditId(params.get("edit"));
+    const preselectedInvoiceId = params.get("invoiceId");
+    if (preselectedInvoiceId) {
+      setSelectedInvoiceId(preselectedInvoiceId);
+    }
   }, []);
+
+  useEffect(() => {
+    if (editId === undefined) return;
+    api.listInvoices().then((d) => setInvoices((d.invoices || []).filter((invoice) => invoice.status === "confirmed"))).catch((e) => setError(e.message));
+    if (!editId) {
+      const preselectedInvoiceId = new URLSearchParams(window.location.search).get("invoiceId");
+      if (preselectedInvoiceId) {
+        handleInvoiceSelect(preselectedInvoiceId);
+      }
+      return;
+    }
+
+    api.getCreditNote(editId)
+      .then(async (d) => {
+        const note = d.creditNote;
+        setSelectedInvoiceId(note.saleInvoice);
+        setReturnDate(note.returnDate ? new Date(note.returnDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+        setReason(note.reason || "");
+        const invoiceData = await api.getInvoice(note.saleInvoice);
+        const invoice = invoiceData.invoice;
+        setSelectedInvoice(invoice);
+        setItems(
+          invoice.items.map((si) => {
+            const existing = note.items.find((item) => String(item.sku) === String(si.sku) && item.batch === si.batch);
+            return {
+              sku: si.sku,
+              skuName: si.skuName,
+              batch: si.batch,
+              expiryDate: si.expiryDate,
+              mrp: si.mrp,
+              rate: si.rate,
+              invoiceQty: si.qty,
+              returnQty: existing ? existing.qty : 0,
+              gstRate: si.gstRate || 0,
+            };
+          })
+        );
+      })
+      .catch((e) => setError(e.message));
+  }, [editId]);
 
   async function handleInvoiceSelect(invoiceId) {
     setSelectedInvoiceId(invoiceId);
@@ -88,16 +134,16 @@ export default function NewCreditNotePage() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.createCreditNote(
-        {
-          invoiceId: selectedInvoiceId,
-          returnDate,
-          reason,
-          items: validItems,
-        },
-        token
-      );
-      showToast(`Credit Note ${res.creditNote.creditNoteNumber} created successfully!`);
+      const payload = {
+        invoiceId: selectedInvoiceId,
+        returnDate,
+        reason,
+        items: validItems,
+      };
+      const res = editId
+        ? await api.updateCreditNote(editId, payload, token)
+        : await api.createCreditNote(payload, token);
+      showToast(editId ? `Credit Note ${res.creditNote.creditNoteNumber} updated successfully!` : `Credit Note ${res.creditNote.creditNoteNumber} created successfully!`);
       router.push(`/sales/returns/${res.creditNote._id}`);
     } catch (err) {
       setError(err.message);
@@ -117,7 +163,7 @@ export default function NewCreditNotePage() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Create Sales Return (Credit Note)</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{editId ? "Edit Sales Return (Credit Note)" : "Create Sales Return (Credit Note)"}</h1>
         <p className="text-sm text-gray-500">Record goods returned by customer against a Sales Invoice</p>
       </div>
 
@@ -239,7 +285,7 @@ export default function NewCreditNotePage() {
             disabled={loading || !selectedInvoice}
             className="px-4 py-2 text-sm font-medium text-white bg-teal-700 rounded-md hover:bg-teal-800 disabled:opacity-50"
           >
-            {loading ? "Submitting..." : "Save Credit Note"}
+            {loading ? "Saving..." : editId ? "Update Credit Note" : "Save Credit Note"}
           </button>
         </div>
       </form>

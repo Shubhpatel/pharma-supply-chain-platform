@@ -30,6 +30,7 @@ const creditNoteSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
     gstAmount: { type: Number, default: 0 },
     grandTotal: { type: Number, default: 0 },
+    status: { type: String, enum: ["draft", "confirmed"], default: "draft" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

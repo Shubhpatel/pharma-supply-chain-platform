@@ -7,7 +7,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function GrnDetailPage() {
   const { id } = useParams();
-  const { user } = useApp();
+  const { user, token, showToast } = useApp();
   const [grn, setGrn] = useState(null);
   const [error, setError] = useState("");
   const [lastPrinted, setLastPrinted] = useState(null);
@@ -36,6 +36,29 @@ export default function GrnDetailPage() {
     }, 100);
   }
 
+  async function handleConfirm() {
+    try {
+      const data = await api.confirmGrn(id, token);
+      setGrn(data.grn);
+      showToast("GRN confirmed and inventory updated.");
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this draft GRN?")) return;
+    try {
+      await api.deleteGrn(id, token);
+      showToast("GRN deleted.");
+      window.location.href = "/grn";
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, "error");
+    }
+  }
+
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!grn) return <p className="text-sm text-gray-500">Loading...</p>;
 
@@ -52,17 +75,21 @@ export default function GrnDetailPage() {
             ) : grn.poNumber}
           </p>
         </div>
-        <button
-          onClick={handlePrint}
-          type="button"
-          className="no-print inline-flex items-center gap-2 rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 shadow-sm"
-        >
+        <div className="no-print flex items-center gap-2">
+          {grn.status === "draft" && <a href={`/grn/new?edit=${grn._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
+          {grn.status === "draft" && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
+          {grn.status === "draft" && <button type="button" onClick={handleConfirm} className="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Confirm GRN</button>}
+          {grn.status === "confirmed" && <a href={`/purchase/returns/new?grnId=${grn._id}`} className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">Purchase Return</a>}
+          <button onClick={handlePrint} type="button" className="inline-flex items-center gap-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
           Print / PDF
-        </button>
+          </button>
+        </div>
       </div>
+
+      <p className="text-sm text-gray-500">Status: {grn.status}</p>
 
       {lastPrinted && (
         <div className="text-xs text-gray-500 border-b border-gray-100 pb-2">

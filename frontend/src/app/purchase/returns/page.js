@@ -64,21 +64,19 @@ export default function DebitNoteListPage() {
               <th className="px-4 py-3">Total Amount</th>
               <th className="px-4 py-3">GST</th>
               <th className="px-4 py-3">Grand Total</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan="8" className="p-4 text-center text-gray-500">Loading debit notes...</td></tr>
+              <tr><td colSpan="10" className="p-4 text-center text-gray-500">Loading debit notes...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan="8" className="p-4 text-center text-gray-500">No debit notes found.</td></tr>
+              <tr><td colSpan="10" className="p-4 text-center text-gray-500">No debit notes found.</td></tr>
             ) : (
               filtered.map((dn) => (
                 <tr key={dn._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
-                    <a href={`/purchase/returns/${dn._id}`} className="text-teal-700 hover:underline">
-                      {dn.debitNoteNumber}
-                    </a>
-                  </td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{dn.debitNoteNumber}</td>
                   <td className="px-4 py-3 text-gray-600">{dn.grnNumber}</td>
                   <td className="px-4 py-3 text-gray-900">{dn.supplierName}</td>
                   <td className="px-4 py-3 text-gray-600">{new Date(dn.returnDate).toLocaleDateString()}</td>
@@ -86,6 +84,10 @@ export default function DebitNoteListPage() {
                   <td className="px-4 py-3 text-gray-600">₹{(dn.totalAmount || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-gray-600">₹{(dn.gstAmount || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">₹{(dn.grandTotal || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 capitalize">{dn.status}</td>
+                  <td className="px-4 py-3">
+                    <a href={`/purchase/returns/${dn._id}`} className="text-blue-600 hover:underline">View</a>
+                  </td>
                 </tr>
               ))
             )}

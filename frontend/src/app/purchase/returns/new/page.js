@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 
 export default function NewDebitNotePage() {
   const router = useRouter();
+  const [editId, setEditId] = useState(undefined);
   const { token, showToast } = useApp();
   const [grns, setGrns] = useState([]);
   const [selectedGrnId, setSelectedGrnId] = useState("");
@@ -19,8 +20,53 @@ export default function NewDebitNotePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.listGrns().then((d) => setGrns(d.grns || [])).catch((e) => setError(e.message));
+    const params = new URLSearchParams(window.location.search);
+    setEditId(params.get("edit"));
+    const preselectedGrnId = params.get("grnId");
+    if (preselectedGrnId) {
+      setSelectedGrnId(preselectedGrnId);
+    }
   }, []);
+
+  useEffect(() => {
+    if (editId === undefined) return;
+    api.listGrns().then((d) => setGrns((d.grns || []).filter((grn) => grn.status === "confirmed"))).catch((e) => setError(e.message));
+    if (!editId) {
+      const preselectedGrnId = new URLSearchParams(window.location.search).get("grnId");
+      if (preselectedGrnId) {
+        handleGrnSelect(preselectedGrnId);
+      }
+      return;
+    }
+
+    api.getDebitNote(editId)
+      .then(async (d) => {
+        const note = d.debitNote;
+        setSelectedGrnId(note.grn);
+        setReturnDate(note.returnDate ? new Date(note.returnDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+        setReason(note.reason || "");
+        const grnData = await api.getGrn(note.grn);
+        const grn = grnData.grn;
+        setSelectedGrn(grn);
+        setItems(
+          grn.items.map((gi) => {
+            const existing = note.items.find((item) => String(item.sku) === String(gi.sku) && item.batch === gi.batch);
+            return {
+              sku: gi.sku,
+              skuName: gi.skuName,
+              batch: gi.batch,
+              expiryDate: gi.expiryDate,
+              mrp: gi.mrp,
+              rate: gi.rate,
+              qtyReceived: gi.qtyReceived,
+              returnQty: existing ? existing.qty : 0,
+              gstRate: gi.gstRate || 0,
+            };
+          })
+        );
+      })
+      .catch((e) => setError(e.message));
+  }, [editId]);
 
   async function handleGrnSelect(grnId) {
     setSelectedGrnId(grnId);
@@ -88,16 +134,16 @@ export default function NewDebitNotePage() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.createDebitNote(
-        {
-          grnId: selectedGrnId,
-          returnDate,
-          reason,
-          items: validItems,
-        },
-        token
-      );
-      showToast(`Debit Note ${res.debitNote.debitNoteNumber} created successfully!`);
+      const payload = {
+        grnId: selectedGrnId,
+        returnDate,
+        reason,
+        items: validItems,
+      };
+      const res = editId
+        ? await api.updateDebitNote(editId, payload, token)
+        : await api.createDebitNote(payload, token);
+      showToast(editId ? `Debit Note ${res.debitNote.debitNoteNumber} updated successfully!` : `Debit Note ${res.debitNote.debitNoteNumber} created successfully!`);
       router.push(`/purchase/returns/${res.debitNote._id}`);
     } catch (err) {
       setError(err.message);
@@ -117,7 +163,7 @@ export default function NewDebitNotePage() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Create Purchase Return (Debit Note)</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{editId ? "Edit Purchase Return (Debit Note)" : "Create Purchase Return (Debit Note)"}</h1>
         <p className="text-sm text-gray-500">Return received items back to vendor against a GRN</p>
       </div>
 
@@ -239,7 +285,7 @@ export default function NewDebitNotePage() {
             disabled={loading || !selectedGrn}
             className="px-4 py-2 text-sm font-medium text-white bg-teal-700 rounded-md hover:bg-teal-800 disabled:opacity-50"
           >
-            {loading ? "Submitting..." : "Save Debit Note"}
+            {loading ? "Saving..." : editId ? "Update Debit Note" : "Save Debit Note"}
           </button>
         </div>
       </form>
