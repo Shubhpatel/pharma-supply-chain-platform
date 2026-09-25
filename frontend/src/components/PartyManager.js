@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
+import BulkUploadModal from "@/components/BulkUploadModal";
 
 const BLANK_FORM = {
   name: "",
@@ -26,6 +27,7 @@ export default function PartyManager({ type, title }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,14 +115,30 @@ export default function PartyManager({ type, title }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
         {!editingId && (
-          <button type="button" onClick={() => setShowForm(true)}
-            className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
-            Add {title}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setShowBulkModal(true)}
+              className="px-4 py-2 rounded-md border border-teal-700 text-teal-800 text-sm font-medium hover:bg-teal-50"
+            >
+              Add Bulk
+            </button>
+            <button type="button" onClick={() => setShowForm(true)}
+              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium">
+              Add {title}
+            </button>
+          </>
         )}
       </div>
+
+      <BulkUploadModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        initialMasterType={type}
+        onSuccess={load}
+      />
 
       {(showForm || editingId) && (
         <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-4">
