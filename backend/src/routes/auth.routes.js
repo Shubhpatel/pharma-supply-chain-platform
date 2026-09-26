@@ -20,7 +20,9 @@ router.post("/register", async (req, res) => {
 
     return res.status(201).json({ user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // 🛡️ Sentinel: Prevent Information Exposure (CWE-209) by not leaking err.message
+    console.error("Auth register error:", err);
+    return res.status(500).json({ error: "An internal server error occurred" });
   }
 });
 
@@ -39,7 +41,9 @@ router.post("/login", async (req, res) => {
 
     return res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // 🛡️ Sentinel: Prevent Information Exposure (CWE-209) by not leaking err.message
+    console.error("Auth login error:", err);
+    return res.status(500).json({ error: "An internal server error occurred" });
   }
 });
 
