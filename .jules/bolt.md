@@ -1,0 +1,3 @@
+## 2024-09-28 - Mongoose Query Optimization with .lean()
+**Learning:** This codebase uses Mongoose extensively for read-heavy operations like generating reports and displaying transaction histories. Returning heavy Mongoose Document objects for these operations leads to severe hydration performance bottlenecks, consuming unnecessary memory and CPU.
+**Action:** When creating or modifying read-only endpoints (e.g., GET routes that only format and return data without saving updates), always append `.lean()` to Mongoose `find()` queries to return Plain Old JavaScript Objects (POJOs) and bypass document hydration.
