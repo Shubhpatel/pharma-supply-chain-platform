@@ -1,0 +1,4 @@
+## 2024-05-18 - [CRITICAL] Information Exposure (CWE-209) in Express Routes
+**Vulnerability:** The application was catching exceptions in Express route handlers and returning the raw `err.message` directly in the HTTP 500 JSON response (`res.status(500).json({ error: err.message })`).
+**Learning:** This is a common pattern that can inadvertently expose sensitive internal details (like database schemas, query logic, or connection strings) to attackers if the underlying library generates a detailed error message. Mongoose and MongoDB errors can be particularly verbose.
+**Prevention:** Always catch and log raw errors on the server-side (e.g., `console.error` or a logging library) for debugging purposes, but return a sanitized, generic error message to the client (e.g., "An internal server error occurred").
