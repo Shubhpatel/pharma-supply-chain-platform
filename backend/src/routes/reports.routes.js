@@ -23,7 +23,8 @@ router.get("/sales", requireAuth, async (req, res) => {
       }
     }
 
-    const invoices = await SaleInvoice.find(filter).sort({ saleDate: -1, createdAt: -1 });
+    // ⚡ Bolt: Using .lean() to skip Mongoose document hydration, significantly reducing memory footprint and improving query speed for this read-only report endpoint.
+    const invoices = await SaleInvoice.find(filter).sort({ saleDate: -1, createdAt: -1 }).lean();
 
     const totalInvoices = invoices.length;
     const totalQty = invoices.reduce((sum, inv) => sum + (inv.totalQty || 0), 0);
@@ -55,7 +56,8 @@ router.get("/grn", requireAuth, async (req, res) => {
       }
     }
 
-    const grns = await Grn.find(filter).sort({ grnDate: -1, createdAt: -1 });
+    // ⚡ Bolt: Using .lean() to skip Mongoose document hydration, significantly reducing memory footprint and improving query speed for this read-only report endpoint.
+    const grns = await Grn.find(filter).sort({ grnDate: -1, createdAt: -1 }).lean();
 
     const totalGrns = grns.length;
     const totalQty = grns.reduce((sum, g) => sum + (g.totalQty || 0), 0);
@@ -87,7 +89,8 @@ router.get("/po", requireAuth, async (req, res) => {
       }
     }
 
-    const pos = await PurchaseOrder.find(filter).sort({ orderDate: -1, createdAt: -1 });
+    // ⚡ Bolt: Using .lean() to skip Mongoose document hydration, significantly reducing memory footprint and improving query speed for this read-only report endpoint.
+    const pos = await PurchaseOrder.find(filter).sort({ orderDate: -1, createdAt: -1 }).lean();
 
     const totalPos = pos.length;
     const totalQty = pos.reduce((sum, p) => sum + (p.totalQty || 0), 0);
@@ -115,10 +118,11 @@ router.get("/near-expired", requireAuth, async (req, res) => {
     futureDate.setDate(today.getDate() + days);
     futureDate.setHours(23, 59, 59, 999);
 
+    // ⚡ Bolt: Using .lean() to skip Mongoose document hydration, significantly reducing memory footprint and improving query speed for this read-only report endpoint.
     const stocks = await Stock.find({
       qty: { $gt: 0 },
       expiryDate: { $gte: today, $lte: futureDate },
-    }).populate("sku");
+    }).populate("sku").lean();
 
     const data = stocks
       .filter((s) => s.sku)
@@ -156,10 +160,11 @@ router.get("/expired", requireAuth, async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // ⚡ Bolt: Using .lean() to skip Mongoose document hydration, significantly reducing memory footprint and improving query speed for this read-only report endpoint.
     const stocks = await Stock.find({
       qty: { $gt: 0 },
       expiryDate: { $lt: today },
-    }).populate("sku");
+    }).populate("sku").lean();
 
     const data = stocks
       .filter((s) => s.sku)
