@@ -1,0 +1,3 @@
+## 2025-01-22 - Optimize Read-Heavy Queries with .lean()
+**Learning:** For read-only endpoints (like reports or transaction histories), returning Mongoose documents instead of plain JavaScript objects creates severe performance and memory bottlenecks due to the document hydration process.
+**Action:** Always append `.lean()` to Mongoose queries on read-heavy or read-only routes where document methods (like `.save()`) are not needed, in order to dramatically improve performance and decrease memory footprint.
