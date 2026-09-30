@@ -55,7 +55,7 @@ router.get("/sample", (req, res) => {
       return res.send(csvString);
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -67,7 +67,7 @@ router.get("/", requireAuth, async (req, res) => {
       .sort({ createdAt: -1 });
     return res.json({ history });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -107,7 +107,7 @@ router.get("/:id/error-file", requireAuth, async (req, res) => {
       return res.send(csvString);
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -260,7 +260,7 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
       });
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 

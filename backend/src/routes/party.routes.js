@@ -10,7 +10,7 @@ router.get("/", async (req, res) => {
     const parties = await Party.find(filter).sort({ name: 1 });
     return res.json({ parties });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -19,7 +19,7 @@ router.post("/", requireAuth, async (req, res) => {
     const party = await Party.create({ ...req.body, createdBy: req.user.id });
     return res.status(201).json({ party });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    console.error("Bad Request Error:", err); return res.status(400).json({ error: "Bad request" });
   }
 });
 
@@ -29,7 +29,7 @@ router.put("/:id", requireAuth, async (req, res) => {
     if (!party) return res.status(404).json({ error: "Party not found" });
     return res.json({ party });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    console.error("Bad Request Error:", err); return res.status(400).json({ error: "Bad request" });
   }
 });
 
@@ -39,7 +39,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!party) return res.status(404).json({ error: "Party not found" });
     return res.json({ message: "Party deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 

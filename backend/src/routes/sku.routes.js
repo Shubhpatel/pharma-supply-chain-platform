@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
     const skus = await Sku.find(filter).sort({ name: 1 });
     return res.json({ skus });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -23,7 +23,7 @@ router.get("/:id", async (req, res) => {
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -32,7 +32,7 @@ router.post("/", requireAuth, async (req, res) => {
     const sku = await Sku.create(req.body);
     return res.status(201).json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -42,7 +42,7 @@ router.put("/:id", requireAuth, async (req, res) => {
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -55,7 +55,7 @@ router.patch("/:id/toggle", requireAuth, async (req, res) => {
     await sku.save();
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -65,7 +65,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ message: "SKU deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 

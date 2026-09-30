@@ -56,7 +56,7 @@ router.post("/", requireAuth, async (req, res) => {
 
     return res.status(201).json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -96,7 +96,7 @@ router.put("/:id", requireAuth, async (req, res) => {
     await invoice.save();
     return res.json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -109,7 +109,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     await invoice.deleteOne();
     return res.json({ message: "Invoice deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -136,7 +136,7 @@ router.post("/:id/duplicate", requireAuth, async (req, res) => {
 
     return res.status(201).json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -182,7 +182,7 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
     await invoice.save();
     return res.json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -194,7 +194,7 @@ router.get("/", async (req, res) => {
       .sort({ createdAt: -1 });
     return res.json({ invoices });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -212,7 +212,7 @@ router.get("/:id", async (req, res) => {
     invoicePayload.linkedSalesReturns = linkedSalesReturns;
     return res.json({ invoice: invoicePayload });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Server Error:", err); return res.status(500).json({ error: "Internal server error" });
   }
 });
 
