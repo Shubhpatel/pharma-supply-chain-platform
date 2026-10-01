@@ -24,6 +24,10 @@ app.use(express.json());
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
+
+const { requireAuth } = require("./middleware/auth");
+app.use("/api", requireAuth);
+
 app.use("/api/skus", skuRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/grn", grnRoutes);

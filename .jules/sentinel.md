@@ -1,0 +1,4 @@
+## 2024-10-01 - [Missing Route-Level Authentication]
+**Vulnerability:** Several backend GET endpoints (e.g., inventory lists, SKU lists, purchase orders) lacked the `requireAuth` middleware, exposing sensitive operational and financial data publicly to anyone who knew the URL.
+**Learning:** This architectural security flaw existed because authentication was manually applied per route (or occasionally missed entirely) instead of using a global secure-by-default barrier for the API.
+**Prevention:** Avoid opt-in security models for individual routes. Instead, apply authentication globally at the application level (e.g., `app.use("/api", requireAuth)`) immediately after defining public routes like `/api/auth`, ensuring all subsequent endpoints are protected by default. Adjust the auth middleware to short-circuit if the user is already verified to prevent redundant checks.
