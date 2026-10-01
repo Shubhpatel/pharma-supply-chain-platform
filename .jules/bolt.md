@@ -1,0 +1,3 @@
+## 2024-10-01 - Mongoose .lean() for Read-Heavy Endpoints
+**Learning:** In this architecture, querying large collections (like SaleInvoice, Grn, PurchaseOrder, and Stock) without `.lean()` causes severe performance bottlenecks due to Mongoose's document hydration overhead. This is especially true for report endpoints that process thousands of records but only need raw JavaScript objects.
+**Action:** Always append `.lean()` to Mongoose `find()` queries in read-only and read-heavy endpoints (like reports, histories, or summary listings) to return plain JavaScript objects and bypass document hydration.
