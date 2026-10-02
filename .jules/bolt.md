@@ -1,0 +1,3 @@
+## 2024-03-24 - Missing .lean() on read-heavy Mongoose queries
+**Learning:** In this codebase, read-heavy endpoints like reports (Sales, GRN, PO, Near Expired, Expired) retrieve large datasets using Mongoose `find()` but sometimes omit `.lean()`. This is a codebase-specific bottleneck because Mongoose hydrates each document with full model methods, causing severe memory and CPU performance issues when returning large, read-only datasets.
+**Action:** Always append `.lean()` to Mongoose queries for read-only endpoints (like reports or transaction histories) to prevent severe document hydration performance bottlenecks.
