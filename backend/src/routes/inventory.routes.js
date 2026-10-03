@@ -1,7 +1,14 @@
 const express = require("express");
 const Stock = require("../models/Stock");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
+
+// SECURITY EXPLANATION: The inventory endpoints expose sensitive stock levels
+// and transaction history for the entire system. Because this app applies the
+// `requireAuth` middleware individually per route file (instead of globally in server.js),
+// we must ensure it is applied here so unauthorized users cannot access this data.
+router.use(requireAuth);
 
 // GET /api/inventory - stock on hand, joined with SKU details
 router.get("/", async (req, res) => {

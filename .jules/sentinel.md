@@ -1,0 +1,4 @@
+## 2025-05-18 - Missing Authentication on Inventory Endpoints
+**Vulnerability:** The `/api/inventory` and `/api/inventory/history/:skuId` endpoints were exposed without authentication, allowing unauthenticated users to access sensitive stock levels and transaction history.
+**Learning:** Because the backend architecture applies the `requireAuth` middleware individually per route file rather than globally in `server.js`, newly added routes or route files are at a high risk of unintentionally being exposed if developers forget to apply the middleware.
+**Prevention:** Always verify that route handlers or entire routers export their endpoints securely. Consider implementing a global authentication check by default, or writing tests that explicitly assert unauthenticated requests fail (401) on sensitive endpoints.
