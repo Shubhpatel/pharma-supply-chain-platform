@@ -74,7 +74,8 @@ router.post("/", requireAuth, async (req, res) => {
 
     return res.status(201).json({ purchaseOrder: po });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -109,7 +110,8 @@ router.put("/:id", requireAuth, async (req, res) => {
     await po.save();
     return res.json({ purchaseOrder: po });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -122,7 +124,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     await po.deleteOne();
     return res.json({ message: "Purchase order deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -151,7 +154,8 @@ router.post("/:id/duplicate", requireAuth, async (req, res) => {
 
     return res.status(201).json({ purchaseOrder: po });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -165,7 +169,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
     await po.save();
     return res.json({ purchaseOrder: po });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -178,7 +183,8 @@ router.get("/", async (req, res) => {
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -193,7 +199,8 @@ router.get("/open/list", async (req, res) => {
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -214,7 +221,8 @@ router.get("/:id", async (req, res) => {
     purchaseOrder.lastUpdatedAt = latestGrn?.createdAt || po.updatedAt;
     return res.json({ purchaseOrder });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

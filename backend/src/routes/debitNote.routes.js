@@ -99,7 +99,8 @@ router.post("/", requireAuth, async (req, res) => {
 
     return res.status(201).json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -190,7 +191,8 @@ router.put("/:id", requireAuth, async (req, res) => {
     await debitNote.save();
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -203,7 +205,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     await debitNote.deleteOne();
     return res.json({ message: "Debit note deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -235,7 +238,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
     await debitNote.save();
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -247,7 +251,8 @@ router.get("/", async (req, res) => {
       .sort({ createdAt: -1 });
     return res.json({ debitNotes });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -261,7 +266,8 @@ router.get("/:id", async (req, res) => {
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

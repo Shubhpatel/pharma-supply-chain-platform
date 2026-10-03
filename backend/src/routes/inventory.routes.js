@@ -25,7 +25,8 @@ router.get("/", async (req, res) => {
       }));
     return res.json({ stock: rows });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -215,7 +216,8 @@ router.get("/history/:skuId", async (req, res) => {
 
     return res.json({ transactions: allTransactions });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

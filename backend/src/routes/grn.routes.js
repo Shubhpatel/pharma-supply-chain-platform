@@ -87,7 +87,8 @@ router.post("/", requireAuth, async (req, res) => {
 
     return res.status(201).json({ grn });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -150,7 +151,8 @@ router.put("/:id", requireAuth, async (req, res) => {
     await grn.save();
     return res.json({ grn });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -163,7 +165,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     await grn.deleteOne();
     return res.json({ message: "GRN deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -205,7 +208,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
     await grn.save();
     return res.json({ grn });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -217,7 +221,8 @@ router.get("/", async (req, res) => {
       .sort({ createdAt: -1 });
     return res.json({ grns });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -238,7 +243,8 @@ router.get("/:id", async (req, res) => {
     grnPayload.linkedPurchaseReturns = linkedPurchaseReturns;
     return res.json({ grn: grnPayload });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

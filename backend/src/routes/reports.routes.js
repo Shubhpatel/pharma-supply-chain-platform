@@ -36,7 +36,8 @@ router.get("/sales", requireAuth, async (req, res) => {
       data: invoices,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -68,7 +69,8 @@ router.get("/grn", requireAuth, async (req, res) => {
       data: grns,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -100,7 +102,8 @@ router.get("/po", requireAuth, async (req, res) => {
       data: pos,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -146,7 +149,8 @@ router.get("/near-expired", requireAuth, async (req, res) => {
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -186,7 +190,8 @@ router.get("/expired", requireAuth, async (req, res) => {
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -268,7 +273,8 @@ router.get("/slow-moving", requireAuth, async (req, res) => {
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -318,7 +324,8 @@ router.get("/non-moving", requireAuth, async (req, res) => {
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

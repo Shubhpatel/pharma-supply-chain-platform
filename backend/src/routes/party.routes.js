@@ -10,7 +10,8 @@ router.get("/", async (req, res) => {
     const parties = await Party.find(filter).sort({ name: 1 });
     return res.json({ parties });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -39,7 +40,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!party) return res.status(404).json({ error: "Party not found" });
     return res.json({ message: "Party deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -99,7 +99,8 @@ router.post("/", requireAuth, async (req, res) => {
 
     return res.status(201).json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -190,7 +191,8 @@ router.put("/:id", requireAuth, async (req, res) => {
     await creditNote.save();
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -203,7 +205,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     await creditNote.deleteOne();
     return res.json({ message: "Credit note deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -226,7 +229,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
     await creditNote.save();
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -238,7 +242,8 @@ router.get("/", async (req, res) => {
       .sort({ createdAt: -1 });
     return res.json({ creditNotes });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -252,7 +257,8 @@ router.get("/:id", async (req, res) => {
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
