@@ -6,7 +6,10 @@ const router = express.Router();
 // GET /api/inventory - stock on hand, joined with SKU details
 router.get("/", async (req, res) => {
   try {
-    const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
+    // ⚡ Bolt: Using .lean() to improve query speed and reduce memory overhead
+    const stock = await Stock.find({ qty: { $gt: 0 } })
+      .populate("sku", "name category subCategory manufacturer uom")
+      .lean();
     // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
     const rows = stock
       .filter((s) => s.sku)
@@ -42,11 +45,13 @@ router.get("/history/:skuId", async (req, res) => {
 
     const queryFilter = skuId === "all" ? {} : { "items.sku": skuId };
 
+    // ⚡ Bolt: Using .lean() to bypass Mongoose document hydration
+    // This significantly improves performance for this read-heavy endpoint
     const [grns, sales, debitNotes, creditNotes] = await Promise.all([
-      Grn.find(queryFilter),
-      SaleInvoice.find(queryFilter),
-      DebitNote.find(queryFilter),
-      CreditNote.find(queryFilter),
+      Grn.find(queryFilter).lean(),
+      SaleInvoice.find(queryFilter).lean(),
+      DebitNote.find(queryFilter).lean(),
+      CreditNote.find(queryFilter).lean(),
     ]);
 
     let allTransactions = [];
