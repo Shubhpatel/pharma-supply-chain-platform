@@ -1,10 +1,13 @@
 const express = require("express");
+const { requireAuth } = require("../middleware/auth");
+
+// Security: Added requireAuth to prevent unauthenticated access
 const Stock = require("../models/Stock");
 
 const router = express.Router();
 
 // GET /api/inventory - stock on hand, joined with SKU details
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
     // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
@@ -35,7 +38,7 @@ const DebitNote = require("../models/DebitNote");
 const CreditNote = require("../models/CreditNote");
 
 // GET /api/inventory/history/:skuId - transaction history for a product (or "all")
-router.get("/history/:skuId", async (req, res) => {
+router.get("/history/:skuId", requireAuth, async (req, res) => {
   try {
     const { skuId } = req.params;
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;

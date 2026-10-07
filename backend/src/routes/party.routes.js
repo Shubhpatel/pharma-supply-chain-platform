@@ -4,7 +4,7 @@ const Party = require("../models/Party");
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const filter = req.query.type ? { partyType: req.query.type } : {};
     const parties = await Party.find(filter).sort({ name: 1 });

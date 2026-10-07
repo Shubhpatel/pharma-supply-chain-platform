@@ -170,7 +170,7 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
 });
 
 // GET /api/purchase-orders - list (summary columns)
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const orders = await PurchaseOrder.find()
       .select("poNumber supplierName orderDate paymentTerm expectedDeliveryDate status totalQty totalPrice gstAmount grandTotal items")
@@ -184,7 +184,7 @@ router.get("/", async (req, res) => {
 
 // GET /api/purchase-orders/open/list - POs that still have something pending to receive
 // (used by the GRN "create against a PO" picker)
-router.get("/open/list", async (req, res) => {
+router.get("/open/list", requireAuth, async (req, res) => {
   try {
     const orders = await PurchaseOrder.find({ status: { $in: ["placed", "partially_received"] } })
       .select("poNumber supplier supplierName orderDate items totalQty status")
@@ -198,7 +198,7 @@ router.get("/open/list", async (req, res) => {
 });
 
 // GET /api/purchase-orders/:id - full detail
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id).populate("createdBy", "name").populate("supplier");
     if (!po) return res.status(404).json({ error: "Purchase order not found" });

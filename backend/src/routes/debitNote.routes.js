@@ -240,7 +240,7 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
 });
 
 // GET /api/debit-notes - list summary
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const debitNotes = await DebitNote.find()
       .select("debitNoteNumber grnNumber supplierName returnDate totalQty totalAmount gstAmount grandTotal reason status")
@@ -252,7 +252,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/debit-notes/:id - full detail
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const debitNote = await DebitNote.findById(req.params.id)
       .populate("createdBy", "name")

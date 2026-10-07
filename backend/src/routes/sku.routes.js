@@ -6,7 +6,7 @@ const router = express.Router();
 
 // GET /api/skus?enabled=true - pass enabled=true to get only the SKUs that
 // should show up in Purchase/Sales product dropdowns.
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });

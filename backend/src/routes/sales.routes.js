@@ -187,7 +187,7 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
 });
 
 // GET /api/sales - list (summary columns)
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const invoices = await SaleInvoice.find()
       .select("invoiceNumber customerName saleDate totalQty totalAmount gstRate gstAmount grandTotal status")
@@ -199,7 +199,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/sales/:id - full invoice detail
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id).populate("createdBy", "name").populate("customer");
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });

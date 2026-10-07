@@ -231,7 +231,7 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
 });
 
 // GET /api/credit-notes - list summary
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const creditNotes = await CreditNote.find()
       .select("creditNoteNumber invoiceNumber customerName returnDate totalQty totalAmount gstAmount grandTotal reason status")
@@ -243,7 +243,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/credit-notes/:id - full detail
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const creditNote = await CreditNote.findById(req.params.id)
       .populate("createdBy", "name")

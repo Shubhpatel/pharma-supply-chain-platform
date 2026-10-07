@@ -210,7 +210,7 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
 });
 
 // GET /api/grn - list (summary columns)
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const grns = await Grn.find()
       .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue gstAmount grandTotal status")
@@ -222,7 +222,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/grn/:id - full detail
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id)
       .populate("createdBy", "name")
