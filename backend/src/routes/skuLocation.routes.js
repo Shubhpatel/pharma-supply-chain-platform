@@ -9,7 +9,8 @@ router.get("/", async (req, res) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
-    const locations = await SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 });
+    // Performance optimization: append .lean() to return plain JS objects, avoiding Mongoose document hydration overhead.
+    const locations = await SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 }).lean();
     return res.json({ locations });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -18,9 +19,11 @@ router.get("/", async (req, res) => {
 
 router.get("/export", requireAuth, async (req, res) => {
   try {
+    // Performance optimization: append .lean() for read-only export queries to skip document hydration.
     const locations = await SkuLocation.find()
       .populate("sku", "name uid")
-      .sort({ location: 1 });
+      .sort({ location: 1 })
+      .lean();
     const rows = locations.map((entry) => ({
       "Product UID": entry.sku?.uid || "",
       SKU: entry.sku?.name || "",
