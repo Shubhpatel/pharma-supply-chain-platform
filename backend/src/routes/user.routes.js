@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const User = require("../models/User");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -11,8 +12,12 @@ router.use(requireAuth, requirePermission("users"));
 // GET /api/users - List all users
 router.get("/", async (req, res) => {
   try {
-    const users = await User.find().select("-passwordHash").sort({ createdAt: -1 });
-    return res.json({ users });
+    const { page, limit, skip } = getPagination(req.query);
+    const [users, total] = await Promise.all([
+      User.find().select("-passwordHash").sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(),
+    ]);
+    return res.json({ users, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

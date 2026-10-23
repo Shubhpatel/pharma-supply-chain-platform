@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import PaginationControls from "@/components/PaginationControls";
 
 export default function GrnPage() {
   const [grns, setGrns] = useState([]);
@@ -11,10 +12,16 @@ export default function GrnPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ search: "", fromDate: "", toDate: "" });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    api.listGrns().then((d) => setGrns(d.grns)).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, []);
+    api.listGrns(undefined, { page, limit }).then((d) => {
+      setGrns(d.grns || []);
+      setTotal(d.pagination?.total || 0);
+    }).catch((e) => setError(e.message)).finally(() => setLoading(false));
+  }, [page, limit]);
 
   const filteredGrns = grns.filter((grn) => {
     const query = appliedFilters.search.toLowerCase();
@@ -89,6 +96,7 @@ export default function GrnPage() {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage} onLimitChange={(size) => { setLimit(size); setPage(1); }} />
     </div>
   );
 }

@@ -24,13 +24,20 @@ export const api = {
   resetPassword: (payload) => apiFetch("/auth/reset-password", { method: "POST", body: payload }),
 
   // User Management
-  listUsers: (token) => apiFetch("/users", { token }),
+  listUsers: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/users${query ? `?${query}` : ""}`, { token });
+  },
   createUser: (payload, token) => apiFetch("/users", { method: "POST", body: payload, token }),
   updateUser: (id, payload, token) => apiFetch(`/users/${id}`, { method: "PUT", body: payload, token }),
   deleteUser: (id, token) => apiFetch(`/users/${id}`, { method: "DELETE", token }),
 
   // Masters / SKUs
-  listSkus: (enabledOnly, token) => apiFetch(`/skus${enabledOnly ? "?enabled=true" : ""}`, { token }),
+  listSkus: (enabledOnly, token, params = {}) => {
+    const query = new URLSearchParams({ ...(enabledOnly ? { enabled: "true" } : {}), ...params }).toString();
+    return apiFetch(`/skus${query ? `?${query}` : ""}`, { token });
+  },
+  searchSkus: (search, enabledOnly, token) => api.listSkus(enabledOnly, token, { search, limit: 20 }),
   createSku: (payload, token) => apiFetch("/skus", { method: "POST", body: payload, token }),
   updateSku: (id, payload, token) => apiFetch(`/skus/${id}`, { method: "PUT", body: payload, token }),
   toggleSku: (id, token) => apiFetch(`/skus/${id}/toggle`, { method: "PATCH", token }),
@@ -50,7 +57,10 @@ export const api = {
   },
 
   // SKU locations
-  listSkuLocations: (enabledOnly) => apiFetch(`/sku-locations${enabledOnly ? "?enabled=true" : ""}`),
+  listSkuLocations: (enabledOnly, params = {}) => {
+    const query = new URLSearchParams({ ...(enabledOnly ? { enabled: "true" } : {}), ...params }).toString();
+    return apiFetch(`/sku-locations${query ? `?${query}` : ""}`);
+  },
   createSkuLocation: (payload, token) => apiFetch("/sku-locations", { method: "POST", body: payload, token }),
   updateSkuLocation: (id, payload, token) => apiFetch(`/sku-locations/${id}`, { method: "PUT", body: payload, token }),
   deleteSkuLocation: (id, token) => apiFetch(`/sku-locations/${id}`, { method: "DELETE", token }),
@@ -69,14 +79,24 @@ export const api = {
   },
 
   // Vendors and customers
-  listParties: (type, token) => apiFetch(`/parties?type=${type}`, { token }),
+  listParties: (type, token, params = {}) => {
+    const query = new URLSearchParams({ type, ...params }).toString();
+    return apiFetch(`/parties?${query}`, { token });
+  },
+  searchParties: (type, search, token) => api.listParties(type, token, { search, limit: 20 }),
   createParty: (payload, token) => apiFetch("/parties", { method: "POST", body: payload, token }),
   updateParty: (id, payload, token) => apiFetch(`/parties/${id}`, { method: "PUT", body: payload, token }),
   deleteParty: (id, token) => apiFetch(`/parties/${id}`, { method: "DELETE", token }),
 
   // Purchase orders
-  listPurchaseOrders: (token) => apiFetch("/purchase-orders", { token }),
-  listOpenPurchaseOrders: (token) => apiFetch("/purchase-orders/open/list", { token }),
+  listPurchaseOrders: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/purchase-orders${query ? `?${query}` : ""}`, { token });
+  },
+  listOpenPurchaseOrders: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/purchase-orders/open/list${query ? `?${query}` : ""}`, { token });
+  },
   getPurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}`, { token }),
   createPurchaseOrder: (payload, token) => apiFetch("/purchase-orders", { method: "POST", body: payload, token }),
   updatePurchaseOrder: (id, payload, token) => apiFetch(`/purchase-orders/${id}`, { method: "PUT", body: payload, token }),
@@ -102,7 +122,10 @@ export const api = {
   confirmPurchaseOrder: (id, token) => apiFetch(`/purchase-orders/${id}/confirm`, { method: "PATCH", token }),
 
   // GRN
-  listGrns: (token) => apiFetch("/grn", { token }),
+  listGrns: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/grn${query ? `?${query}` : ""}`, { token });
+  },
   getGrn: (id, token) => apiFetch(`/grn/${id}`, { token }),
   createGrn: (payload, token) => apiFetch("/grn", { method: "POST", body: payload, token }),
   updateGrn: (id, payload, token) => apiFetch(`/grn/${id}`, { method: "PUT", body: payload, token }),
@@ -110,14 +133,20 @@ export const api = {
   confirmGrn: (id, token) => apiFetch(`/grn/${id}/confirm`, { method: "PATCH", token }),
 
   // Inventory
-  listStock: (token) => apiFetch("/inventory", { token }),
+  listStock: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/inventory${query ? `?${query}` : ""}`, { token });
+  },
   getInventoryHistory: (skuId, params = {}, token) => {
     const q = new URLSearchParams(params).toString();
     return apiFetch(`/inventory/history/${skuId}${q ? `?${q}` : ""}`, { token });
   },
 
   // Sales
-  listInvoices: (token) => apiFetch("/sales", { token }),
+  listInvoices: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/sales${query ? `?${query}` : ""}`, { token });
+  },
   getInvoice: (id, token) => apiFetch(`/sales/${id}`, { token }),
   createInvoice: (payload, token) => apiFetch("/sales", { method: "POST", body: payload, token }),
   updateInvoice: (id, payload, token) => apiFetch(`/sales/${id}`, { method: "PUT", body: payload, token }),
@@ -126,7 +155,10 @@ export const api = {
   confirmInvoice: (id, token) => apiFetch(`/sales/${id}/confirm`, { method: "PATCH", token }),
 
   // Purchase Returns (Debit Notes)
-  listDebitNotes: (token) => apiFetch("/debit-notes", { token }),
+  listDebitNotes: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/debit-notes${query ? `?${query}` : ""}`, { token });
+  },
   getDebitNote: (id, token) => apiFetch(`/debit-notes/${id}`, { token }),
   createDebitNote: (payload, token) => apiFetch("/debit-notes", { method: "POST", body: payload, token }),
   updateDebitNote: (id, payload, token) => apiFetch(`/debit-notes/${id}`, { method: "PUT", body: payload, token }),
@@ -134,7 +166,10 @@ export const api = {
   confirmDebitNote: (id, token) => apiFetch(`/debit-notes/${id}/confirm`, { method: "PATCH", token }),
 
   // Sales Returns (Credit Notes)
-  listCreditNotes: (token) => apiFetch("/credit-notes", { token }),
+  listCreditNotes: (token, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/credit-notes${query ? `?${query}` : ""}`, { token });
+  },
   getCreditNote: (id, token) => apiFetch(`/credit-notes/${id}`, { token }),
   createCreditNote: (payload, token) => apiFetch("/credit-notes", { method: "POST", body: payload, token }),
   updateCreditNote: (id, payload, token) => apiFetch(`/credit-notes/${id}`, { method: "PUT", body: payload, token }),

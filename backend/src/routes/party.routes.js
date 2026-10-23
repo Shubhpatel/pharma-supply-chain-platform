@@ -2,18 +2,34 @@ const express = require("express");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const crypto = require("crypto");
 const Party = require("../models/Party");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
 router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
   try {
     const filter = req.query.type ? { partyType: req.query.type } : {};
-    const parties = await Party.find(filter).sort({ name: 1 });
+    if (req.query.search) {
+      const search = req.query.search.trim();
+      if (search.length < 3) return res.json({ parties: [], pagination: paginationMeta(1, 20, 0) });
+      if (search) {
+        filter.$or = ["name", "uid", "gstNumber", "contactPerson", "phone", "city", "state"]
+          .map((field) => ({ [field]: { $regex: search, $options: "i" } }));
+      }
+    }
+    if (req.query.state) filter.state = { $regex: req.query.state.trim(), $options: "i" };
+    if (req.query.city) filter.city = { $regex: req.query.city.trim(), $options: "i" };
+    if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
+    const { page, limit, skip } = getPagination(req.query);
+    const [parties, total] = await Promise.all([
+      Party.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
+      Party.countDocuments(filter),
+    ]);
     await Promise.all(parties.filter((party) => !party.uid).map(async (party) => {
       party.uid = crypto.randomUUID();
       await party.save();
     }));
-    return res.json({ parties });
+    return res.json({ parties, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

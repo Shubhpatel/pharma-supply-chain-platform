@@ -2,6 +2,8 @@ const express = require("express");
 const XLSX = require("xlsx");
 const { requireAuth } = require("../middleware/auth");
 const SkuLocation = require("../models/SkuLocation");
+const Sku = require("../models/Sku");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -9,10 +11,24 @@ router.get("/", async (req, res) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
+    if (req.query.search) {
+      const search = req.query.search.trim();
+      if (search) {
+        const matchingSkus = await Sku.find({ name: { $regex: search, $options: "i" } }).select("_id").lean();
+        filter.$or = [
+          { location: { $regex: search, $options: "i" } },
+          { sku: { $in: matchingSkus.map((sku) => sku._id) } },
+        ];
+      }
+    }
     // Performance optimization: Use .lean() for read-only queries to bypass document hydration
     // and return plain JS objects, significantly improving query speed and memory footprint.
-    const locations = await SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 }).lean();
-    return res.json({ locations });
+    const { page, limit, skip } = getPagination(req.query);
+    const [locations, total] = await Promise.all([
+      SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 }).skip(skip).limit(limit).lean(),
+      SkuLocation.countDocuments(filter),
+    ]);
+    return res.json({ locations, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

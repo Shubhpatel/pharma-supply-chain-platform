@@ -3,6 +3,7 @@ const { requireAuth, requirePermission } = require("../middleware/auth");
 const crypto = require("crypto");
 const XLSX = require("xlsx");
 const Sku = require("../models/Sku");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -10,12 +11,26 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
-    const skus = await Sku.find(filter).sort({ name: 1 });
+    ["category", "subCategory", "manufacturer", "uom"].forEach((field) => {
+      if (req.query[field]) filter[field] = { $regex: req.query[field].trim(), $options: "i" };
+    });
+    if (req.query.search) {
+      const search = req.query.search.trim();
+      if (search.length < 3) return res.json({ skus: [], pagination: paginationMeta(1, 20, 0) });
+      if (search) {
+        filter.$or = [{ name: { $regex: search, $options: "i" } }, { code: { $regex: search, $options: "i" } }];
+      }
+    }
+    const { page, limit, skip } = getPagination(req.query);
+    const [skus, total] = await Promise.all([
+      Sku.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
+      Sku.countDocuments(filter),
+    ]);
     await Promise.all(skus.filter((sku) => !sku.uid).map(async (sku) => {
       sku.uid = crypto.randomUUID();
       await sku.save();
     }));
-    return res.json({ skus });
+    return res.json({ skus, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

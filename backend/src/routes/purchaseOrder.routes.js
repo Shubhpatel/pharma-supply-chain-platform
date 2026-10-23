@@ -9,6 +9,7 @@ const BulkUpload = require("../models/BulkUpload");
 const Party = require("../models/Party");
 const Sku = require("../models/Sku");
 const { nextNumber } = require("../utils/idGenerator");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -359,12 +360,13 @@ router.patch("/:id/confirm", requireAuth, requirePermission("po"), async (req, r
 router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
-    const orders = await PurchaseOrder.find()
+    const { page, limit, skip } = getPagination(req.query);
+    const [orders, total] = await Promise.all([PurchaseOrder.find()
       .select("poNumber supplierName orderDate paymentTerm expectedDeliveryDate status totalQty totalPrice gstAmount grandTotal items")
       .sort({ createdAt: -1 })
-      .lean();
+      .skip(skip).limit(limit).lean(), PurchaseOrder.countDocuments()]);
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
-    return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
+    return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})), pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -374,13 +376,15 @@ router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
 router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req, res) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
-    const orders = await PurchaseOrder.find({ status: { $in: ["placed", "partially_received"] } })
+    const filter = { status: { $in: ["placed", "partially_received"] } };
+    const { page, limit, skip } = getPagination(req.query);
+    const [orders, total] = await Promise.all([PurchaseOrder.find(filter)
       .select("poNumber supplier supplierName orderDate items totalQty status")
       .populate("supplier")
       .sort({ createdAt: -1 })
-      .lean();
+      .skip(skip).limit(limit).lean(), PurchaseOrder.countDocuments(filter)]);
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
-    return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
+    return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})), pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

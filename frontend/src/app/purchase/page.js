@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import BulkPurchaseOrderModal from "@/components/BulkPurchaseOrderModal";
+import PaginationControls from "@/components/PaginationControls";
 
 export default function PurchasePage() {
   const [orders, setOrders] = useState([]);
@@ -17,25 +18,21 @@ export default function PurchasePage() {
   const [duplicatingId, setDuplicatingId] = useState("");
   const [showBulkModal, setShowBulkModal] = useState(false);
   const { token, showToast } = useApp();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    if (!token) return;
-    api.listPurchaseOrders(token)
-      .then((d) => setOrders(d.purchaseOrders))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [token]);
   function loadOrders() {
     setLoading(true);
-    api.listPurchaseOrders()
-      .then((d) => setOrders(d.purchaseOrders))
+    api.listPurchaseOrders(token, { page, limit })
+      .then((d) => { setOrders(d.purchaseOrders || []); setTotal(d.pagination?.total || 0); })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [page, limit, token]);
 
   async function handleDuplicate(id) {
     setDuplicatingId(id);
@@ -146,6 +143,7 @@ export default function PurchasePage() {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage} onLimitChange={(size) => { setLimit(size); setPage(1); }} />
     </div>
   );
 }

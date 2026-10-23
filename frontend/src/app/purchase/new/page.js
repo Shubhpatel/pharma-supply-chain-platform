@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
@@ -84,6 +84,33 @@ export default function NewPurchaseOrderPage() {
       .catch((e) => setError(e.message));
   }, [duplicateId, editId]);
 
+  const searchSkus = useCallback(async (search) => {
+    try {
+      const data = await api.searchSkus(search, true, token);
+      setSkus((current) => {
+        const results = data.skus || [];
+        const selectedIds = new Set(items.map((item) => item.sku).filter(Boolean));
+        return [...results, ...current.filter((sku) => selectedIds.has(sku._id) && !results.some((result) => result._id === sku._id))];
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [token, items]);
+
+  const searchVendors = useCallback(async (search) => {
+    try {
+      const data = await api.searchParties("vendor", search, token);
+      setVendors((current) => {
+        const selected = current.find((vendor) => vendor._id === form.supplierId);
+        return selected && !(data.parties || []).some((vendor) => vendor._id === selected._id)
+          ? [selected, ...(data.parties || [])]
+          : data.parties || [];
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [token, form.supplierId]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -106,6 +133,7 @@ export default function NewPurchaseOrderPage() {
     } finally {
       setLoading(false);
     }
+
   }
 
   return (
@@ -122,6 +150,7 @@ export default function NewPurchaseOrderPage() {
               value={form.supplierId}
               onChange={(value) => setForm((f) => ({ ...f, supplierId: value }))}
               options={vendors.map((vendor) => ({ value: vendor._id, label: `${vendor.name}${vendor.gstNumber ? ` - ${vendor.gstNumber}` : ""}` }))}
+              onSearch={searchVendors}
               placeholder="Select vendor" />
           </div>
           <div>
@@ -158,7 +187,7 @@ export default function NewPurchaseOrderPage() {
 
         <div className="border border-gray-200 rounded-lg p-4 bg-white">
           <h2 className="text-sm font-semibold mb-3">Line items</h2>
-          <LineItemsEditor items={items} setItems={setItems} skus={skus} />
+          <LineItemsEditor items={items} setItems={setItems} skus={skus} onSearchSkus={searchSkus} />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

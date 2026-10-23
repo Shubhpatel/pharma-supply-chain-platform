@@ -4,6 +4,7 @@ const CreditNote = require("../models/CreditNote");
 const SaleInvoice = require("../models/SaleInvoice");
 const Stock = require("../models/Stock");
 const { nextNumber } = require("../utils/idGenerator");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -231,11 +232,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, r
 router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
-    const creditNotes = await CreditNote.find()
+    const { page, limit, skip } = getPagination(req.query);
+    const [creditNotes, total] = await Promise.all([CreditNote.find()
       .select("creditNoteNumber invoiceNumber customerName returnDate totalQty totalAmount gstAmount grandTotal reason status")
       .sort({ createdAt: -1 })
-      .lean();
-    return res.json({ creditNotes });
+      .skip(skip).limit(limit).lean(), CreditNote.countDocuments()]);
+    return res.json({ creditNotes, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
