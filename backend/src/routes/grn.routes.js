@@ -1,12 +1,72 @@
 const express = require("express");
+const multer = require("multer");
 const { requireAuth } = require("../middleware/auth");
 const Grn = require("../models/Grn");
 const PurchaseOrder = require("../models/PurchaseOrder");
 const DebitNote = require("../models/DebitNote");
 const Stock = require("../models/Stock");
 const { nextNumber } = require("../utils/idGenerator");
+const { parseInvoiceDocument } = require("../utils/aiInvoiceParser");
+
+const upload = multer({
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only PDF, JPG, JPEG, and PNG files are allowed."));
+    }
+  },
+});
 
 const router = express.Router();
+
+// POST /api/grn/parse-invoice
+router.post("/parse-invoice", requireAuth, (req, res, next) => {
+  upload.single("file")(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: "File size exceeds limit of 10MB." });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
+      return res.status(400).json({ error: "No invoice file uploaded or file is empty." });
+    }
+
+    const parsedData = await parseInvoiceDocument({
+      fileBuffer: req.file.buffer,
+      mimeType: req.file.mimetype,
+    });
+
+    // Check duplicate invoice detection if vendor and invoice number are detected
+    if (parsedData.invoice?.number && parsedData.vendor?.matchedPartyId) {
+      const duplicateGrn = await Grn.findOne({
+        purchaseInvoiceNumber: new RegExp(`^${parsedData.invoice.number.trim()}$`, "i"),
+        supplier: parsedData.vendor.matchedPartyId,
+      }).lean();
+
+      if (duplicateGrn) {
+        parsedData.warnings.push(
+          `Warning: A GRN (${duplicateGrn.grnNumber}) already exists for Invoice Number "${parsedData.invoice.number}" from this supplier.`
+        );
+        parsedData.isDuplicate = true;
+      }
+    }
+
+    return res.json(parsedData);
+  } catch (err) {
+    console.error("Error parsing invoice:", err.message);
+    return res.status(500).json({ error: err.message || "Failed to parse purchase invoice" });
+  }
+});
 
 // POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.

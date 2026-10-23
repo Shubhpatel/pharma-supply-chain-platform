@@ -50,6 +50,18 @@ export const api = {
   updateGrn: (id, payload, token) => apiFetch(`/grn/${id}`, { method: "PUT", body: payload, token }),
   deleteGrn: (id, token) => apiFetch(`/grn/${id}`, { method: "DELETE", token }),
   confirmGrn: (id, token) => apiFetch(`/grn/${id}/confirm`, { method: "PATCH", token }),
+  parseInvoice: async (formData, token) => {
+    const res = await fetch(`${API_URL}/grn/parse-invoice`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Invoice parsing failed: ${res.status}`);
+    return data;
+  },
 
   // Inventory
   listStock: (token) => apiFetch("/inventory", { token }),
