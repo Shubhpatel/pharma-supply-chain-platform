@@ -27,6 +27,24 @@ function exportToCsv(filename, headers, rows) {
   document.body.removeChild(link);
 }
 
+function createLocalReport(reportTitle, summary, data) {
+  const metrics = Object.entries(summary || {})
+    .filter(([, value]) => typeof value === "number")
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(", ");
+  return [
+    "Executive summary",
+    `The ${reportTitle} contains ${data.length} record(s). ${metrics || "No aggregate metrics were provided."}`,
+    "",
+    "Key findings",
+    `- Review the ${data.length} record(s) included in this report.`,
+    "",
+    "Recommended actions",
+    "- Prioritize exceptions with the highest quantity, value, or expiry risk.",
+    "- Try AI insights again later when the provider is available.",
+  ].join("\n");
+}
+
 function ReportsContent() {
   const searchParams = useSearchParams();
   const { token, user } = useApp();
@@ -43,6 +61,12 @@ function ReportsContent() {
   // Report Data States
   const [reportData, setReportData] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [aiReport, setAiReport] = useState("");
+  const [aiSource, setAiSource] = useState("");
+  const [aiRecordsAnalyzed, setAiRecordsAnalyzed] = useState(0);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [showAiModal, setShowAiModal] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -62,6 +86,10 @@ function ReportsContent() {
     setError("");
     setReportData([]);
     setSummary(null);
+    setAiReport("");
+    setAiSource("");
+    setAiRecordsAnalyzed(0);
+    setAiError("");
 
     try {
       let res;
@@ -95,6 +123,29 @@ function ReportsContent() {
   function handleFilterSubmit(e) {
     e.preventDefault();
     loadReportData();
+  }
+
+  async function handleGenerateAiReport() {
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const result = await api.generateAiReport(
+        { reportType: reportTitle, summary, data: reportData },
+        token
+      );
+      setAiReport(result.report);
+      setAiSource(result.source || "gemini");
+      setAiRecordsAnalyzed(result.recordsAnalyzed || reportData.length);
+      setShowAiModal(true);
+    } catch (err) {
+      setAiReport(createLocalReport(reportTitle, summary, reportData));
+      setAiSource("fallback");
+      setAiRecordsAnalyzed(reportData.length);
+      setAiError("");
+      setShowAiModal(true);
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   function handleExportCsv() {
@@ -192,6 +243,76 @@ function ReportsContent() {
           Export to CSV / Excel
         </button>
       </div>
+
+      <div className="bg-teal-50 border border-teal-100 rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-teal-900">Full AI report</h2>
+            <p className="text-xs text-teal-700 mt-1">
+              Analyze all {reportData.length} records and review the complete dataset in the table below.
+            </p>
+          </div>
+          <button
+            onClick={handleGenerateAiReport}
+            disabled={aiLoading || loading || !reportData.length}
+            className="px-4 py-2 rounded-md bg-teal-800 text-white text-sm font-medium hover:bg-teal-900 disabled:opacity-50"
+          >
+            {aiLoading ? "Generating..." : "Generate Full AI Report"}
+          </button>
+        </div>
+        {aiError && <p className="text-sm text-red-600 mt-3">{aiError}</p>}
+        {aiReport && (
+          <button
+            type="button"
+            onClick={() => setShowAiModal(true)}
+            className="mt-3 text-sm font-medium text-teal-800 hover:underline"
+          >
+            View generated report
+          </button>
+        )}
+      </div>
+
+      {showAiModal && aiReport && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ai-report-title"
+          onClick={() => setShowAiModal(false)}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <h2 id="ai-report-title" className="text-lg font-semibold text-gray-900">
+                  Full AI report
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Complete report data: {aiRecordsAnalyzed} record(s) included.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAiModal(false)}
+                className="rounded-md px-3 py-1 text-2xl leading-none text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Close AI report"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 text-sm leading-6 text-gray-800 whitespace-pre-wrap">
+              {aiSource === "fallback" && (
+                <p className="mb-4 rounded-md bg-amber-50 p-3 text-xs leading-5 text-amber-700">
+                  Gemini is temporarily busy, so these insights were generated from the report data without AI.
+                </p>
+              )}
+              {aiReport}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters Bar */}
       <div className="bg-white p-4 border border-gray-200 rounded-lg flex flex-wrap items-center gap-4 text-sm">

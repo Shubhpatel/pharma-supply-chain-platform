@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-async function apiFetch(path, { method = "GET", body, token } = {}) {
+async function apiFetch(path, { method = "GET", body, token, timeoutMs = 45000 } = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers: {
@@ -8,6 +8,7 @@ async function apiFetch(path, { method = "GET", body, token } = {}) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   const data = await res.json().catch(() => ({}));
@@ -98,6 +99,12 @@ export const api = {
   getExpiredReport: (token) => apiFetch("/reports/expired", { token }),
   getSlowMovingReport: (token) => apiFetch("/reports/slow-moving", { token }),
   getNonMovingReport: (token) => apiFetch("/reports/non-moving", { token }),
+  generateAiReport: (payload, token) => apiFetch("/reports/ai-summary", {
+    method: "POST",
+    body: payload,
+    token,
+    timeoutMs: 15000,
+  }),
 
   // Bulk Uploads
   listBulkUploads: (token) => apiFetch("/bulk-uploads", { token }),

@@ -8,6 +8,104 @@ const Sku = require("../models/Sku");
 
 const router = express.Router();
 
+function createFallbackReport(reportType, summary, data) {
+  const metrics = Object.entries(summary || {})
+    .filter(([, value]) => typeof value === "number")
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(", ");
+  const firstRecord = data[0] || {};
+  const notableField = firstRecord.skuName || firstRecord.name || firstRecord.invoiceNumber || firstRecord.poNumber;
+
+  return [
+    "Executive summary",
+    `The ${reportType} contains ${data.length} record(s). ${metrics || "No aggregate metrics were provided."}`,
+    "",
+    "Key findings",
+    `- Review the ${data.length} record(s) included in this report before making operational decisions.`,
+    notableField ? `- The first listed record is ${notableField}.` : "- No individual record details were available.",
+    "",
+    "Recommended actions",
+    "- Validate the report filters and prioritize exceptions with the highest quantity or value.",
+    "- Re-run AI insights later if a natural-language analysis is required.",
+  ].join("\n");
+}
+
+// Generate a concise operational summary without exposing the provider key to the browser.
+router.post("/ai-summary", requireAuth, async (req, res) => {
+  try {
+    const { reportType, summary, data } = req.body || {};
+    if (!reportType || !Array.isArray(data)) {
+      return res.status(400).json({ error: "Report type and report data are required" });
+    }
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: "AI reporting is not configured. Add GEMINI_API_KEY to the backend environment." });
+    }
+
+    const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+    const reportPayload = {
+      reportType: String(reportType).slice(0, 80),
+      summary: summary && typeof summary === "object" ? summary : {},
+      records: data,
+    };
+    const prompt = [
+      "You are a pharmaceutical supply-chain operations analyst.",
+      "Analyze every record in the supplied report data and write a detailed management report.",
+      "Do not invent facts, medical advice, or values not present in the data.",
+      "Use exactly these headings: Executive summary, Key findings, Recommended actions.",
+      "Use all records, call out important individual records and patterns, and mention when the dataset is empty or limited.",
+      JSON.stringify(reportPayload),
+    ].join("\n\n");
+
+    let response;
+    let result = {};
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.2, maxOutputTokens: 700 },
+            }),
+            signal: controller.signal,
+          }
+        );
+      } catch (err) {
+        console.error("Gemini report generation request failed:", err.name === "AbortError" ? "request timed out" : err.message);
+        response = null;
+        break;
+      } finally {
+        clearTimeout(timeout);
+      }
+      result = await response.json().catch(() => ({}));
+      if (response.ok || ![429, 500, 503].includes(response.status) || attempt === 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+    }
+
+    const text = result.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+    if (!response?.ok || !text) {
+      console.error("Gemini report generation failed:", result.error?.message || response?.status || "no response");
+      return res.json({
+        report: createFallbackReport(reportType, summary, data),
+        recordsAnalyzed: data.length,
+        source: "fallback",
+      });
+    }
+    return res.json({ report: text, recordsAnalyzed: data.length, source: "gemini" });
+  } catch (err) {
+    console.error("AI report generation error:", err.message);
+    return res.json({
+      report: createFallbackReport(req.body?.reportType || "current report", req.body?.summary, Array.isArray(req.body?.data) ? req.body.data : []),
+      recordsAnalyzed: Array.isArray(req.body?.data) ? req.body.data.length : 0,
+      source: "fallback",
+    });
+  }
+});
+
 // 1. Sales Report: GET /api/reports/sales?startDate=...&endDate=...
 router.get("/sales", requireAuth, async (req, res) => {
   try {
