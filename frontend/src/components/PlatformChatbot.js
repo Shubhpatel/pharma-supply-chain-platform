@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
@@ -8,38 +8,29 @@ import { api } from "@/lib/api";
 const quickActions = [
   { label: "Open inventory", path: "/inventory" },
   { label: "Slow-moving report", path: "/reports?tab=slow-moving" },
-  { label: "New purchase order", path: "/purchase/new", action: "form" },
-  { label: "New sales invoice", path: "/sales/new", action: "form" },
+  { label: "New purchase order", path: "/purchase/new" },
+  { label: "New sales invoice", path: "/sales/new" },
 ];
 
-function getAssistantReply(message) {
+function getAssistantFallbackReply(message) {
   const text = message.toLowerCase();
   if (text.includes("inventory") || text.includes("stock")) {
-    return { text: "Opening inventory so you can review current stock.", path: "/inventory" };
+    return { text: "Opening inventory page for stock review.", path: "/inventory" };
   }
-  if (text.includes("slow") || text.includes("non-moving")) {
+  if (text.includes("slow")) {
     return { text: "Opening the slow-moving inventory report.", path: "/reports?tab=slow-moving" };
   }
   if (text.includes("expired") || text.includes("expiry")) {
     return { text: "Opening the near-expired inventory report.", path: "/reports?tab=near-expired" };
   }
-  if (text.includes("sales report") || text.includes("sales analysis")) {
-    return { text: "Opening the sales report.", path: "/reports?tab=sales" };
-  }
   if (text.includes("purchase order") || text.includes("new po")) {
-    return { text: "Opening a new purchase order. Review the form and click Save when ready.", path: "/purchase/new", action: "form" };
+    return { text: "Opening new purchase order form.", path: "/purchase/new" };
   }
   if (text.includes("sales invoice") || text.includes("new sale") || text.includes("invoice")) {
-    return { text: "Opening a new sales invoice. Review the form and click Save when ready.", path: "/sales/new", action: "form" };
-  }
-  if (text.includes("grn") || text.includes("goods receipt")) {
-    return { text: "Opening a new GRN. Review the form and click Save when ready.", path: "/grn/new", action: "form" };
-  }
-  if (text.includes("report")) {
-    return { text: "Opening reports. You can choose sales, purchase, expiry, or stock activity.", path: "/reports" };
+    return { text: "Opening new sales invoice form.", path: "/sales/new" };
   }
   return {
-    text: "I can open inventory, reports, purchase orders, sales invoices, or GRNs. Try “show slow-moving stock” or “new purchase order”.",
+    text: "I can answer database questions, analyze inventory & sales, or prepare structured transaction drafts for review.",
   };
 }
 
@@ -50,64 +41,123 @@ export default function PlatformChatbot() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const [pendingPurchaseDraft, setPendingPurchaseDraft] = useState(null);
+  const [pendingDraft, setPendingDraft] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionStatusMessage, setActionStatusMessage] = useState(null);
   const [messages, setMessages] = useState([
-    { from: "assistant", text: "Hi! I can help you navigate Pharma Buddy and prepare transactions for review." },
+    {
+      from: "assistant",
+      text: "Hi! I am Pharma Buddy. Ask me about stock levels, expiry, or ask me to prepare a transaction draft.",
+      source: "Database analysis",
+    },
   ]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
-  if (!user || pathname === "/login" || pathname === "/register") return null;
+  useEffect(() => {
+    if (!open || !token) return;
 
-  function executeAssistantAction(action) {
-    if (action?.type === "prepare_purchase_order") {
-      sessionStorage.setItem("assistantPurchaseDraft", JSON.stringify(action.items));
-      if (action.form) {
-        sessionStorage.setItem("assistantPurchaseForm", JSON.stringify(action.form));
-      }
-      setMessages((current) => [...current, {
-        from: "assistant",
-        text: `Prepared ${action.items.length} SKU(s) from last month's sales. Select a supplier, review the draft, and click Save Purchase Order.`,
-      }]);
-      setTimeout(() => router.push("/purchase/new?assistantDraft=last-month-sales"), 350);
+    let active = true;
+    setHistoryLoading(true);
+    api.getAssistantHistory(token)
+      .then((result) => {
+        if (!active) return;
+        setMessages(result.messages?.length ? result.messages : [{
+          from: "assistant",
+          text: "Hi! I am Pharma Buddy. Ask me about stock levels, expiry, or ask me to prepare a transaction draft.",
+          source: "Database analysis",
+        }]);
+      })
+      .catch((error) => {
+        if (active) setActionStatusMessage({ type: "error", text: error.message || "Unable to load chat history." });
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, token]);
+
+  async function appendPersistedMessage(item) {
+    setMessages((current) => [...current, item]);
+    try {
+      await api.saveAssistantMessage({ role: item.from, text: item.text, source: item.source }, token);
+    } catch (error) {
+      setActionStatusMessage({ type: "error", text: error.message || "Unable to save chat history." });
     }
   }
 
-  async function prepareDraftFromAssistantReply(reply) {
-    const vendorMatch = reply.match(/\*\*Vendor:\*\*\s*([^\n*]+)/i);
-    const itemMatch = reply.match(/\*\*Item:\*\*\s*([^\n*]+)/i);
-    const qtyMatch = reply.match(/\*\*Requested Qty:\*\*\s*([\d.]+)/i);
-    const rateMatch = reply.match(/rate of\s*([\d,.]+)/i);
-    const gstMatch = reply.match(/with\s*([\d.]+)%\s*GST/i);
-    if (!vendorMatch || !itemMatch || !qtyMatch) return null;
+  if (!user || pathname === "/login" || pathname === "/register") return null;
 
-    const [skuData, vendorData] = await Promise.all([
-      api.listSkus(true),
-      api.listParties("vendor"),
-    ]);
-    const normalize = (value) => value.trim().toLowerCase().replace(/\s+/g, " ");
-    const sku = (skuData.skus || []).find((entry) => normalize(entry.name) === normalize(itemMatch[1]));
-    const vendor = (vendorData.parties || []).find((entry) => normalize(entry.name) === normalize(vendorMatch[1]));
-    if (!sku || !vendor) return null;
-
-    return {
-      type: "prepare_purchase_order",
-      form: {
-        supplierId: vendor._id,
-        supplierName: vendor.name,
-      },
-      items: [{
-        sku: sku._id,
-        skuName: sku.name,
-        qty: qtyMatch[1],
-        rate: rateMatch ? rateMatch[1].replace(/,/g, "") : "",
-        gstRate: gstMatch ? gstMatch[1] : "0",
-      }],
-    };
+  async function handleApproveDraft() {
+    if (!pendingDraft?.draftId) return;
+    setActionLoading(true);
+    setActionStatusMessage(null);
+    try {
+      const res = await api.approveAssistantDraft(pendingDraft.draftId, token);
+      setPendingDraft(res.draft);
+      setActionStatusMessage({ type: "success", text: "Draft approved! Click 'Execute Approved Action' to execute." });
+      await appendPersistedMessage({
+        from: "assistant",
+        text: `Draft "${res.draft.summary}" has been approved. Explicit user approval recorded.`,
+        source: "Database analysis",
+      });
+    } catch (err) {
+      setActionStatusMessage({ type: "error", text: err.message || "Failed to approve draft." });
+    } finally {
+      setActionLoading(false);
+    }
   }
 
-  function runAction(action) {
-    setMessages((current) => [...current, { from: "assistant", text: action.text }]);
-    if (action.path) {
-      setTimeout(() => router.push(action.path), 250);
+  async function handleRejectDraft() {
+    if (!pendingDraft?.draftId) return;
+    setActionLoading(true);
+    setActionStatusMessage(null);
+    try {
+      const res = await api.rejectAssistantDraft(pendingDraft.draftId, token);
+      setPendingDraft(null);
+      setActionStatusMessage({ type: "info", text: "Draft rejected." });
+      await appendPersistedMessage({
+        from: "assistant",
+        text: "Draft rejected. No changes were made to the database.",
+        source: "Database analysis",
+      });
+    } catch (err) {
+      setActionStatusMessage({ type: "error", text: err.message || "Failed to reject draft." });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleExecuteDraft() {
+    if (!pendingDraft?.draftId) return;
+    setActionLoading(true);
+    setActionStatusMessage(null);
+    try {
+      const res = await api.executeAssistantDraft(pendingDraft.draftId, token);
+      setPendingDraft(null);
+      const recordRef = res.resultRecord?.poNumber || res.resultRecord?.invoiceNumber || res.resultRecord?._id || "record";
+      setActionStatusMessage({ type: "success", text: `Successfully executed! Created ${recordRef}.` });
+      await appendPersistedMessage({
+        from: "assistant",
+        text: `Action executed successfully! Created ${recordRef}. Status in database is updated.`,
+        source: "Database analysis",
+      });
+    } catch (err) {
+      setActionStatusMessage({ type: "error", text: err.message || "Execution failed." });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function handleReviewDraft() {
+    if (pendingDraft?.actionType === "create_purchase_order") {
+      sessionStorage.setItem("assistantPurchaseDraft", JSON.stringify(pendingDraft.proposedPayload?.items || []));
+      router.push("/purchase/new?assistantDraft=true");
+    } else if (pendingDraft?.actionType === "create_sales_invoice") {
+      sessionStorage.setItem("assistantSalesDraft", JSON.stringify(pendingDraft.proposedPayload?.items || []));
+      router.push("/sales/new?assistantDraft=true");
     }
   }
 
@@ -115,33 +165,40 @@ export default function PlatformChatbot() {
     event.preventDefault();
     const trimmed = message.trim();
     if (!trimmed) return;
-    setMessages((current) => [...current, { from: "user", text: trimmed }]);
+
+    setMessages((current) => [...current, { from: "user", text: trimmed, source: "User message" }]);
     setMessage("");
-    if (pendingPurchaseDraft && /open|prefill|pre-filled|review|draft/i.test(trimmed)) {
-      executeAssistantAction(pendingPurchaseDraft);
-      setPendingPurchaseDraft(null);
-      return;
-    }
+    setActionStatusMessage(null);
     setChatLoading(true);
+
     try {
       const result = await api.assistantChat(trimmed, token);
-      setMessages((current) => [...current, { from: "assistant", text: result.reply }]);
-      if (result.action?.type === "prepare_purchase_order") {
-        executeAssistantAction(result.action);
-      } else {
-        const parsedDraft = await prepareDraftFromAssistantReply(result.reply);
-        if (parsedDraft) setPendingPurchaseDraft(parsedDraft);
-        if (result.actionPath) {
-          setTimeout(() => router.push(result.actionPath), 350);
-        }
-      }
-    } catch (error) {
-      const reply = getAssistantReply(trimmed);
       setMessages((current) => [...current, {
         from: "assistant",
-        text: `${reply.text} Database assistant error: ${error.message}`,
+        text: result.reply,
+        source: result.source === "gemini" ? "AI analysis" : "Database analysis",
       }]);
-      if (reply.path) setTimeout(() => router.push(reply.path), 350);
+
+      if (result.actionDraft) {
+        setPendingDraft(result.actionDraft);
+      }
+
+      if (result.navigation?.path) {
+        setTimeout(() => router.push(result.navigation.path), 350);
+      }
+    } catch (error) {
+      const fallback = getAssistantFallbackReply(trimmed);
+      try {
+        await api.saveAssistantMessage({ role: "user", text: trimmed, source: "User message" }, token);
+      } catch (saveError) {
+        setActionStatusMessage({ type: "error", text: saveError.message || "Unable to save chat history." });
+      }
+      await appendPersistedMessage({
+        from: "assistant",
+        text: `${fallback.text} (Note: ${error.message})`,
+        source: "Fallback",
+      });
+      if (fallback.path) setTimeout(() => router.push(fallback.path), 350);
     } finally {
       setChatLoading(false);
     }
@@ -150,56 +207,227 @@ export default function PlatformChatbot() {
   return (
     <div className="fixed bottom-5 right-5 z-40 print:hidden">
       {open && (
-        <div className="mb-3 flex h-[min(32rem,calc(100vh-7rem))] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl">
+        <div className="mb-3 flex h-[min(36rem,calc(100vh-7rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl">
+          {/* Header */}
           <div className="flex items-center justify-between bg-teal-800 px-4 py-3 text-white">
             <div>
-              <p className="font-semibold">Pharma Buddy Assistant</p>
-              <p className="text-xs text-teal-100">Actions require your review</p>
+              <p className="font-semibold">Pharma Buddy AI Assistant</p>
+              <p className="text-xs text-teal-100">Read-only by default • Drafts require approval</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close assistant" className="text-xl text-teal-100 hover:text-white">&times;</button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close assistant"
+              className="text-xl text-teal-100 hover:text-white"
+            >
+              &times;
+            </button>
           </div>
+
+          {/* Chat Messages */}
           <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-3">
-            {messages.map((item, index) => (
-              <div key={`${item.from}-${index}`} className={`flex ${item.from === "user" ? "justify-end" : "justify-start"}`}>
-                <p className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${item.from === "user" ? "bg-teal-700 text-white" : "bg-white text-gray-700 shadow-sm"}`}>
-                  {item.text}
-                </p>
+            {historyLoading ? (
+              <p className="text-center text-sm text-gray-500">Loading chat history...</p>
+            ) : messages.map((item, index) => (
+              <div
+                key={`${item.from}-${index}`}
+                className={`flex flex-col ${item.from === "user" ? "items-end" : "items-start"}`}
+              >
+                <div
+                  className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${
+                    item.from === "user" ? "bg-teal-700 text-white" : "bg-white text-gray-700 shadow-sm"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{item.text}</p>
+                </div>
+                {item.source && item.from === "assistant" && (
+                  <span className="mt-0.5 text-[10px] text-gray-400">{item.source}</span>
+                )}
               </div>
             ))}
+
+            {/* Action Status Feedback Message */}
+            {actionStatusMessage && (
+              <div
+                className={`rounded-md p-2 text-xs font-medium ${
+                  actionStatusMessage.type === "success"
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : actionStatusMessage.type === "error"
+                    ? "bg-red-50 text-red-800 border border-red-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                }`}
+              >
+                {actionStatusMessage.text}
+              </div>
+            )}
+
+            {/* Render Structured Action Draft Confirmation Card */}
+            {pendingDraft && (
+              <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 shadow-md">
+                <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                    Action Draft (Requires Approval)
+                  </span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                      pendingDraft.status === "approved"
+                        ? "bg-green-200 text-green-800"
+                        : "bg-amber-200 text-amber-800"
+                    }`}
+                  >
+                    {pendingDraft.status}
+                  </span>
+                </div>
+
+                <div className="mt-2 space-y-1.5 text-xs text-gray-800">
+                  <p>
+                    <strong className="font-semibold text-gray-900">Summary:</strong> {pendingDraft.summary}
+                  </p>
+                  <p>
+                    <strong className="font-semibold text-gray-900">Reason:</strong> {pendingDraft.reason || "N/A"}
+                  </p>
+
+                  {/* Vendor or Customer */}
+                  {pendingDraft.proposedPayload?.supplierName && (
+                    <p>
+                      <strong className="font-semibold text-gray-900">Vendor:</strong>{" "}
+                      {pendingDraft.proposedPayload.supplierName}
+                    </p>
+                  )}
+                  {pendingDraft.proposedPayload?.customerName && (
+                    <p>
+                      <strong className="font-semibold text-gray-900">Customer:</strong>{" "}
+                      {pendingDraft.proposedPayload.customerName}
+                    </p>
+                  )}
+
+                  {/* Items Table / Summary */}
+                  {Array.isArray(pendingDraft.proposedPayload?.items) && (
+                    <div className="mt-1.5">
+                      <strong className="font-semibold text-gray-900">Line Items:</strong>
+                      <ul className="mt-1 max-h-24 space-y-1 overflow-y-auto rounded bg-white p-1.5 border border-amber-200">
+                        {pendingDraft.proposedPayload.items.map((item, idx) => (
+                          <li key={idx} className="flex justify-between text-[11px]">
+                            <span>{item.skuName || `SKU #${item.sku}`}</span>
+                            <span className="font-mono">
+                              {item.qty} qty @ ₹{item.rate || item.mrp || 0}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {pendingDraft.warnings?.length > 0 && (
+                    <div className="mt-1 text-red-700">
+                      <strong>Warnings:</strong> {pendingDraft.warnings.join(", ")}
+                    </div>
+                  )}
+
+                  {/* Estimated Impact */}
+                  {pendingDraft.estimatedImpact && (
+                    <p className="mt-1 text-gray-600">
+                      <strong>Impact:</strong> {pendingDraft.estimatedImpact}
+                    </p>
+                  )}
+                </div>
+
+                {/* Explicit Action Buttons */}
+                <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-amber-200">
+                  <button
+                    type="button"
+                    onClick={handleReviewDraft}
+                    disabled={actionLoading}
+                    className="rounded bg-white px-2.5 py-1 text-xs font-medium text-amber-900 border border-amber-300 hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    Review form
+                  </button>
+
+                  {pendingDraft.status === "pending" && (
+                    <button
+                      type="button"
+                      onClick={handleApproveDraft}
+                      disabled={actionLoading}
+                      className="rounded bg-teal-800 px-2.5 py-1 text-xs font-medium text-white hover:bg-teal-900 disabled:opacity-50"
+                    >
+                      {actionLoading ? "..." : "Approve draft"}
+                    </button>
+                  )}
+
+                  {pendingDraft.status === "approved" && (
+                    <button
+                      type="button"
+                      onClick={handleExecuteDraft}
+                      disabled={actionLoading}
+                      className="rounded bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                    >
+                      {actionLoading ? "Executing..." : "Execute action"}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleRejectDraft}
+                    disabled={actionLoading}
+                    className="rounded bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Quick Actions & Input Form */}
           <div className="border-t border-gray-200 bg-white p-3">
             <div className="mb-2 flex flex-wrap gap-1">
               {quickActions.map((action) => (
                 <button
                   key={action.path}
                   type="button"
-                  onClick={() => runAction({ text: `Opening ${action.label.toLowerCase()}.`, path: action.path })}
+                  onClick={() => {
+                    appendPersistedMessage({
+                      from: "assistant",
+                      text: `Navigating to ${action.label}.`,
+                      source: "Navigation",
+                    });
+                    router.push(action.path);
+                  }}
                   className="rounded-full border border-teal-200 px-2 py-1 text-xs text-teal-800 hover:bg-teal-50"
                 >
                   {action.label}
                 </button>
               ))}
             </div>
+
             <form onSubmit={submitMessage} className="flex gap-2">
               <input
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                placeholder="Ask or give an instruction..."
+                placeholder="Ask stock questions or request drafts..."
                 aria-label="Assistant message"
-                className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                disabled={historyLoading}
+                className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none"
               />
-              <button type="submit" disabled={chatLoading} className="rounded-md bg-teal-800 px-3 py-2 text-sm font-medium text-white hover:bg-teal-900 disabled:opacity-50">
+              <button
+                type="submit"
+                disabled={historyLoading || chatLoading || actionLoading}
+                className="rounded-md bg-teal-800 px-3 py-2 text-sm font-medium text-white hover:bg-teal-900 disabled:opacity-50"
+              >
                 {chatLoading ? "..." : "Send"}
               </button>
             </form>
           </div>
         </div>
       )}
+
+      {/* Floating Toggle Button */}
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-label="Open platform assistant"
-        className="ml-auto flex h-14 w-14 items-center justify-center rounded-full bg-teal-800 text-2xl text-white shadow-lg hover:bg-teal-900"
+        className="ml-auto flex h-14 w-14 items-center justify-center rounded-full bg-teal-800 text-2xl text-white shadow-lg hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2"
       >
         {open ? "×" : "✦"}
       </button>
