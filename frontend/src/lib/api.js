@@ -19,6 +19,8 @@ async function apiFetch(path, { method = "GET", body, token, timeoutMs = 45000 }
 export const api = {
   register: (payload) => apiFetch("/auth/register", { method: "POST", body: payload }),
   login: (payload) => apiFetch("/auth/login", { method: "POST", body: payload }),
+  forgotPassword: (payload) => apiFetch("/auth/forgot-password", { method: "POST", body: payload }),
+  resetPassword: (payload) => apiFetch("/auth/reset-password", { method: "POST", body: payload }),
 
   // Masters / SKUs
   listSkus: (enabledOnly) => apiFetch(`/skus${enabledOnly ? "?enabled=true" : ""}`),

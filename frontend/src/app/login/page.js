@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 
@@ -50,6 +51,11 @@ export default function LoginPage() {
           className="w-full py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
           {loading ? "Logging in..." : "Log in"}
         </button>
+        <div className="text-right mt-2">
+          <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
       </form>
     </div>
   );
