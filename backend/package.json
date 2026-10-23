@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.0",
     "multer": "^2.4.0",
+    "nodemailer": "^7.0.6",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -46,6 +46,11 @@ export default function NavBar() {
       hasInventory ? api.listStock(token) : Promise.resolve({ stock: [] }),
       hasInvoice ? api.listInvoices(token) : Promise.resolve({ invoices: [] }),
       hasMasters ? api.listSkus(false, token) : Promise.resolve({ skus: [] }),
+      api.listPurchaseOrders(),
+      api.listGrns(),
+      api.listStock(token),
+      api.listInvoices(),
+      api.listSkus(),
     ]).then(([purchaseResult, grnResult, stockResult, invoiceResult, skuResult]) => {
       const results = [];
       if (purchaseResult.status === "fulfilled") {

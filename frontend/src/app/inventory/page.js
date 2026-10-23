@@ -3,8 +3,10 @@
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 export default function InventoryPage() {
+  const { token, ready } = useApp();
   const [stock, setStock] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,8 +18,14 @@ export default function InventoryPage() {
   const [appliedFilters, setAppliedFilters] = useState({ search: "", batch: "", category: "", manufacturer: "", stockLevel: "" });
 
   useEffect(() => {
-    api.listStock().then((d) => setStock(d.stock)).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, []);
+    if (!ready) return;
+    if (!token) {
+      setError("Please log in to view inventory.");
+      setLoading(false);
+      return;
+    }
+    api.listStock(token).then((d) => setStock(d.stock)).catch((e) => setError(e.message)).finally(() => setLoading(false));
+  }, [ready, token]);
 
   const categories = [...new Set(stock.map((item) => item.category).filter(Boolean))].sort();
   const manufacturers = [...new Set(stock.map((item) => item.manufacturer).filter(Boolean))].sort();

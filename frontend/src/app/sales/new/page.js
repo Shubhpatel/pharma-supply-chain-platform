@@ -26,10 +26,10 @@ export default function NewInvoicePage() {
   }, []);
 
   useEffect(() => {
-    if (duplicateId === undefined || editId === undefined) return;
+    if (!token || duplicateId === undefined || editId === undefined) return;
     const sourceId = editId || duplicateId;
     const sourceRequest = sourceId ? api.getInvoice(sourceId) : Promise.resolve(null);
-    Promise.all([api.listSkus(true), api.listStock(), api.listParties("customer"), sourceRequest])
+    Promise.all([api.listSkus(true), api.listStock(token), api.listParties("customer"), sourceRequest])
       .then(([skuData, stockData, customerData, sourceData]) => {
         setSkus(skuData.skus);
         setInventory(stockData.stock || []);
@@ -54,7 +54,7 @@ export default function NewInvoicePage() {
         }
       })
       .catch((e) => setError(e.message));
-  }, [duplicateId, editId]);
+  }, [duplicateId, editId, token]);
 
   async function handleSubmit(e) {
     e.preventDefault();

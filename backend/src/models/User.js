@@ -29,6 +29,8 @@ const userSchema = new mongoose.Schema(
         return getDefaultPermissions(this.role);
       },
     },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );

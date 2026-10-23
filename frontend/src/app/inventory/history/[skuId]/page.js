@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
+import { useApp } from "@/context/AppContext";
 
 export default function TransactionHistoryPage() {
+  const { token, ready } = useApp();
   const params = useParams();
   const router = useRouter();
   const selectedSkuId = params.skuId;
@@ -35,13 +37,14 @@ export default function TransactionHistoryPage() {
 
   // Load product and stock data for the current product summary
   useEffect(() => {
-    Promise.all([api.listSkus(), api.listStock()])
+    if (!ready || !token) return;
+    Promise.all([api.listSkus(), api.listStock(token)])
       .then(([skuData, stockData]) => {
         setSkus(skuData.skus || []);
         setStock(stockData.stock || []);
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [ready, token]);
 
   useEffect(() => {
     if (!selectedSkuId || selectedSkuId === "all") {
@@ -51,14 +54,14 @@ export default function TransactionHistoryPage() {
 
   // Load transactions
   const fetchTransactions = () => {
-    if (!selectedSkuId || selectedSkuId === "all") return;
+    if (!ready || !token || !selectedSkuId || selectedSkuId === "all") return;
 
     setLoading(true);
     setError("");
     api
       .getInventoryHistory(selectedSkuId, {
         ...appliedFilters,
-      })
+      }, token)
       .then((data) => setTransactions(data.transactions || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -66,7 +69,7 @@ export default function TransactionHistoryPage() {
 
   useEffect(() => {
     fetchTransactions();
-  }, [selectedSkuId, appliedFilters]);
+  }, [ready, token, selectedSkuId, appliedFilters]);
 
   const currentSku = useMemo(() => {
     return skus.find((s) => s._id === selectedSkuId);
