@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-async function apiFetch(path, { method = "GET", body, token } = {}) {
+async function apiFetch(path, { method = "GET", body, token, timeoutMs = 15000 } = {}) {
   const storedToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const authToken = token || storedToken;
   const res = await fetch(`${API_URL}${path}`, {

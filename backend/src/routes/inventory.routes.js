@@ -9,23 +9,18 @@ const SkuLocation = require("../models/SkuLocation");
 
 const router = express.Router();
 
+// GET /api/inventory - stock on hand, joined with SKU details
 router.get("/", requireAuth, requirePermission("inventory"), async (req, res) => {
   try {
-    const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
-    const skuIds = stock.filter((item) => item.sku).map((item) => item.sku._id);
-    const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
-    const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
-const { requireAuth } = require("../middleware/auth");
-
-const router = express.Router();
-
-// GET /api/inventory - stock on hand, joined with SKU details
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    // ⚡ Bolt: Using .lean() to improve query speed and reduce memory overhead
     const stock = await Stock.find({ qty: { $gt: 0 } })
       .populate("sku", "name category subCategory manufacturer uom")
       .lean();
+    const skuIds = stock.filter((item) => item.sku).map((item) => item.sku._id);
+    const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true })
+      .select("sku location")
+      .lean();
+    const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
+
     // Only show rows where the SKU still exists (in case one was hard-deleted from Masters).
     const rows = stock
       .filter((s) => s.sku)
@@ -50,14 +45,8 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async (req, res) => {
-const Grn = require("../models/Grn");
-const SaleInvoice = require("../models/SaleInvoice");
-const DebitNote = require("../models/DebitNote");
-const CreditNote = require("../models/CreditNote");
-
 // GET /api/inventory/history/:skuId - transaction history for a product (or "all")
-router.get("/history/:skuId", requireAuth, async (req, res) => {
+router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async (req, res) => {
   try {
     const { skuId } = req.params;
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;
@@ -65,17 +54,11 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
     const queryFilter = skuId === "all" ? {} : { "items.sku": skuId };
     const confirmedFilter = { ...queryFilter, status: "confirmed" };
 
-    // ⚡ Bolt: Using .lean() to bypass Mongoose document hydration
-    // This significantly improves performance for this read-heavy endpoint
     const [grns, sales, debitNotes, creditNotes] = await Promise.all([
-      Grn.find(confirmedFilter).populate("createdBy", "name"),
-      SaleInvoice.find(confirmedFilter).populate("createdBy", "name"),
-      DebitNote.find(confirmedFilter).populate("createdBy", "name"),
-      CreditNote.find(confirmedFilter).populate("createdBy", "name"),
-      Grn.find(queryFilter).lean(),
-      SaleInvoice.find(queryFilter).lean(),
-      DebitNote.find(queryFilter).lean(),
-      CreditNote.find(queryFilter).lean(),
+      Grn.find(confirmedFilter).populate("createdBy", "name").lean(),
+      SaleInvoice.find(confirmedFilter).populate("createdBy", "name").lean(),
+      DebitNote.find(confirmedFilter).populate("createdBy", "name").lean(),
+      CreditNote.find(confirmedFilter).populate("createdBy", "name").lean(),
     ]);
 
     let allTransactions = [];

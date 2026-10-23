@@ -8,7 +8,6 @@ const Sku = require("../models/Sku");
 
 const router = express.Router();
 
-router.get("/sales", requireAuth, requirePermission("reports"), async (req, res) => {
 function createFallbackReport(reportType, summary, data) {
   const metrics = Object.entries(summary || {})
     .filter(([, value]) => typeof value === "number")
