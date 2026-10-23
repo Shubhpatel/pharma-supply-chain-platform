@@ -9,7 +9,9 @@ router.get("/", async (req, res) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
-    const locations = await SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 });
+    // Performance optimization: Use .lean() for read-only queries to bypass document hydration
+    // and return plain JS objects, significantly improving query speed and memory footprint.
+    const locations = await SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 }).lean();
     return res.json({ locations });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -18,9 +20,11 @@ router.get("/", async (req, res) => {
 
 router.get("/export", requireAuth, async (req, res) => {
   try {
+    // Performance optimization: Use .lean() for export query as documents are read-only plain objects
     const locations = await SkuLocation.find()
       .populate("sku", "name uid")
-      .sort({ location: 1 });
+      .sort({ location: 1 })
+      .lean();
     const rows = locations.map((entry) => ({
       "Product UID": entry.sku?.uid || "",
       SKU: entry.sku?.name || "",
