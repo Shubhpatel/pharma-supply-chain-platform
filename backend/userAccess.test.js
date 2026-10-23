@@ -74,7 +74,10 @@ jest.mock("./src/models/User", () => {
 jest.mock("./src/models/PurchaseOrder", () => ({
   find: jest.fn().mockReturnValue({
     select: jest.fn().mockReturnValue({
-      sort: jest.fn().mockResolvedValue([]),
+      sort: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue([]),
+        then: (fn) => Promise.resolve([]).then(fn),
+      }),
     }),
   }),
 }));
