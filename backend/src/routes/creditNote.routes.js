@@ -8,7 +8,7 @@ const { nextNumber } = require("../utils/idGenerator");
 const router = express.Router();
 
 // POST /api/credit-notes
-router.post("/", requireAuth, requirePermission("sr"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("sr"), async (req, res, next) => {
   try {
     const { invoiceId, returnDate, reason, items } = req.body;
     if (!invoiceId || !returnDate || !items || items.length === 0) {
@@ -96,12 +96,12 @@ router.post("/", requireAuth, requirePermission("sr"), async (req, res) => {
 
     return res.status(201).json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // PUT /api/credit-notes/:id
-router.put("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("sr"), async (req, res, next) => {
   try {
     const { invoiceId, returnDate, reason, items } = req.body;
     const creditNote = await CreditNote.findById(req.params.id);
@@ -187,12 +187,12 @@ router.put("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
     await creditNote.save();
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // DELETE /api/credit-notes/:id
-router.delete("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("sr"), async (req, res, next) => {
   try {
     const creditNote = await CreditNote.findById(req.params.id);
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
@@ -200,12 +200,12 @@ router.delete("/:id", requireAuth, requirePermission("sr"), async (req, res) => 
     await creditNote.deleteOne();
     return res.json({ message: "Credit note deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // PATCH /api/credit-notes/:id/confirm
-router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, res) => {
+router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, res, next) => {
   try {
     const creditNote = await CreditNote.findById(req.params.id);
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
@@ -223,12 +223,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, r
     await creditNote.save();
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /api/credit-notes
-router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("sr"), async (req, res, next) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const creditNotes = await CreditNote.find()
@@ -237,12 +237,12 @@ router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
       .lean();
     return res.json({ creditNotes });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /api/credit-notes/:id
-router.get("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
+router.get("/:id", requireAuth, requirePermission("sr"), async (req, res, next) => {
   try {
     // Performance: .lean() bypasses Mongoose document hydration for read-only query
     const creditNote = await CreditNote.findById(req.params.id)
@@ -253,7 +253,7 @@ router.get("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 

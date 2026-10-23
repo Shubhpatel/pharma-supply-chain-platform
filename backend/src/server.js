@@ -44,6 +44,9 @@ app.use("/api/assistant", assistantRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
+const errorHandler = require("./middleware/errorHandler");
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {

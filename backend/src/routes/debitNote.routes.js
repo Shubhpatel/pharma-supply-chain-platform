@@ -8,7 +8,7 @@ const { nextNumber } = require("../utils/idGenerator");
 const router = express.Router();
 
 // POST /api/debit-notes
-router.post("/", requireAuth, requirePermission("pr"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("pr"), async (req, res, next) => {
   try {
     const { grnId, returnDate, reason, items } = req.body;
     if (!grnId || !returnDate || !items || items.length === 0) {
@@ -96,12 +96,12 @@ router.post("/", requireAuth, requirePermission("pr"), async (req, res) => {
 
     return res.status(201).json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // PUT /api/debit-notes/:id
-router.put("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("pr"), async (req, res, next) => {
   try {
     const { grnId, returnDate, reason, items } = req.body;
     const debitNote = await DebitNote.findById(req.params.id);
@@ -187,12 +187,12 @@ router.put("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
     await debitNote.save();
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // DELETE /api/debit-notes/:id
-router.delete("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("pr"), async (req, res, next) => {
   try {
     const debitNote = await DebitNote.findById(req.params.id);
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
@@ -200,12 +200,12 @@ router.delete("/:id", requireAuth, requirePermission("pr"), async (req, res) => 
     await debitNote.deleteOne();
     return res.json({ message: "Debit note deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // PATCH /api/debit-notes/:id/confirm
-router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, res) => {
+router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, res, next) => {
   try {
     const debitNote = await DebitNote.findById(req.params.id);
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
@@ -232,12 +232,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, r
     await debitNote.save();
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /api/debit-notes
-router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("pr"), async (req, res, next) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const debitNotes = await DebitNote.find()
@@ -246,12 +246,12 @@ router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
       .lean();
     return res.json({ debitNotes });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // GET /api/debit-notes/:id
-router.get("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
+router.get("/:id", requireAuth, requirePermission("pr"), async (req, res, next) => {
   try {
     // Performance: .lean() bypasses Mongoose document hydration for read-only query
     const debitNote = await DebitNote.findById(req.params.id)
@@ -262,7 +262,7 @@ router.get("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 

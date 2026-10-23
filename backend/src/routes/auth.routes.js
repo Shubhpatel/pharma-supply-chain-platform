@@ -7,7 +7,7 @@ const { sendPasswordResetEmail } = require("../utils/email");
 
 const router = express.Router();
 
-router.post("/login", async (req, res) => {
+router.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: (email || "").toLowerCase() });
@@ -36,11 +36,11 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", async (req, res, next) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -66,11 +66,11 @@ router.post("/forgot-password", async (req, res) => {
       message: "If an account with that email exists, password reset instructions have been sent.",
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.post("/reset-password", async (req, res) => {
+router.post("/reset-password", async (req, res, next) => {
   try {
     const { token, newPassword } = req.body;
     if (!token || !newPassword) {
@@ -99,7 +99,7 @@ router.post("/reset-password", async (req, res) => {
 
     return res.json({ message: "Password has been reset successfully" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 

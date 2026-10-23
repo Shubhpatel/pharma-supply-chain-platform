@@ -33,7 +33,7 @@ const SAMPLE_DATA = {
   ],
 };
 
-router.get("/sample", (req, res) => {
+router.get("/sample", (req, res, next) => {
   try {
     const masterType = (req.query.masterType || "sku").toLowerCase();
     const format = (req.query.format || "csv").toLowerCase();
@@ -59,22 +59,22 @@ router.get("/sample", (req, res) => {
       return res.send(csvString);
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get("/", requireAuth, requirePermission("masters"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const history = await BulkUpload.find()
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
     return res.json({ history });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (req, res) => {
+router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const uploadJob = await BulkUpload.findById(req.params.id);
     if (!uploadJob) return res.status(404).json({ error: "Upload job not found" });
@@ -108,11 +108,11 @@ router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (
       return res.send(csvString);
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-router.post("/", requireAuth, requirePermission("masters"), upload.single("file"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -287,7 +287,7 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
       });
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
