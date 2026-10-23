@@ -30,6 +30,28 @@ export default function NewPurchaseOrderPage() {
   useEffect(() => {
     setDuplicateId(new URLSearchParams(window.location.search).get("duplicate"));
     setEditId(new URLSearchParams(window.location.search).get("edit"));
+    const assistantDraft = sessionStorage.getItem("assistantPurchaseDraft");
+    const assistantForm = sessionStorage.getItem("assistantPurchaseForm");
+    if (assistantDraft) {
+      try {
+        const draftItems = JSON.parse(assistantDraft);
+        if (Array.isArray(draftItems) && draftItems.length > 0) setItems(draftItems);
+        sessionStorage.removeItem("assistantPurchaseDraft");
+      } catch {
+        sessionStorage.removeItem("assistantPurchaseDraft");
+      }
+    }
+    if (assistantForm) {
+      try {
+        const draftForm = JSON.parse(assistantForm);
+        if (draftForm && typeof draftForm === "object") {
+          setForm((current) => ({ ...current, ...draftForm }));
+        }
+        sessionStorage.removeItem("assistantPurchaseForm");
+      } catch {
+        sessionStorage.removeItem("assistantPurchaseForm");
+      }
+    }
   }, []);
 
   useEffect(() => {

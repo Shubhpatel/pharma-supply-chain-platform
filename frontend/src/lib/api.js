@@ -59,7 +59,7 @@ export const api = {
   },
 
   // Sales
-  listInvoices: () => apiFetch("/sales"),
+  listInvoices: (token) => apiFetch("/sales", { token }),
   getInvoice: (id) => apiFetch(`/sales/${id}`),
   createInvoice: (payload, token) => apiFetch("/sales", { method: "POST", body: payload, token }),
   updateInvoice: (id, payload, token) => apiFetch(`/sales/${id}`, { method: "PUT", body: payload, token }),
@@ -102,6 +102,12 @@ export const api = {
   generateAiReport: (payload, token) => apiFetch("/reports/ai-summary", {
     method: "POST",
     body: payload,
+    token,
+    timeoutMs: 15000,
+  }),
+  assistantChat: (message, token) => apiFetch("/assistant/chat", {
+    method: "POST",
+    body: { message },
     token,
     timeoutMs: 15000,
   }),

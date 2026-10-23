@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import NavBar from "@/components/NavBar";
 import Toast from "@/components/Toast";
+import PlatformChatbot from "@/components/PlatformChatbot";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
         <AppProvider>
           <NavBar />
           <Toast />
+          <PlatformChatbot />
           <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
         </AppProvider>
       </body>
