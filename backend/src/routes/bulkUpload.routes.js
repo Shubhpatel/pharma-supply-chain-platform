@@ -65,9 +65,11 @@ router.get("/sample", (req, res) => {
 
 router.get("/", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only query
     const history = await BulkUpload.find()
       .populate("createdBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     return res.json({ history });
   } catch (err) {
     return res.status(500).json({ error: err.message });
