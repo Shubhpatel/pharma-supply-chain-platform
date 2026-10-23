@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
@@ -51,6 +51,42 @@ export default function PlatformChatbot() {
       source: "Database analysis",
     },
   ]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !token) return;
+
+    let active = true;
+    setHistoryLoading(true);
+    api.getAssistantHistory(token)
+      .then((result) => {
+        if (!active) return;
+        setMessages(result.messages?.length ? result.messages : [{
+          from: "assistant",
+          text: "Hi! I am Pharma Buddy. Ask me about stock levels, expiry, or ask me to prepare a transaction draft.",
+          source: "Database analysis",
+        }]);
+      })
+      .catch((error) => {
+        if (active) setActionStatusMessage({ type: "error", text: error.message || "Unable to load chat history." });
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, token]);
+
+  async function appendPersistedMessage(item) {
+    setMessages((current) => [...current, item]);
+    try {
+      await api.saveAssistantMessage({ role: item.from, text: item.text, source: item.source }, token);
+    } catch (error) {
+      setActionStatusMessage({ type: "error", text: error.message || "Unable to save chat history." });
+    }
+  }
 
   if (!user || pathname === "/login" || pathname === "/register") return null;
 
@@ -62,14 +98,11 @@ export default function PlatformChatbot() {
       const res = await api.approveAssistantDraft(pendingDraft.draftId, token);
       setPendingDraft(res.draft);
       setActionStatusMessage({ type: "success", text: "Draft approved! Click 'Execute Approved Action' to execute." });
-      setMessages((current) => [
-        ...current,
-        {
-          from: "assistant",
-          text: `Draft "${res.draft.summary}" has been approved. Explicit user approval recorded.`,
-          source: "Database analysis",
-        },
-      ]);
+      await appendPersistedMessage({
+        from: "assistant",
+        text: `Draft "${res.draft.summary}" has been approved. Explicit user approval recorded.`,
+        source: "Database analysis",
+      });
     } catch (err) {
       setActionStatusMessage({ type: "error", text: err.message || "Failed to approve draft." });
     } finally {
@@ -85,14 +118,11 @@ export default function PlatformChatbot() {
       const res = await api.rejectAssistantDraft(pendingDraft.draftId, token);
       setPendingDraft(null);
       setActionStatusMessage({ type: "info", text: "Draft rejected." });
-      setMessages((current) => [
-        ...current,
-        {
-          from: "assistant",
-          text: `Draft rejected. No changes were made to the database.`,
-          source: "Database analysis",
-        },
-      ]);
+      await appendPersistedMessage({
+        from: "assistant",
+        text: "Draft rejected. No changes were made to the database.",
+        source: "Database analysis",
+      });
     } catch (err) {
       setActionStatusMessage({ type: "error", text: err.message || "Failed to reject draft." });
     } finally {
@@ -109,14 +139,11 @@ export default function PlatformChatbot() {
       setPendingDraft(null);
       const recordRef = res.resultRecord?.poNumber || res.resultRecord?.invoiceNumber || res.resultRecord?._id || "record";
       setActionStatusMessage({ type: "success", text: `Successfully executed! Created ${recordRef}.` });
-      setMessages((current) => [
-        ...current,
-        {
-          from: "assistant",
-          text: `Action executed successfully! Created ${recordRef}. Status in database is updated.`,
-          source: "Database analysis",
-        },
-      ]);
+      await appendPersistedMessage({
+        from: "assistant",
+        text: `Action executed successfully! Created ${recordRef}. Status in database is updated.`,
+        source: "Database analysis",
+      });
     } catch (err) {
       setActionStatusMessage({ type: "error", text: err.message || "Execution failed." });
     } finally {
@@ -139,21 +166,18 @@ export default function PlatformChatbot() {
     const trimmed = message.trim();
     if (!trimmed) return;
 
-    setMessages((current) => [...current, { from: "user", text: trimmed }]);
+    setMessages((current) => [...current, { from: "user", text: trimmed, source: "User message" }]);
     setMessage("");
     setActionStatusMessage(null);
     setChatLoading(true);
 
     try {
       const result = await api.assistantChat(trimmed, token);
-      setMessages((current) => [
-        ...current,
-        {
-          from: "assistant",
-          text: result.reply,
-          source: result.source === "gemini" ? "AI analysis" : "Database analysis",
-        },
-      ]);
+      setMessages((current) => [...current, {
+        from: "assistant",
+        text: result.reply,
+        source: result.source === "gemini" ? "AI analysis" : "Database analysis",
+      }]);
 
       if (result.actionDraft) {
         setPendingDraft(result.actionDraft);
@@ -164,14 +188,16 @@ export default function PlatformChatbot() {
       }
     } catch (error) {
       const fallback = getAssistantFallbackReply(trimmed);
-      setMessages((current) => [
-        ...current,
-        {
-          from: "assistant",
-          text: `${fallback.text} (Note: ${error.message})`,
-          source: "Fallback",
-        },
-      ]);
+      try {
+        await api.saveAssistantMessage({ role: "user", text: trimmed, source: "User message" }, token);
+      } catch (saveError) {
+        setActionStatusMessage({ type: "error", text: saveError.message || "Unable to save chat history." });
+      }
+      await appendPersistedMessage({
+        from: "assistant",
+        text: `${fallback.text} (Note: ${error.message})`,
+        source: "Fallback",
+      });
       if (fallback.path) setTimeout(() => router.push(fallback.path), 350);
     } finally {
       setChatLoading(false);
@@ -200,7 +226,9 @@ export default function PlatformChatbot() {
 
           {/* Chat Messages */}
           <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-3">
-            {messages.map((item, index) => (
+            {historyLoading ? (
+              <p className="text-center text-sm text-gray-500">Loading chat history...</p>
+            ) : messages.map((item, index) => (
               <div
                 key={`${item.from}-${index}`}
                 className={`flex flex-col ${item.from === "user" ? "items-end" : "items-start"}`}
@@ -359,10 +387,11 @@ export default function PlatformChatbot() {
                   key={action.path}
                   type="button"
                   onClick={() => {
-                    setMessages((curr) => [
-                      ...curr,
-                      { from: "assistant", text: `Navigating to ${action.label}.`, source: "Navigation" },
-                    ]);
+                    appendPersistedMessage({
+                      from: "assistant",
+                      text: `Navigating to ${action.label}.`,
+                      source: "Navigation",
+                    });
                     router.push(action.path);
                   }}
                   className="rounded-full border border-teal-200 px-2 py-1 text-xs text-teal-800 hover:bg-teal-50"
@@ -378,11 +407,12 @@ export default function PlatformChatbot() {
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Ask stock questions or request drafts..."
                 aria-label="Assistant message"
+                disabled={historyLoading}
                 className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none"
               />
               <button
                 type="submit"
-                disabled={chatLoading || actionLoading}
+                disabled={historyLoading || chatLoading || actionLoading}
                 className="rounded-md bg-teal-800 px-3 py-2 text-sm font-medium text-white hover:bg-teal-900 disabled:opacity-50"
               >
                 {chatLoading ? "..." : "Send"}

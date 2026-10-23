@@ -108,6 +108,12 @@ export const api = {
   }),
 
   // Assistant & Draft Operations
+  getAssistantHistory: (token) => apiFetch("/assistant/history", { token }),
+  saveAssistantMessage: (payload, token) => apiFetch("/assistant/history", {
+    method: "POST",
+    body: payload,
+    token,
+  }),
   assistantChat: (message, token) => apiFetch("/assistant/chat", {
     method: "POST",
     body: { message },

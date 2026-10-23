@@ -2,6 +2,7 @@ const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const AssistantDraft = require("../models/AssistantDraft");
 const AssistantAuditLog = require("../models/AssistantAuditLog");
+const AssistantChatMessage = require("../models/AssistantChatMessage");
 const PurchaseOrder = require("../models/PurchaseOrder");
 const SaleInvoice = require("../models/SaleInvoice");
 const Grn = require("../models/Grn");
@@ -18,6 +19,56 @@ const {
 } = require("../utils/assistantHelpers");
 
 const router = express.Router();
+
+async function saveChatMessage(userId, role, text, source) {
+  return AssistantChatMessage.create({ user: userId, role, text, source });
+}
+
+// GET /api/assistant/history - Return the current user's saved chat history
+router.get("/history", requireAuth, async (req, res) => {
+  try {
+    const messages = await AssistantChatMessage.find({ user: req.user.id })
+      .sort({ createdAt: 1 })
+      .limit(200)
+      .lean();
+    return res.json({
+      messages: messages.map((message) => ({
+        id: message._id,
+        from: message.role,
+        text: message.text,
+        source: message.source,
+        createdAt: message.createdAt,
+      })),
+    });
+  } catch (err) {
+    console.error("Assistant history error:", err.message);
+    return res.status(500).json({ error: "Unable to load assistant history." });
+  }
+});
+
+// POST /api/assistant/history - Save client-side assistant events such as navigation and draft status
+router.post("/history", requireAuth, async (req, res) => {
+  const { role, text, source } = req.body || {};
+  if (!["user", "assistant"].includes(role) || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ error: "role and a non-empty text are required" });
+  }
+
+  try {
+    const message = await saveChatMessage(req.user.id, role, text.trim(), source || "Database analysis");
+    return res.status(201).json({
+      message: {
+        id: message._id,
+        from: message.role,
+        text: message.text,
+        source: message.source,
+        createdAt: message.createdAt,
+      },
+    });
+  } catch (err) {
+    console.error("Assistant history save error:", err.message);
+    return res.status(500).json({ error: "Unable to save assistant history." });
+  }
+});
 
 function getSafeNavigation(question) {
   const text = question.toLowerCase();
@@ -39,6 +90,7 @@ router.post("/chat", requireAuth, async (req, res) => {
   const question = sanitizePromptText(rawQuestion);
 
   try {
+    await saveChatMessage(req.user.id, "user", question, "User message");
     const context = await loadControlledDatabaseContext();
     const intent = classifyIntent(question);
     const navigation = getSafeNavigation(question);
@@ -55,14 +107,16 @@ router.post("/chat", requireAuth, async (req, res) => {
 
     // Check if prompt injection is suspected (e.g. system override instructions in text)
     if (/ignore (all )?previous instructions|system prompt|admin mode/i.test(question)) {
-      return res.json({
+      const response = {
         reply: "I am Pharma Buddy, a read-only operations assistant. I cannot modify prompt rules or run unauthorized database operations.",
         intent: "unsupported_request",
         source: "rule_engine",
         data: [],
         actionDraft: null,
         navigation: null,
-      });
+      };
+      await saveChatMessage(req.user.id, "assistant", response.reply, "Database analysis");
+      return res.json(response);
     }
 
     // Auto-draft generation if user specifically asked to create/prepare a transaction
@@ -265,14 +319,16 @@ router.post("/chat", requireAuth, async (req, res) => {
       }
     }
 
-    return res.json({
+    const response = {
       reply: replyText,
       intent,
       source: process.env.GEMINI_API_KEY ? "gemini" : "database_analysis",
       data: context.lowStockItems,
       actionDraft,
       navigation,
-    });
+    };
+    await saveChatMessage(req.user.id, "assistant", response.reply, response.source === "gemini" ? "AI analysis" : "Database analysis");
+    return res.json(response);
   } catch (err) {
     console.error("Assistant error:", err.message);
     return res.status(500).json({ error: "The assistant encountered an error processing your request." });

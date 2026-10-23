@@ -7,6 +7,7 @@ process.env.JWT_SECRET = "test-secret-key-123";
 // Mocking Mongoose models directly to avoid mongodb-memory-server binary timeout issues
 jest.mock("./src/models/AssistantDraft");
 jest.mock("./src/models/AssistantAuditLog");
+jest.mock("./src/models/AssistantChatMessage");
 jest.mock("./src/models/User");
 jest.mock("./src/models/Stock");
 jest.mock("./src/models/SaleInvoice");
