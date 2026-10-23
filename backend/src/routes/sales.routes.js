@@ -189,9 +189,11 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
 // GET /api/sales
 router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
   try {
+    // Performance: .lean() returns plain JS objects, avoiding Mongoose document hydration overhead
     const invoices = await SaleInvoice.find()
       .select("invoiceNumber customerName saleDate totalQty totalAmount gstRate gstAmount grandTotal status")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     return res.json({ invoices });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -201,16 +203,20 @@ router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res
 // GET /api/sales/:id
 router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
   try {
-    const invoice = await SaleInvoice.findById(req.params.id).populate("createdBy", "name").populate("customer");
+    // Performance: .lean() bypasses Mongoose document hydration for read-only view
+    const invoice = await SaleInvoice.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("customer")
+      .lean();
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
 
     const linkedSalesReturns = await CreditNote.find({ saleInvoice: invoice._id })
       .select("creditNoteNumber status returnDate createdAt")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const invoicePayload = invoice.toObject();
-    invoicePayload.linkedSalesReturns = linkedSalesReturns;
-    return res.json({ invoice: invoicePayload });
+    invoice.linkedSalesReturns = linkedSalesReturns;
+    return res.json({ invoice });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

@@ -230,9 +230,11 @@ router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, r
 // GET /api/credit-notes
 router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
+    // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const creditNotes = await CreditNote.find()
       .select("creditNoteNumber invoiceNumber customerName returnDate totalQty totalAmount gstAmount grandTotal reason status")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     return res.json({ creditNotes });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -242,10 +244,12 @@ router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
 // GET /api/credit-notes/:id
 router.get("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
   try {
+    // Performance: .lean() bypasses Mongoose document hydration for read-only query
     const creditNote = await CreditNote.findById(req.params.id)
       .populate("createdBy", "name")
       .populate("saleInvoice")
-      .populate("customer");
+      .populate("customer")
+      .lean();
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
     return res.json({ creditNote });
   } catch (err) {

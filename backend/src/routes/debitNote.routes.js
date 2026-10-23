@@ -239,9 +239,11 @@ router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, r
 // GET /api/debit-notes
 router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
+    // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const debitNotes = await DebitNote.find()
       .select("debitNoteNumber grnNumber supplierName returnDate totalQty totalAmount gstAmount grandTotal reason status")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     return res.json({ debitNotes });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -251,10 +253,12 @@ router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
 // GET /api/debit-notes/:id
 router.get("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
+    // Performance: .lean() bypasses Mongoose document hydration for read-only query
     const debitNote = await DebitNote.findById(req.params.id)
       .populate("createdBy", "name")
       .populate("grn")
-      .populate("supplier");
+      .populate("supplier")
+      .lean();
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
     return res.json({ debitNote });
   } catch (err) {

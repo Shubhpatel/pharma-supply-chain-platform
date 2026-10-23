@@ -223,9 +223,11 @@ router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, 
 // GET /api/grn
 router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {
+    // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const grns = await Grn.find()
       .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue gstAmount grandTotal status")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     return res.json({ grns });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -235,17 +237,20 @@ router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) =>
 // GET /api/grn/:id
 router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {
+    // Performance: .lean() bypasses Mongoose document hydration for read-only view
     const grn = await Grn.findById(req.params.id)
       .populate("createdBy", "name")
       .populate("purchaseOrder", "poNumber")
-      .populate("supplier");
+      .populate("supplier")
+      .lean();
     if (!grn) return res.status(404).json({ error: "GRN not found" });
 
     const linkedPurchaseReturns = await DebitNote.find({ grn: grn._id })
       .select("debitNoteNumber status returnDate createdAt")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const grnPayload = grn.toObject();
+    const grnPayload = grn;
     const missingLocationItems = grnPayload.items.filter((item) => !item.skuLocation);
     if (missingLocationItems.length > 0) {
       const itemsWithLocations = await addSkuLocationSnapshots(missingLocationItems);

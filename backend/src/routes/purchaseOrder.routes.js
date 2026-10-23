@@ -39,12 +39,13 @@ function parseDate(value) {
 }
 
 function addPendingQuantities(po, receivedBySku) {
-  const items = po.items.map((item) => ({
-    ...item.toObject(),
+  const poObj = typeof po.toObject === "function" ? po.toObject() : po;
+  const items = poObj.items.map((item) => ({
+    ...(typeof item.toObject === "function" ? item.toObject() : item),
     pendingQty: Math.max(0, item.qty - (receivedBySku[String(item.sku)] || 0)),
   }));
   return {
-    ...po.toObject(),
+    ...poObj,
     items,
     pendingQty: items.reduce((sum, item) => sum + item.pendingQty, 0),
   };
@@ -357,9 +358,11 @@ router.patch("/:id/confirm", requireAuth, requirePermission("po"), async (req, r
 // GET /api/purchase-orders
 router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
   try {
+    // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const orders = await PurchaseOrder.find()
       .select("poNumber supplierName orderDate paymentTerm expectedDeliveryDate status totalQty totalPrice gstAmount grandTotal items")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
   } catch (err) {
@@ -370,10 +373,12 @@ router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
 // GET /api/purchase-orders/open/list
 router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req, res) => {
   try {
+    // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const orders = await PurchaseOrder.find({ status: { $in: ["placed", "partially_received"] } })
       .select("poNumber supplier supplierName orderDate items totalQty status")
       .populate("supplier")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})) });
   } catch (err) {
@@ -384,13 +389,18 @@ router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req
 // GET /api/purchase-orders/:id
 router.get("/:id", requireAuth, requirePermission("po", "grn"), async (req, res) => {
   try {
-    const po = await PurchaseOrder.findById(req.params.id).populate("createdBy", "name").populate("supplier");
+    // Performance: .lean() bypasses Mongoose document hydration for read-only view
+    const po = await PurchaseOrder.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("supplier")
+      .lean();
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
     const receivedByPo = await receivedQuantitiesByPo([po._id]);
     const linkedGrns = await Grn.find({ purchaseOrder: po._id })
       .select("grnNumber createdAt createdBy")
       .populate("createdBy", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     const latestGrn = linkedGrns[0];
     const purchaseOrder = addPendingQuantities(po, receivedByPo[String(po._id)] || {});
     purchaseOrder.linkedGrns = linkedGrns;
