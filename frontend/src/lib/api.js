@@ -82,6 +82,7 @@ export const api = {
   updateCreditNote: (id, payload, token) => apiFetch(`/credit-notes/${id}`, { method: "PUT", body: payload, token }),
   deleteCreditNote: (id, token) => apiFetch(`/credit-notes/${id}`, { method: "DELETE", token }),
   confirmCreditNote: (id, token) => apiFetch(`/credit-notes/${id}/confirm`, { method: "PATCH", token }),
+
   // Reports
   getSalesReport: (params, token) => {
     const q = new URLSearchParams(params).toString();
@@ -105,11 +106,32 @@ export const api = {
     token,
     timeoutMs: 15000,
   }),
+
+  // Assistant & Draft Operations
   assistantChat: (message, token) => apiFetch("/assistant/chat", {
     method: "POST",
     body: { message },
     token,
     timeoutMs: 15000,
+  }),
+  createAssistantDraft: (payload, token) => apiFetch("/assistant/drafts", {
+    method: "POST",
+    body: payload,
+    token,
+  }),
+  listAssistantDrafts: (token) => apiFetch("/assistant/drafts", { token }),
+  getAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}`, { token }),
+  approveAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}/approve`, {
+    method: "POST",
+    token,
+  }),
+  rejectAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}/reject`, {
+    method: "POST",
+    token,
+  }),
+  executeAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}/execute`, {
+    method: "POST",
+    token,
   }),
 
   // Bulk Uploads
