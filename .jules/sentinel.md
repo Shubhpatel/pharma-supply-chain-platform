@@ -1,4 +1,4 @@
-## 2024-05-18 - Fix Missing Auth & Information Exposure in Inventory Routes
-**Vulnerability:** Unauthenticated access to sensitive inventory endpoints (`/api/inventory` and `/api/inventory/history/:skuId`) and exposure of raw error messages to the client.
-**Learning:** `requireAuth` was omitted on read-only endpoints, presumably during initial development, and error handlers were dumping `err.message` which could leak stack or DB info.
-**Prevention:** Always apply authentication middleware to all non-public API routes, including read-only ones. Catch blocks must log raw errors securely and return sanitized generic messages to clients to prevent CWE-209.
+## 2024-05-23 - AI Assistant RBAC Bypass
+**Vulnerability:** The AI Assistant draft execution endpoint lacked RBAC (Role-Based Access Control) checks on the underlying actions it performed. This allowed any user with access to the assistant to execute restricted actions (like creating purchase orders or toggling SKUs) by using the AI Assistant as a proxy, bypassing standard endpoint permissions.
+**Learning:** API routes backing AI Assistants must manually enforce RBAC because the Assistant acts as a proxy executing actions on the user's behalf. Permissions on standard endpoints do not automatically apply to the assistant's execution engine.
+**Prevention:** Always perform explicit permission checks within the execution logic of an AI assistant, mapped to the specific `actionType` or operation being performed, just as you would on a standard API endpoint.
