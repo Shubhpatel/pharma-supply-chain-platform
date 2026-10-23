@@ -36,7 +36,8 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -66,7 +67,8 @@ router.post("/forgot-password", async (req, res) => {
       message: "If an account with that email exists, password reset instructions have been sent.",
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -99,7 +101,8 @@ router.post("/reset-password", async (req, res) => {
 
     return res.json({ message: "Password has been reset successfully" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

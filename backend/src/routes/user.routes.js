@@ -14,7 +14,8 @@ router.get("/", async (req, res) => {
     const users = await User.find().select("-passwordHash").sort({ createdAt: -1 });
     return res.json({ users });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -53,7 +54,8 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -95,7 +97,8 @@ router.put("/:id", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -111,7 +114,8 @@ router.delete("/:id", async (req, res) => {
 
     return res.json({ message: "User deleted successfully" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

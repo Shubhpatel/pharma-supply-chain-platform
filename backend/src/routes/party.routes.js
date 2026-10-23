@@ -15,7 +15,8 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     }));
     return res.json({ parties });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -71,7 +72,8 @@ router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res
     if (!party) return res.status(404).json({ error: "Party not found" });
     return res.json({ message: "Party deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
