@@ -140,45 +140,51 @@ export default function NewGrnPage() {
         </div>
 
         {items.length > 0 && (
-          <div className="border border-gray-200 rounded-lg p-4 bg-white space-y-2">
-            <h2 className="text-sm font-semibold mb-2">Items to receive</h2>
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
-              <div className="col-span-3">SKU / Location</div>
-              <div className="col-span-2">Batch</div>
-              <div className="col-span-2">Expiry</div>
-              <div className="col-span-1">MRP</div>
-              <div className="col-span-1">GST</div>
-              <div className="col-span-1">Rate</div>
-              <div className="col-span-1">Pending</div>
-              <div className="col-span-2">Received</div>
+          <div className="border border-gray-200 rounded-lg bg-white">
+            <div className="border-b border-gray-100 px-4 py-3">
+              <h2 className="text-sm font-semibold">Items to receive</h2>
             </div>
-            {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-3 text-sm">
-                  <div>{item.skuName}</div>
-                  <div className="text-xs text-gray-500">{item.skuLocation || "No location assigned"}</div>
+            <div className="overflow-x-auto p-4">
+              <div className="min-w-[980px] space-y-2">
+                <div className="grid grid-cols-12 items-center gap-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <div className="col-span-3">SKU / Location</div>
+                  <div className="col-span-2">Batch</div>
+                  <div className="col-span-2">Expiry</div>
+                  <div className="col-span-1">MRP</div>
+                  <div className="col-span-1">GST</div>
+                  <div className="col-span-1">Rate</div>
+                  <div className="col-span-1">Pending</div>
+                  <div className="col-span-1">Received</div>
                 </div>
-                <input required placeholder="Batch" value={item.batch}
-                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, batch: e.target.value } : current))}
-                  className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                <input required type="date" value={item.expiryDate}
-                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, expiryDate: e.target.value } : current))}
-                  className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                <input required type="number" min="0" step="0.01" placeholder="MRP" value={item.mrp}
-                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, mrp: e.target.value } : current))}
-                  className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                <div className="col-span-1 border border-gray-200 rounded-md px-2 py-2 text-sm bg-gray-50">
-                  {item.gstRate ?? 0}%
-                </div>
-                <input required type="number" min="0" step="0.01" placeholder="Rate" value={item.rate}
-                  onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, rate: e.target.value } : current))}
-                  className="col-span-1 border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                <div className="col-span-1 text-sm text-gray-600">{item.qtyOrdered}</div>
-                <input required type="number" min="0" max={item.qtyOrdered} value={item.qtyReceived}
-                  onChange={(e) => updateReceived(i, e.target.value)}
-                  className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                {items.map((item, i) => (
+                  <div key={i} className="grid grid-cols-12 items-center gap-3 border-t border-gray-100 py-2">
+                    <div className="col-span-3 min-w-0 text-sm">
+                      <div className="truncate font-medium text-gray-900">{item.skuName}</div>
+                      <div className="truncate text-xs text-gray-500">{item.skuLocation || "No location assigned"}</div>
+                    </div>
+                    <input required placeholder="Batch" value={item.batch}
+                      onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, batch: e.target.value } : current))}
+                      className="col-span-2 w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    <input required type="date" value={item.expiryDate}
+                      onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, expiryDate: e.target.value } : current))}
+                      className="col-span-2 w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    <input required type="number" min="0" step="0.01" placeholder="MRP" value={item.mrp}
+                      onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, mrp: e.target.value } : current))}
+                      className="col-span-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    <div className="col-span-1 w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-2 text-sm">
+                      {item.gstRate ?? 0}%
+                    </div>
+                    <input required type="number" min="0" step="0.01" placeholder="Rate" value={item.rate}
+                      onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, rate: e.target.value } : current))}
+                      className="col-span-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    <div className="col-span-1 text-sm text-gray-700">{item.qtyOrdered}</div>
+                    <input required type="number" min="0" max={item.qtyOrdered} value={item.qtyReceived}
+                      onChange={(e) => updateReceived(i, e.target.value)}
+                      className="col-span-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         )}
 

@@ -58,58 +58,64 @@ export default function DebitNoteDetailPage() {
         </div>
       </div>
 
-      <div className="border border-gray-200 rounded-lg p-4 bg-white grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm shadow-sm">
-        <div><div className="text-gray-500 text-xs">Debit Note #</div><span className="font-medium">{debitNote.debitNoteNumber}</span></div>
-        <div><div className="text-gray-500 text-xs">Return Date</div>{new Date(debitNote.returnDate).toLocaleDateString()}</div>
-        <div><div className="text-gray-500 text-xs">GRN #</div>{debitNote.grnNumber}</div>
-        <div><div className="text-gray-500 text-xs">Supplier Name</div>{debitNote.supplierName}</div>
-        <div><div className="text-gray-500 text-xs">Created By</div>{debitNote.createdBy?.name || "-"}</div>
-        <div><div className="text-gray-500 text-xs">Reason for Return</div>{debitNote.reason || "N/A"}</div>
-        <div><div className="text-gray-500 text-xs">Status</div>{debitNote.status}</div>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 rounded-lg border border-gray-200 bg-white p-5 text-sm shadow-sm sm:grid-cols-2 lg:grid-cols-3">
+        <div><div className="info-label">Debit Note #</div><div className="info-value">{debitNote.debitNoteNumber}</div></div>
+        <div><div className="info-label">Return Date</div><div className="info-value">{new Date(debitNote.returnDate).toLocaleDateString()}</div></div>
+        <div><div className="info-label">GRN #</div><div className="info-value">{debitNote.grnNumber}</div></div>
+        <div><div className="info-label">Supplier Name</div><div className="info-value">{debitNote.supplierName}</div></div>
+        <div><div className="info-label">Created By</div><div className="info-value">{debitNote.createdBy?.name || "-"}</div></div>
+        <div><div className="info-label">Reason for Return</div><div className="info-value">{debitNote.reason || "N/A"}</div></div>
+        <div><div className="info-label">Status</div><div className="info-value capitalize">{debitNote.status}</div></div>
         {debitNote.supplier && (
-          <div className="sm:col-span-3 border-t border-gray-100 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div><div className="text-gray-500 text-xs">Vendor GST</div>{debitNote.supplier.gstNumber || "-"}</div>
-            <div><div className="text-gray-500 text-xs">Contact person</div>{debitNote.supplier.contactPerson || "-"}</div>
-            <div><div className="text-gray-500 text-xs">Phone / email</div>{[debitNote.supplier.phone, debitNote.supplier.email].filter(Boolean).join(" / ") || "-"}</div>
-            <div><div className="text-gray-500 text-xs">Address</div>{[debitNote.supplier.addressLine1, debitNote.supplier.addressLine2, debitNote.supplier.city, debitNote.supplier.state, debitNote.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div>
+          <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div><div className="info-label">Vendor GST</div><div className="info-value">{debitNote.supplier.gstNumber || "-"}</div></div>
+            <div><div className="info-label">Contact person</div><div className="info-value">{debitNote.supplier.contactPerson || "-"}</div></div>
+            <div><div className="info-label">Phone / email</div><div className="info-value">{[debitNote.supplier.phone, debitNote.supplier.email].filter(Boolean).join(" / ") || "-"}</div></div>
+            <div><div className="info-label">Address</div><div className="info-value">{[debitNote.supplier.addressLine1, debitNote.supplier.addressLine2, debitNote.supplier.city, debitNote.supplier.state, debitNote.supplier.postalCode].filter(Boolean).join(", ") || "-"}</div></div>
           </div>
         )}
       </div>
 
-      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] table-fixed text-sm">
+          <colgroup>
+            <col className="w-[22%]" /><col className="w-[14%]" /><col className="w-[14%]" />
+            <col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[10%]" />
+            <col className="w-[10%]" /><col className="w-[10%]" />
+          </colgroup>
           <thead className="bg-gray-50 text-left text-gray-500 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3">SKU Name</th>
               <th className="px-4 py-3">Batch</th>
               <th className="px-4 py-3">Expiry Date</th>
-              <th className="px-4 py-3">Return Qty</th>
-              <th className="px-4 py-3">Rate</th>
-              <th className="px-4 py-3">GST Rate</th>
-              <th className="px-4 py-3">GST Amount</th>
-              <th className="px-4 py-3">Amount</th>
+              <th className="px-4 py-3 text-right">Return Qty</th>
+              <th className="px-4 py-3 text-right">Rate</th>
+              <th className="px-4 py-3 text-right">GST Rate</th>
+              <th className="px-4 py-3 text-right">GST Amount</th>
+              <th className="px-4 py-3 text-right">Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {debitNote.items.map((item, idx) => (
               <tr key={idx}>
-                <td className="px-4 py-3 font-medium text-gray-900">{item.skuName}</td>
-                <td className="px-4 py-3 text-gray-600">{item.batch}</td>
+                <td className="truncate px-4 py-3 font-medium text-gray-900">{item.skuName}</td>
+                <td className="truncate px-4 py-3 text-gray-600">{item.batch}</td>
                 <td className="px-4 py-3 text-gray-600">{new Date(item.expiryDate).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-gray-900 font-medium">{item.qty}</td>
-                <td className="px-4 py-3 text-gray-600">₹{item.rate.toFixed(2)}</td>
-                <td className="px-4 py-3 text-gray-600">{item.gstRate || 0}%</td>
-                <td className="px-4 py-3 text-gray-600">₹{(item.gstAmount || 0).toFixed(2)}</td>
-                <td className="px-4 py-3 font-medium text-gray-900">₹{item.amount.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">{item.qty}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-gray-600">₹{item.rate.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-gray-600">{item.gstRate || 0}%</td>
+                <td className="px-4 py-3 text-right tabular-nums text-gray-600">₹{(item.gstAmount || 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900">₹{item.amount.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot className="border-t border-gray-200 bg-gray-50 font-medium">
             <tr>
               <td colSpan="3" className="px-4 py-2 text-right">Total Qty:</td>
-              <td className="px-4 py-2">{debitNote.totalQty}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{debitNote.totalQty}</td>
               <td colSpan="3" className="px-4 py-2 text-right">Total Amount:</td>
-              <td className="px-4 py-2">₹{debitNote.totalAmount.toFixed(2)}</td>
+              <td className="px-4 py-2 text-right tabular-nums">₹{debitNote.totalAmount.toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan="7" className="px-4 py-1 text-right text-gray-600">GST Amount:</td>
@@ -121,6 +127,7 @@ export default function DebitNoteDetailPage() {
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
   );

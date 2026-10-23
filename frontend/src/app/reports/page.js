@@ -45,6 +45,66 @@ function createLocalReport(reportTitle, summary, data) {
   ].join("\n");
 }
 
+function renderInlineText(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function renderAiReport(report) {
+  return report.split(/\r?\n/).map((line, index) => {
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      return <div key={`space-${index}`} className="h-3" aria-hidden="true" />;
+    }
+
+    if (/^---+$/.test(trimmedLine)) {
+      return <hr key={index} className="my-5 border-gray-200" />;
+    }
+
+    const heading = trimmedLine.match(/^#{1,6}\s+(.+)$/);
+    if (heading) {
+      return (
+        <h3 key={index} className="mt-6 mb-2 text-base font-semibold tracking-tight text-slate-900 first:mt-0">
+          {renderInlineText(heading[1])}
+        </h3>
+      );
+    }
+
+    const bullet = trimmedLine.match(/^(?:[-*]|•)\s+(.+)$/);
+    if (bullet) {
+      return (
+        <div key={index} className="flex gap-3 py-1.5 text-sm leading-6 text-slate-700">
+          <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-teal-600" aria-hidden="true" />
+          <span>{renderInlineText(bullet[1])}</span>
+        </div>
+      );
+    }
+
+    const numbered = trimmedLine.match(/^\d+[.)]\s+(.+)$/);
+    if (numbered) {
+      return (
+        <div key={index} className="flex gap-3 py-1.5 text-sm leading-6 text-slate-700">
+          <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-teal-50 text-[11px] font-semibold text-teal-700">
+            {trimmedLine.match(/^\d+/)[0]}
+          </span>
+          <span>{renderInlineText(numbered[1])}</span>
+        </div>
+      );
+    }
+
+    return (
+      <p key={index} className="text-sm leading-7 text-slate-700">
+        {renderInlineText(trimmedLine)}
+      </p>
+    );
+  });
+}
+
 function ReportsContent() {
   const searchParams = useSearchParams();
   const { token, user } = useApp();
@@ -274,41 +334,54 @@ function ReportsContent() {
 
       {showAiModal && aiReport && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="ai-report-title"
           onClick={() => setShowAiModal(false)}
         >
           <div
-            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white shadow-xl"
+            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-              <div>
-                <h2 id="ai-report-title" className="text-lg font-semibold text-gray-900">
-                  Full AI report
-                </h2>
-                <p className="text-xs text-gray-500">
-                  Complete report data: {aiRecordsAnalyzed} record(s) included.
-                </p>
+            <div className="flex items-start justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-5">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2">
+                    <path d="M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 id="ai-report-title" className="text-lg font-semibold text-slate-900">
+                    Full AI report
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {aiRecordsAnalyzed} record{aiRecordsAnalyzed === 1 ? "" : "s"} analyzed
+                    <span className="mx-2 text-slate-300">•</span>
+                    {aiSource === "fallback" ? "Data-based summary" : "AI-generated insights"}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAiModal(false)}
-                className="rounded-md px-3 py-1 text-2xl leading-none text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
                 aria-label="Close AI report"
               >
-                &times;
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2" aria-hidden="true">
+                  <path d="m6 6 12 12M18 6 6 18" />
+                </svg>
               </button>
             </div>
-            <div className="overflow-y-auto p-5 text-sm leading-6 text-gray-800 whitespace-pre-wrap">
+            <div className="overflow-y-auto bg-white px-6 py-5 sm:px-8 sm:py-7">
               {aiSource === "fallback" && (
-                <p className="mb-4 rounded-md bg-amber-50 p-3 text-xs leading-5 text-amber-700">
+                <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
                   Gemini is temporarily busy, so these insights were generated from the report data without AI.
                 </p>
               )}
-              {aiReport}
+              <article className="max-w-3xl">
+                {renderAiReport(aiReport)}
+              </article>
             </div>
           </div>
         </div>
