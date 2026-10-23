@@ -10,10 +10,13 @@ const { nextNumber } = require("../utils/idGenerator");
 const router = express.Router();
 
 async function addSkuLocationSnapshots(items) {
-  const skuIds = [...new Set(items.map((item) => String(item.sku)))];
+  const skuIds = [...new Set(items.map((item) => String(item.sku?._id || item.sku)))];
   const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
   const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
-  return items.map((item) => ({ ...item, skuLocation: locationsBySku.get(String(item.sku)) || "" }));
+  return items.map((item) => ({
+    ...item,
+    skuLocation: locationsBySku.get(String(item.sku?._id || item.sku)) || "",
+  }));
 }
 
 // POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
@@ -243,6 +246,15 @@ router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res)
       .sort({ createdAt: -1 });
 
     const grnPayload = grn.toObject();
+    const missingLocationItems = grnPayload.items.filter((item) => !item.skuLocation);
+    if (missingLocationItems.length > 0) {
+      const itemsWithLocations = await addSkuLocationSnapshots(missingLocationItems);
+      const locationsBySku = new Map(itemsWithLocations.map((item) => [String(item.sku?._id || item.sku), item.skuLocation]));
+      grnPayload.items = grnPayload.items.map((item) => ({
+        ...item,
+        skuLocation: item.skuLocation || locationsBySku.get(String(item.sku?._id || item.sku)) || "",
+      }));
+    }
     grnPayload.linkedPurchaseReturns = linkedPurchaseReturns;
     return res.json({ grn: grnPayload });
   } catch (err) {

@@ -49,7 +49,7 @@ export default function NewGrnPage() {
       po.items.filter((i) => i.pendingQty > 0).map((i) => ({
         sku: i.sku,
         skuName: i.skuName,
-        skuLocation: skuLocations.find((entry) => entry.sku?._id === i.sku || entry.sku === i.sku)?.location || "",
+        skuLocation: skuLocations.find((entry) => String(entry.sku?._id || entry.sku) === String(i.sku?._id || i.sku))?.location || "",
         qtyOrdered: i.pendingQty,
         qtyReceived: i.pendingQty,
         batch: "",
