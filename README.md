@@ -38,6 +38,21 @@ npm run seed
 This prints a login email/password to the console, and adds 3 sample SKUs
 so the Purchase/Sales dropdowns aren't empty.
 
+To add repeatable bulk data for manually testing the complete workflow
+(using existing enabled SKU, vendor, and customer masters), run:
+```bash
+npm run seed:test
+```
+The command reads the first 3 enabled SKUs and the first enabled vendor and
+customer from Masters. It does not create, delete, or modify master records.
+It creates dated transactional records for six purchase orders and GRNs,
+inventory lots, four confirmed sales invoices, one credit note, one debit
+note, and the existing draft examples. Records use `TEST-` identifiers and
+are created only when missing, so the command is safe to run more than once.
+At least 2 enabled SKUs, one vendor, and one customer must exist.
+The test login defaults to `test@pharma.local` / `test123`; set
+`TEST_SEED_EMAIL` and `TEST_SEED_PASSWORD` in `.env` to override them.
+
 Start the backend:
 ```bash
 npm run dev
