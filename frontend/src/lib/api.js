@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-async function apiFetch(path, { method = "GET", body, token } = {}) {
+async function apiFetch(path, { method = "GET", body, token, timeoutMs = 45000 } = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers: {
@@ -8,6 +8,7 @@ async function apiFetch(path, { method = "GET", body, token } = {}) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   const data = await res.json().catch(() => ({}));
@@ -58,7 +59,7 @@ export const api = {
   },
 
   // Sales
-  listInvoices: () => apiFetch("/sales"),
+  listInvoices: (token) => apiFetch("/sales", { token }),
   getInvoice: (id) => apiFetch(`/sales/${id}`),
   createInvoice: (payload, token) => apiFetch("/sales", { method: "POST", body: payload, token }),
   updateInvoice: (id, payload, token) => apiFetch(`/sales/${id}`, { method: "PUT", body: payload, token }),
@@ -81,6 +82,7 @@ export const api = {
   updateCreditNote: (id, payload, token) => apiFetch(`/credit-notes/${id}`, { method: "PUT", body: payload, token }),
   deleteCreditNote: (id, token) => apiFetch(`/credit-notes/${id}`, { method: "DELETE", token }),
   confirmCreditNote: (id, token) => apiFetch(`/credit-notes/${id}/confirm`, { method: "PATCH", token }),
+
   // Reports
   getSalesReport: (params, token) => {
     const q = new URLSearchParams(params).toString();
@@ -98,6 +100,45 @@ export const api = {
   getExpiredReport: (token) => apiFetch("/reports/expired", { token }),
   getSlowMovingReport: (token) => apiFetch("/reports/slow-moving", { token }),
   getNonMovingReport: (token) => apiFetch("/reports/non-moving", { token }),
+  generateAiReport: (payload, token) => apiFetch("/reports/ai-summary", {
+    method: "POST",
+    body: payload,
+    token,
+    timeoutMs: 15000,
+  }),
+
+  // Assistant & Draft Operations
+  getAssistantHistory: (token) => apiFetch("/assistant/history", { token }),
+  saveAssistantMessage: (payload, token) => apiFetch("/assistant/history", {
+    method: "POST",
+    body: payload,
+    token,
+  }),
+  assistantChat: (message, token) => apiFetch("/assistant/chat", {
+    method: "POST",
+    body: { message },
+    token,
+    timeoutMs: 15000,
+  }),
+  createAssistantDraft: (payload, token) => apiFetch("/assistant/drafts", {
+    method: "POST",
+    body: payload,
+    token,
+  }),
+  listAssistantDrafts: (token) => apiFetch("/assistant/drafts", { token }),
+  getAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}`, { token }),
+  approveAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}/approve`, {
+    method: "POST",
+    token,
+  }),
+  rejectAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}/reject`, {
+    method: "POST",
+    token,
+  }),
+  executeAssistantDraft: (draftId, token) => apiFetch(`/assistant/drafts/${draftId}/execute`, {
+    method: "POST",
+    token,
+  }),
 
   // Bulk Uploads
   listBulkUploads: (token) => apiFetch("/bulk-uploads", { token }),

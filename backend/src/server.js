@@ -15,6 +15,7 @@ const debitNoteRoutes = require("./routes/debitNote.routes");
 const creditNoteRoutes = require("./routes/creditNote.routes");
 const reportsRoutes = require("./routes/reports.routes");
 const bulkUploadRoutes = require("./routes/bulkUpload.routes");
+const assistantRoutes = require("./routes/assistant.routes");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/debit-notes", debitNoteRoutes);
 app.use("/api/credit-notes", creditNoteRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/bulk-uploads", bulkUploadRoutes);
+app.use("/api/assistant", assistantRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
 
