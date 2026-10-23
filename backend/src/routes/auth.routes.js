@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
+const { sendPasswordResetEmail } = require("../utils/email");
 
 const router = express.Router();
 
@@ -54,7 +55,7 @@ router.post("/forgot-password", async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.json({
-        message: "If an account with that email exists, a password reset token has been generated.",
+        message: "If an account with that email exists, password reset instructions have been sent.",
       });
     }
 
@@ -64,10 +65,10 @@ router.post("/forgot-password", async (req, res) => {
     user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiration
     await user.save();
+    await sendPasswordResetEmail(user.email, resetToken);
 
     return res.json({
-      message: "If an account with that email exists, a password reset token has been generated.",
-      resetToken, // Returned for development/testing UI usage
+      message: "If an account with that email exists, password reset instructions have been sent.",
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

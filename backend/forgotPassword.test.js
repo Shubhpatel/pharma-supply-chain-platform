@@ -3,7 +3,11 @@ const request = require("supertest");
 const bcrypt = require("bcryptjs");
 
 jest.mock("./src/models/User");
+jest.mock("./src/utils/email", () => ({
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+}));
 const User = require("./src/models/User");
+const { sendPasswordResetEmail } = require("./src/utils/email");
 
 const authRoutes = require("./src/routes/auth.routes");
 
@@ -16,7 +20,7 @@ describe("Forgot Password & Reset Password Auth Routes", () => {
     jest.clearAllMocks();
   });
 
-  it("should generate a reset token for existing user", async () => {
+  it("should generate and store a reset token without returning it", async () => {
     const mockUser = {
       _id: "user123",
       email: "test@example.com",
@@ -29,10 +33,11 @@ describe("Forgot Password & Reset Password Auth Routes", () => {
       .send({ email: "test@example.com" });
 
     expect(res.status).toBe(200);
-    expect(res.body.resetToken).toBeDefined();
+    expect(res.body.resetToken).toBeUndefined();
     expect(mockUser.resetPasswordToken).toBeDefined();
     expect(mockUser.resetPasswordExpires).toBeDefined();
     expect(mockUser.save).toHaveBeenCalled();
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith("test@example.com", expect.any(String));
   });
 
   it("should return generic message if user does not exist", async () => {

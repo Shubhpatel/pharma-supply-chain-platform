@@ -10,7 +10,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [resetToken, setResetToken] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -18,10 +17,7 @@ export default function ForgotPasswordPage() {
     try {
       const res = await api.forgotPassword({ email });
       setSubmitted(true);
-      if (res.resetToken) {
-        setResetToken(res.resetToken);
-      }
-      showToast(res.message || "Reset link generated.");
+      showToast(res.message || "Reset instructions generated.");
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -35,19 +31,14 @@ export default function ForgotPasswordPage() {
       {submitted ? (
         <div className="space-y-4">
           <p className="text-sm text-gray-700">
-            If an account with that email exists, password reset instructions have been generated.
+            If an account with that email exists, password reset instructions have been sent.
           </p>
-          {resetToken && (
-            <div className="p-3 bg-gray-100 rounded-md text-xs break-all">
-              <strong>Dev Token:</strong> {resetToken}
-            </div>
-          )}
           <div>
             <Link
-              href={resetToken ? `/reset-password?token=${resetToken}` : "/reset-password"}
+              href="/reset-password"
               className="inline-block py-2 px-4 rounded-md bg-gray-900 text-white text-sm font-medium"
             >
-              Go to Reset Password Page
+              Enter Reset Token
             </Link>
           </div>
         </div>
@@ -69,7 +60,7 @@ export default function ForgotPasswordPage() {
             disabled={loading}
             className="w-full py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50"
           >
-            {loading ? "Sending..." : "Request Reset Token"}
+            {loading ? "Sending..." : "Send Reset Instructions"}
           </button>
           <div className="text-center mt-2">
             <Link href="/login" className="text-xs text-blue-600 hover:underline">
