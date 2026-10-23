@@ -51,10 +51,10 @@ export const api = {
   confirmGrn: (id, token) => apiFetch(`/grn/${id}/confirm`, { method: "PATCH", token }),
 
   // Inventory
-  listStock: () => apiFetch("/inventory"),
-  getInventoryHistory: (skuId, params = {}) => {
+  listStock: (token) => apiFetch("/inventory", { token }),
+  getInventoryHistory: (skuId, params = {}, token) => {
     const q = new URLSearchParams(params).toString();
-    return apiFetch(`/inventory/history/${skuId}${q ? `?${q}` : ""}`);
+    return apiFetch(`/inventory/history/${skuId}${q ? `?${q}` : ""}`, { token });
   },
 
   // Sales

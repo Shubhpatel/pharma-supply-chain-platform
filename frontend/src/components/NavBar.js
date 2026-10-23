@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 
 export default function NavBar() {
-  const { user, logout, showToast } = useApp();
+  const { user, token, logout, showToast } = useApp();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [salesOpen, setSalesOpen] = useState(false);
   const [mastersOpen, setMastersOpen] = useState(false);
@@ -27,7 +27,7 @@ export default function NavBar() {
     Promise.allSettled([
       api.listPurchaseOrders(),
       api.listGrns(),
-      api.listStock(),
+      api.listStock(token),
       api.listInvoices(),
       api.listSkus(),
     ]).then(([purchaseResult, grnResult, stockResult, invoiceResult, skuResult]) => {
@@ -79,7 +79,7 @@ export default function NavBar() {
       }
       setSearchCatalog(results);
     }).finally(() => setSearchLoading(false));
-  }, [searchOpen, searchCatalog.length, user]);
+  }, [searchOpen, searchCatalog.length, token, user]);
 
   const searchResults = searchCatalog
     .filter((item) => `${item.title} ${item.detail} ${item.type}`.toLowerCase().includes(searchQuery.toLowerCase()))
