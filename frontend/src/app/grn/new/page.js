@@ -11,6 +11,7 @@ export default function NewGrnPage() {
   const [editId, setEditId] = useState(undefined);
   const { token, user, showToast } = useApp();
   const [openPos, setOpenPos] = useState([]);
+  const [skuLocations, setSkuLocations] = useState([]);
   const [selectedPoId, setSelectedPoId] = useState("");
   const [grnDate, setGrnDate] = useState(new Date().toISOString().slice(0, 10));
   const [purchaseInvoiceNumber, setPurchaseInvoiceNumber] = useState("");
@@ -24,9 +25,11 @@ export default function NewGrnPage() {
     setEditId(currentEditId);
     Promise.all([
       api.listOpenPurchaseOrders(),
+      api.listSkuLocations(true),
       currentEditId ? api.getGrn(currentEditId) : Promise.resolve(null),
-    ]).then(([poData, grnData]) => {
+    ]).then(([poData, locationData, grnData]) => {
       setOpenPos(poData.purchaseOrders);
+      setSkuLocations(locationData.locations || []);
       if (grnData) {
         const grn = grnData.grn;
         setSelectedPoId(grn.purchaseOrder?._id || grn.purchaseOrder || "");
@@ -46,6 +49,7 @@ export default function NewGrnPage() {
       po.items.filter((i) => i.pendingQty > 0).map((i) => ({
         sku: i.sku,
         skuName: i.skuName,
+        skuLocation: skuLocations.find((entry) => entry.sku?._id === i.sku || entry.sku === i.sku)?.location || "",
         qtyOrdered: i.pendingQty,
         qtyReceived: i.pendingQty,
         batch: "",
@@ -139,7 +143,7 @@ export default function NewGrnPage() {
           <div className="border border-gray-200 rounded-lg p-4 bg-white space-y-2">
             <h2 className="text-sm font-semibold mb-2">Items to receive</h2>
             <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
-              <div className="col-span-3">SKU</div>
+              <div className="col-span-3">SKU / Location</div>
               <div className="col-span-2">Batch</div>
               <div className="col-span-2">Expiry</div>
               <div className="col-span-1">MRP</div>
@@ -150,7 +154,10 @@ export default function NewGrnPage() {
             </div>
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-3 text-sm">{item.skuName}</div>
+                <div className="col-span-3 text-sm">
+                  <div>{item.skuName}</div>
+                  <div className="text-xs text-gray-500">{item.skuLocation || "No location assigned"}</div>
+                </div>
                 <input required placeholder="Batch" value={item.batch}
                   onChange={(e) => setItems((prev) => prev.map((current, index) => index === i ? { ...current, batch: e.target.value } : current))}
                   className="col-span-2 border border-gray-300 rounded-md px-2 py-2 text-sm" />

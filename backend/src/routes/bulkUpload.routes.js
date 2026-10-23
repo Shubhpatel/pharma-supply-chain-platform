@@ -1,9 +1,10 @@
 const express = require("express");
 const multer = require("multer");
 const XLSX = require("xlsx");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const BulkUpload = require("../models/BulkUpload");
 const Sku = require("../models/Sku");
+const SkuLocation = require("../models/SkuLocation");
 const Party = require("../models/Party");
 
 const router = express.Router();
@@ -11,6 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const MASTER_COLUMNS = {
   sku: ["Name", "HSN Code", "Category", "Sub Category", "Manufacturer", "UOM", "MRP"],
+  "sku-location": ["Product UID", "SKU", "Location"],
   vendor: ["Name", "GST Number", "Contact Person", "Phone", "Email", "Address Line 1", "Address Line 2", "City", "State", "Postal Code"],
   customer: ["Name", "GST Number", "Contact Person", "Phone", "Email", "Address Line 1", "Address Line 2", "City", "State", "Postal Code"],
 };
@@ -20,6 +22,9 @@ const SAMPLE_DATA = {
     { "Name": "Paracetamol 500mg", "HSN Code": "300490", "Category": "Tablet", "Sub Category": "Analgesic", "Manufacturer": "PharmaCorp", "UOM": "STRIP", "MRP": 25.5 },
     { "Name": "Amoxicillin 250mg", "HSN Code": "300410", "Category": "Capsule", "Sub Category": "Antibiotic", "Manufacturer": "HealthMed", "UOM": "BOX", "MRP": 120.0 },
   ],
+  "sku-location": [
+    { "Product UID": "PASTE-PRODUCT-UID-HERE", "SKU": "Paracetamol 500mg", "Location": "A01-S12-001-001" },
+  ],
   vendor: [
     { "Name": "Apex Healthcare Pvt Ltd", "GST Number": "27AAAAA0000A1Z5", "Contact Person": "John Doe", "Phone": "9876543210", "Email": "apex@example.com", "Address Line 1": "Plot 12, Industrial Area", "Address Line 2": "Phase 1", "City": "Mumbai", "State": "Maharashtra", "Postal Code": "400001" },
   ],
@@ -28,7 +33,6 @@ const SAMPLE_DATA = {
   ],
 };
 
-// GET /api/bulk-uploads/sample?masterType=sku&format=csv|excel
 router.get("/sample", (req, res) => {
   try {
     const masterType = (req.query.masterType || "sku").toLowerCase();
@@ -59,8 +63,7 @@ router.get("/sample", (req, res) => {
   }
 });
 
-// GET /api/bulk-uploads - List all bulk upload history
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const history = await BulkUpload.find()
       .populate("createdBy", "name email")
@@ -71,8 +74,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/bulk-uploads/:id/error-file?format=csv|excel
-router.get("/:id/error-file", requireAuth, async (req, res) => {
+router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (req, res) => {
   try {
     const uploadJob = await BulkUpload.findById(req.params.id);
     if (!uploadJob) return res.status(404).json({ error: "Upload job not found" });
@@ -83,7 +85,6 @@ router.get("/:id/error-file", requireAuth, async (req, res) => {
 
     const format = (req.query.format || "csv").toLowerCase();
 
-    // Map error rows to include original row data + Error Details column
     const errorRows = uploadJob.errorDetails.map((item) => {
       const rowObj = { ...item.data };
       rowObj["Row Number"] = item.rowNumber;
@@ -111,19 +112,17 @@ router.get("/:id/error-file", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bulk-uploads
-router.post("/", requireAuth, upload.single("file"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
     const masterType = (req.body.masterType || "sku").toLowerCase();
-    if (!["sku", "vendor", "customer"].includes(masterType)) {
+    if (!["sku", "vendor", "customer", "sku-location"].includes(masterType)) {
       return res.status(400).json({ error: "Invalid master type specified" });
     }
 
-    // Parse CSV / Excel
     let workbook;
     try {
       workbook = XLSX.read(req.file.buffer, { type: "buffer" });
@@ -146,16 +145,28 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     const totalRecords = rawRows.length;
     const validatedRecords = [];
     const errorDetails = [];
+    let skuLookup = new Map();
+    let existingSkuLocationIds = new Set();
+    if (masterType === "sku-location") {
+      const [skus, mappings] = await Promise.all([
+        Sku.find().select("name uid"),
+        SkuLocation.find().select("sku"),
+      ]);
+      skus.forEach((sku) => {
+        skuLookup.set(sku.name.trim().toLowerCase(), sku);
+        if (sku.uid) skuLookup.set(sku.uid.trim().toLowerCase(), sku);
+      });
+      existingSkuLocationIds = new Set(mappings.map((mapping) => String(mapping.sku)));
+    }
+    const uploadedSkuLocationIds = new Set();
 
-    // Helper function to get row value case-insensitively
     const getVal = (row, fieldName) => {
       const key = Object.keys(row).find((k) => k.trim().toLowerCase() === fieldName.toLowerCase());
       return key !== undefined ? String(row[key]).trim() : "";
     };
 
-    // Validate every row
     rawRows.forEach((row, idx) => {
-      const rowNumber = idx + 2; // header is row 1
+      const rowNumber = idx + 2;
       const rowErrors = [];
 
       if (masterType === "sku") {
@@ -173,6 +184,22 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
 
         if (rowErrors.length === 0) {
           validatedRecords.push({ name, hsnCode, category, subCategory, manufacturer, uom, mrp });
+        }
+      } else if (masterType === "sku-location") {
+        const productUid = getVal(row, "product uid") || getVal(row, "sku uid");
+        const skuName = getVal(row, "sku");
+        const location = getVal(row, "location");
+        const sku = skuLookup.get(productUid.toLowerCase()) || skuLookup.get(skuName.toLowerCase());
+
+        if (!productUid && !skuName) rowErrors.push("Product UID or SKU name is required");
+        if (!sku) rowErrors.push(`SKU not found: ${productUid || skuName}`);
+        if (!location) rowErrors.push("Location is required");
+        if (sku && existingSkuLocationIds.has(String(sku._id))) rowErrors.push("This SKU already has a location mapping");
+        if (sku && uploadedSkuLocationIds.has(String(sku._id))) rowErrors.push("This SKU is repeated in the upload");
+
+        if (rowErrors.length === 0) {
+          uploadedSkuLocationIds.add(String(sku._id));
+          validatedRecords.push({ sku: sku._id, location });
         }
       } else if (masterType === "vendor" || masterType === "customer") {
         const name = getVal(row, "name");
@@ -218,7 +245,6 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
 
     let bulkRecord;
     if (hasErrors) {
-      // If ANY row has error -> do NOT save any data, record status as 'error'
       bulkRecord = await BulkUpload.create({
         fileName: req.file.originalname,
         masterType,
@@ -236,9 +262,10 @@ router.post("/", requireAuth, upload.single("file"), async (req, res) => {
         upload: bulkRecord,
       });
     } else {
-      // Save all records
       if (masterType === "sku") {
         await Sku.insertMany(validatedRecords);
+      } else if (masterType === "sku-location") {
+        await SkuLocation.insertMany(validatedRecords);
       } else {
         await Party.insertMany(validatedRecords);
       }

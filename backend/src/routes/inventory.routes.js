@@ -1,5 +1,20 @@
 const express = require("express");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const Stock = require("../models/Stock");
+const Grn = require("../models/Grn");
+const SaleInvoice = require("../models/SaleInvoice");
+const DebitNote = require("../models/DebitNote");
+const CreditNote = require("../models/CreditNote");
+const SkuLocation = require("../models/SkuLocation");
+
+const router = express.Router();
+
+router.get("/", requireAuth, requirePermission("inventory"), async (req, res) => {
+  try {
+    const stock = await Stock.find({ qty: { $gt: 0 } }).populate("sku", "name category subCategory manufacturer uom");
+    const skuIds = stock.filter((item) => item.sku).map((item) => item.sku._id);
+    const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
+    const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -16,6 +31,7 @@ router.get("/", requireAuth, async (req, res) => {
       .filter((s) => s.sku)
       .map((s) => ({
         skuId: s.sku._id,
+        location: locationsBySku.get(String(s.sku._id)) || "-",
         name: s.sku.name,
         category: s.sku.category,
         subCategory: s.sku.subCategory,
@@ -34,6 +50,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async (req, res) => {
 const Grn = require("../models/Grn");
 const SaleInvoice = require("../models/SaleInvoice");
 const DebitNote = require("../models/DebitNote");
@@ -46,10 +63,15 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;
 
     const queryFilter = skuId === "all" ? {} : { "items.sku": skuId };
+    const confirmedFilter = { ...queryFilter, status: "confirmed" };
 
     // ⚡ Bolt: Using .lean() to bypass Mongoose document hydration
     // This significantly improves performance for this read-heavy endpoint
     const [grns, sales, debitNotes, creditNotes] = await Promise.all([
+      Grn.find(confirmedFilter).populate("createdBy", "name"),
+      SaleInvoice.find(confirmedFilter).populate("createdBy", "name"),
+      DebitNote.find(confirmedFilter).populate("createdBy", "name"),
+      CreditNote.find(confirmedFilter).populate("createdBy", "name"),
       Grn.find(queryFilter).lean(),
       SaleInvoice.find(queryFilter).lean(),
       DebitNote.find(queryFilter).lean(),
@@ -58,7 +80,6 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
 
     let allTransactions = [];
 
-    // Process GRNs (Stock IN)
     grns.forEach((grn) => {
       grn.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -78,13 +99,13 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
             qty: Number(item.qtyReceived) || 0,
             amount: item.amount,
             docLink: `/grn/${grn._id}`,
+            createdByName: grn.createdBy?.name || "-",
             createdAt: grn.createdAt || grn.grnDate,
           });
         }
       });
     });
 
-    // Process Sales (Stock OUT)
     sales.forEach((sale) => {
       sale.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -104,13 +125,13 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
             qty: -(Number(item.qty) || 0),
             amount: item.amount,
             docLink: `/sales/${sale._id}`,
+            createdByName: sale.createdBy?.name || "-",
             createdAt: sale.createdAt || sale.saleDate,
           });
         }
       });
     });
 
-    // Process Purchase Returns / Debit Notes (Stock OUT)
     debitNotes.forEach((dn) => {
       dn.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -130,13 +151,13 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
             qty: -(Number(item.qty) || 0),
             amount: item.amount,
             docLink: `/purchase/returns/${dn._id}`,
+            createdByName: dn.createdBy?.name || "-",
             createdAt: dn.createdAt || dn.returnDate,
           });
         }
       });
     });
 
-    // Process Sales Returns / Credit Notes (Stock IN)
     creditNotes.forEach((cn) => {
       cn.items.forEach((item, idx) => {
         if (skuId === "all" || item.sku.toString() === skuId) {
@@ -156,23 +177,21 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
             qty: Number(item.qty) || 0,
             amount: item.amount,
             docLink: `/sales/returns/${cn._id}`,
+            createdByName: cn.createdBy?.name || "-",
             createdAt: cn.createdAt || cn.returnDate,
           });
         }
       });
     });
 
-    // Filter by batch if requested before running balance calculation
     if (batch) {
       allTransactions = allTransactions.filter(
         (t) => t.batch && t.batch.toLowerCase().includes(batch.toLowerCase())
       );
     }
 
-    // Sort chronologically (oldest first) to calculate running stock balance per product/batch
     allTransactions.sort((a, b) => new Date(a.date) - new Date(b.date) || new Date(a.createdAt) - new Date(b.createdAt));
 
-    // Calculate running stock balance
     if (skuId !== "all") {
       let currentBalance = 0;
       allTransactions.forEach((t) => {
@@ -180,7 +199,6 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
         t.runningBalance = currentBalance;
       });
     } else {
-      // Per-SKU running balance map
       const skuBalances = {};
       allTransactions.forEach((t) => {
         if (!skuBalances[t.skuId]) skuBalances[t.skuId] = 0;
@@ -189,7 +207,6 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
       });
     }
 
-    // Additional filters
     if (type) {
       allTransactions = allTransactions.filter((t) => t.type === type);
     }
@@ -217,7 +234,6 @@ router.get("/history/:skuId", requireAuth, async (req, res) => {
       allTransactions = allTransactions.filter((t) => new Date(t.date) <= end);
     }
 
-    // Return newest first
     allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt) - new Date(a.createdAt));
 
     return res.json({ transactions: allTransactions });

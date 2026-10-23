@@ -76,8 +76,8 @@ export default function GrnDetailPage() {
           </p>
         </div>
         <div className="no-print flex items-center gap-2">
-          {grn.status === "draft" && <a href={`/grn/new?edit=${grn._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
-          {grn.status === "draft" && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
+          {(grn.status === "draft" || user?.role === "ADMIN") && <a href={`/grn/new?edit=${grn._id}`} className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">Edit</a>}
+          {(grn.status === "draft" || user?.role === "ADMIN") && <button type="button" onClick={handleDelete} className="rounded-md border border-red-600 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>}
           {grn.status === "draft" && <button type="button" onClick={handleConfirm} className="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Confirm GRN</button>}
           {grn.status === "confirmed" && <a href={`/purchase/returns/new?grnId=${grn._id}`} className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">Purchase Return</a>}
           <button onClick={handlePrint} type="button" className="inline-flex items-center gap-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 shadow-sm">
@@ -142,6 +142,7 @@ export default function GrnDetailPage() {
               <th className="px-4 py-2">Rate</th>
               <th className="px-4 py-2">GST</th>
               <th className="px-4 py-2">Amount</th>
+              <th className="px-4 py-2">Location</th>
             </tr>
           </thead>
           <tbody>
@@ -156,6 +157,7 @@ export default function GrnDetailPage() {
                 <td className="px-4 py-2">₹{Number(item.rate || 0).toFixed(2)}</td>
                 <td className="px-4 py-2">{item.gstRate || 0}%</td>
                 <td className="px-4 py-2">₹{Number(item.amount || 0).toFixed(2)}</td>
+                <td className="px-4 py-2">{item.skuLocation || "-"}</td>
               </tr>
             ))}
           </tbody>
@@ -170,14 +172,17 @@ export default function GrnDetailPage() {
               <td></td>
               <td></td>
               <td className="px-4 py-2 text-right">₹{grn.totalValue.toFixed(2)}</td>
+              <td></td>
             </tr>
             <tr>
               <td colSpan="8" className="px-4 py-1 text-right">GST</td>
               <td className="px-4 py-1 text-right">₹{Number(grn.gstAmount || 0).toFixed(2)}</td>
+              <td></td>
             </tr>
             <tr className="font-semibold">
               <td colSpan="8" className="px-4 py-1 text-right">Grand total</td>
               <td className="px-4 py-1 text-right">₹{Number(grn.grandTotal ?? grn.totalValue).toFixed(2)}</td>
+              <td></td>
             </tr>
           </tfoot>
         </table>

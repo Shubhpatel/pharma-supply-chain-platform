@@ -141,23 +141,32 @@ export default function PartyManager({ type, title }) {
       />
 
       {(showForm || editingId) && (
-        <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-white space-y-4">
-          <h2 className="text-sm font-semibold">{editingId ? `Edit ${title}` : `Add ${title}`}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {fields.map(([field, placeholder, required]) => (
-              <input key={field} required={required} type={field === "email" ? "email" : "text"}
-                placeholder={placeholder} value={form[field]} onChange={(event) => updateField(field, event.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
-            ))}
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-lg font-semibold text-gray-900">{editingId ? `Edit ${title}` : `Add ${title}`}</h2>
+              <button type="button" onClick={cancelEdit} aria-label="Close" className="text-xl font-bold leading-none text-gray-400 hover:text-gray-600">
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {fields.map(([field, placeholder, required]) => (
+                  <input key={field} required={required} type={field === "email" ? "email" : "text"}
+                    placeholder={placeholder} value={form[field]} onChange={(event) => updateField(field, event.target.value)}
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                ))}
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</button>
+                <button type="submit" disabled={busy}
+                  className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
+                  {editingId ? "Save changes" : `Add ${title}`}
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="flex gap-3">
-            <button type="submit" disabled={busy}
-              className="px-4 py-2 rounded-md bg-gray-900 text-white text-sm font-medium disabled:opacity-50">
-              {editingId ? "Save changes" : `Add ${title}`}
-            </button>
-            <button type="button" onClick={cancelEdit} className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium">Cancel</button>
-          </div>
-        </form>
+        </div>
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -166,6 +175,7 @@ export default function PartyManager({ type, title }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-gray-500">
               <tr>
+                <th className="px-4 py-2">Master UID</th>
                 <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">GST number</th>
                 <th className="px-4 py-2">Contact</th>
@@ -178,6 +188,7 @@ export default function PartyManager({ type, title }) {
             <tbody>
               {parties.map((party) => (
                 <tr key={party._id} className="border-t border-gray-100">
+                  <td className="px-4 py-2 font-mono text-xs text-gray-500">{party.uid || "-"}</td>
                   <td className="px-4 py-2 font-medium">{party.name}</td>
                   <td className="px-4 py-2">{party.gstNumber || "-"}</td>
                   <td className="px-4 py-2">{party.contactPerson || "-"}</td>
@@ -185,8 +196,8 @@ export default function PartyManager({ type, title }) {
                   <td className="px-4 py-2">{party.city || "-"}</td>
                   <td className="px-4 py-2">{party.state || "-"}</td>
                   <td className="px-4 py-2 space-x-3">
-                    <button onClick={() => startEdit(party)} className="text-blue-600 hover:underline">Edit</button>
-                    <button onClick={() => handleDelete(party._id)} disabled={busy} className="text-red-500 hover:underline">Delete</button>
+                    <button onClick={() => startEdit(party)} title={`Edit ${title}`} aria-label={`Edit ${title}`} className="text-blue-600 hover:underline"><img src="/icons/edit.svg" alt="" className="h-4 w-4" /></button>
+                    <button onClick={() => handleDelete(party._id)} disabled={busy} title={`Delete ${title}`} aria-label={`Delete ${title}`} className="text-red-500 hover:underline"><img src="/icons/delete.svg" alt="" className="h-4 w-4" /></button>
                   </td>
                 </tr>
               ))}

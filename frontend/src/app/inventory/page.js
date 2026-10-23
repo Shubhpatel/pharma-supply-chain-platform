@@ -52,7 +52,7 @@ export default function InventoryPage() {
         <h1 className="text-xl font-semibold">Stock On Hand</h1>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input placeholder="Search SKU" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-64" />
         <input placeholder="Batch" value={batch} onChange={(e) => setBatch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-40" />
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm">
@@ -70,7 +70,7 @@ export default function InventoryPage() {
           <option value="out">Out of stock</option>
         </select>
         <button type="button" onClick={() => setAppliedFilters({ search, batch, category, manufacturer, stockLevel })} className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">Filter</button>
-        <button type="button" onClick={() => { setSearch(""); setBatch(""); setCategory(""); setManufacturer(""); setStockLevel(""); setAppliedFilters({ search: "", batch: "", category: "", manufacturer: "", stockLevel: "" }); }} className="px-1 py-2 text-sm text-gray-600 hover:text-gray-900 hover:underline">Clear Filters</button>
+        <button type="button" onClick={() => { setSearch(""); setBatch(""); setCategory(""); setManufacturer(""); setStockLevel(""); setAppliedFilters({ search: "", batch: "", category: "", manufacturer: "", stockLevel: "" }); }} className="text-sm text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -91,6 +91,7 @@ export default function InventoryPage() {
                 <th className="px-4 py-2">Rate</th>
                 <th className="px-4 py-2">Qty</th>
                 <th className="px-4 py-2">UOM</th>
+                <th className="px-4 py-2">Location</th>
                 <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -105,6 +106,7 @@ export default function InventoryPage() {
                     <td className="px-4 py-2">{s.rate == null ? "-" : `₹${Number(s.rate).toFixed(2)}`}</td>
                     <td className={`px-4 py-2 font-medium ${s.qty === 0 ? "text-red-500" : ""}`}>{s.qty}</td>
                     <td className="px-4 py-2">{s.uom}</td>
+                    <td className="px-4 py-2">{s.location || "-"}</td>
                     <td className="px-4 py-2 text-right">
                       <Link
                         href={`/inventory/history/${s.skuId}`}
@@ -120,9 +122,9 @@ export default function InventoryPage() {
                     </td>
                   </tr>
                   <tr className="border-t border-gray-100">
-                    <td colSpan="8" className="px-4 py-2">
+                    <td colSpan="9" className="px-4 py-2">
                       <details>
-                        <summary className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">Show Details</summary>
+                        <summary className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800"><img src="/icons/view.svg" alt="" className="mr-1 inline-block h-4 w-4 align-text-bottom" />Show Details</summary>
                         <div className="mt-3 overflow-x-auto">
                           <table className="w-full min-w-[28rem] text-xs text-gray-600">
                             <thead className="bg-gray-50 text-left">

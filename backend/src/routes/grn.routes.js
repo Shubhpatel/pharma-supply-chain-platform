@@ -1,16 +1,24 @@
 const express = require("express");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const Grn = require("../models/Grn");
 const PurchaseOrder = require("../models/PurchaseOrder");
+const SkuLocation = require("../models/SkuLocation");
 const DebitNote = require("../models/DebitNote");
 const Stock = require("../models/Stock");
 const { nextNumber } = require("../utils/idGenerator");
 
 const router = express.Router();
 
+async function addSkuLocationSnapshots(items) {
+  const skuIds = [...new Set(items.map((item) => String(item.sku)))];
+  const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true }).select("sku location");
+  const locationsBySku = new Map(locations.map((entry) => [String(entry.sku), entry.location]));
+  return items.map((item) => ({ ...item, skuLocation: locationsBySku.get(String(item.sku)) || "" }));
+}
+
 // POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, gstRate, items } = req.body;
     if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
@@ -56,12 +64,12 @@ router.post("/", requireAuth, async (req, res) => {
       }
     }
 
-    const itemsWithAmount = items.map((i) => {
+    const itemsWithAmount = await addSkuLocationSnapshots(items.map((i) => {
       const itemGstRate = Number(i.gstRate || 0);
       if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
       const amount = i.qtyReceived * i.rate;
       return { ...i, gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
-    });
+    }));
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
     const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
     const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
@@ -91,19 +99,19 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/grn/:id - updates a draft GRN before it affects inventory
-router.put("/:id", requireAuth, async (req, res) => {
+// PUT /api/grn/:id
+router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const { grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
-    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be edited" });
+    if (grn.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft GRNs can be edited" });
     if (!grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
       return res.status(400).json({ error: "grnDate, purchaseInvoiceNumber, purchaseInvoiceDate and at least one item are required" });
     }
 
     const po = await PurchaseOrder.findById(grn.purchaseOrder);
-    if (!po || !["placed", "partially_received"].includes(po.status)) {
+    if (!po || (!["placed", "partially_received"].includes(po.status) && req.user.role !== "ADMIN")) {
       return res.status(400).json({ error: "The linked purchase order is not confirmed" });
     }
     const existingGrns = await Grn.find({ purchaseOrder: po._id, status: "confirmed" }).select("items.sku items.qtyReceived");
@@ -127,12 +135,12 @@ router.put("/:id", requireAuth, async (req, res) => {
       const pendingQty = orderedBySku[skuId] - (receivedBySku[skuId] || 0);
       if (requestedQty > pendingQty) return res.status(400).json({ error: `Received quantity for SKU ${skuId} exceeds the pending quantity of ${pendingQty}` });
     }
-    const itemsWithAmount = items.map((i) => {
+    const itemsWithAmount = await addSkuLocationSnapshots(items.map((i) => {
       const itemGstRate = Number(i.gstRate || 0);
       if (!Number.isFinite(itemGstRate) || itemGstRate < 0 || itemGstRate > 100) throw new Error("GST rate must be between 0 and 100");
       const amount = Number(i.qtyReceived) * Number(i.rate);
       return { ...i, qtyReceived: Number(i.qtyReceived), rate: Number(i.rate), mrp: Number(i.mrp), gstRate: itemGstRate, amount, gstAmount: amount * itemGstRate / 100 };
-    });
+    }));
     const totalQty = itemsWithAmount.reduce((sum, i) => sum + i.qtyReceived, 0);
     const totalValue = itemsWithAmount.reduce((sum, i) => sum + i.amount, 0);
     const gstAmount = itemsWithAmount.reduce((sum, i) => sum + i.gstAmount, 0);
@@ -154,12 +162,12 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/grn/:id - deletes a draft GRN
-router.delete("/:id", requireAuth, async (req, res) => {
+// DELETE /api/grn/:id
+router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
-    if (grn.status !== "draft") return res.status(400).json({ error: "Only draft GRNs can be deleted" });
+    if (grn.status !== "draft" && req.user.role !== "ADMIN") return res.status(400).json({ error: "Only draft GRNs can be deleted" });
     await grn.deleteOne();
     return res.json({ message: "GRN deleted" });
   } catch (err) {
@@ -167,8 +175,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/grn/:id/confirm - adds received stock and updates the linked PO
-router.patch("/:id/confirm", requireAuth, async (req, res) => {
+// PATCH /api/grn/:id/confirm
+router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
@@ -209,8 +217,8 @@ router.patch("/:id/confirm", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/grn - list (summary columns)
-router.get("/", async (req, res) => {
+// GET /api/grn
+router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {
     const grns = await Grn.find()
       .select("grnNumber poNumber supplierName grnDate purchaseInvoiceNumber purchaseInvoiceDate totalQty totalValue gstAmount grandTotal status")
@@ -221,8 +229,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/grn/:id - full detail
-router.get("/:id", async (req, res) => {
+// GET /api/grn/:id
+router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {
     const grn = await Grn.findById(req.params.id)
       .populate("createdBy", "name")

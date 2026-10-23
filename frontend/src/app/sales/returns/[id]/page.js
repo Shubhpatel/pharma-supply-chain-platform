@@ -9,7 +9,7 @@ export default function CreditNoteDetailPage() {
   const { id } = useParams();
   const [creditNote, setCreditNote] = useState(null);
   const [error, setError] = useState("");
-  const { token, showToast } = useApp();
+  const { token, user, showToast } = useApp();
 
   async function handleDelete() {
     if (!window.confirm("Delete this draft credit note?")) return;
@@ -51,8 +51,8 @@ export default function CreditNoteDetailPage() {
           <p className="text-sm text-gray-500">Credit Note / Sales Return</p>
         </div>
         <div className="flex gap-2">
-          {creditNote.status === "draft" && <a href={`/sales/returns/new?edit=${creditNote._id}`} className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 text-sm rounded-lg">Edit</a>}
-          {creditNote.status === "draft" && <button onClick={handleDelete} className="border border-red-600 text-red-700 hover:bg-red-50 font-medium px-4 py-2 text-sm rounded-lg">Delete</button>}
+          {(creditNote.status === "draft" || user?.role === "ADMIN") && <a href={`/sales/returns/new?edit=${creditNote._id}`} className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 text-sm rounded-lg">Edit</a>}
+          {(creditNote.status === "draft" || user?.role === "ADMIN") && <button onClick={handleDelete} className="border border-red-600 text-red-700 hover:bg-red-50 font-medium px-4 py-2 text-sm rounded-lg">Delete</button>}
           {creditNote.status === "draft" && <button onClick={handleConfirm} className="bg-teal-700 text-white hover:bg-teal-800 font-medium px-4 py-2 text-sm rounded-lg">Confirm</button>}
           <button onClick={() => window.print()} className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition">Print Credit Note</button>
         </div>

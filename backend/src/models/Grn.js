@@ -4,6 +4,7 @@ const grnItemSchema = new mongoose.Schema(
   {
     sku: { type: mongoose.Schema.Types.ObjectId, ref: "Sku", required: true },
     skuName: { type: String, required: true },
+    skuLocation: { type: String, default: "" },
     qtyOrdered: { type: Number, required: true },
     qtyReceived: { type: Number, required: true, min: 0 },
     batch: { type: String, required: true, trim: true },

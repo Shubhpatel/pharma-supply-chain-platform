@@ -34,16 +34,16 @@ export default function GrnPage() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input placeholder="Search GRN, PO or supplier" value={search} onChange={(e) => setSearch(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full sm:w-72" />
-        <fieldset className="flex items-center gap-2 border border-gray-300 rounded-md px-2 py-1">
-          <legend className="px-1 text-xs text-gray-500">GRN date</legend>
-          <input type="date" aria-label="GRN date from" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="px-1 py-1 text-sm" />
-          <span className="text-sm text-gray-400">to</span>
-          <input type="date" aria-label="GRN date to" value={toDate} onChange={(e) => setToDate(e.target.value)} className="px-1 py-1 text-sm" />
+        <fieldset className="filter-fieldset">
+          <legend>GRN date</legend>
+          <input type="date" aria-label="GRN date from" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <span className="text-xs text-gray-400">—</span>
+          <input type="date" aria-label="GRN date to" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </fieldset>
         <button type="button" onClick={() => setAppliedFilters({ search, fromDate, toDate })} className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white">Filter</button>
-        <button type="button" onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setAppliedFilters({ search: "", fromDate: "", toDate: "" }); }} className="px-1 py-2 text-sm text-gray-600 hover:text-gray-900 hover:underline">Clear Filters</button>
+        <button type="button" onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setAppliedFilters({ search: "", fromDate: "", toDate: "" }); }} className="text-sm text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
       </div>
 
       {loading ? (
@@ -59,8 +59,8 @@ export default function GrnPage() {
                 <th className="px-4 py-2">PO Number</th>
                 <th className="px-4 py-2">Supplier</th>
                 <th className="px-4 py-2">GRN Date</th>
-                <th className="px-4 py-2">Total Qty</th>
-                <th className="px-4 py-2">Total Value</th>
+                <th className="px-4 py-2 text-right">Total Qty</th>
+                <th className="px-4 py-2 text-right">Total Value</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2"></th>
               </tr>
@@ -72,10 +72,17 @@ export default function GrnPage() {
                   <td className="px-4 py-2">{g.poNumber}</td>
                   <td className="px-4 py-2">{g.supplierName}</td>
                   <td className="px-4 py-2">{new Date(g.grnDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-2">{g.totalQty}</td>
-                  <td className="px-4 py-2">₹{g.totalValue.toFixed(2)}</td>
-                  <td className="px-4 py-2 capitalize">{g.status}</td>
-                  <td className="px-4 py-2"><a href={`/grn/${g._id}`} className="text-blue-600 hover:underline">View</a></td>
+                  <td className="px-4 py-2 text-right tabular-nums">{g.totalQty}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">₹{g.totalValue.toFixed(2)}</td>
+                  <td className="px-4 py-2">
+                    <span className={`status-badge status-${g.status}`}>{g.status}</span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <a href={`/grn/${g._id}`} title="View GRN" aria-label="View GRN" className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 hover:text-teal-900">
+                      <img src="/icons/view.svg" alt="" className="h-3.5 w-3.5" />
+                      View
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
