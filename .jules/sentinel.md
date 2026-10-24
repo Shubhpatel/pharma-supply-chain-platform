@@ -1,3 +1,6 @@
+## 2026-10-23 - [Information Disclosure & Weak RNG] 
+**Vulnerability:** Unhandled 500 errors were leaking raw backend stack traces or internal message details (`err.message`) to clients. Additionally, Draft IDs were generated using predictable `Math.random()`. **Learning:** A centralized error handling architecture was missing and insecure predictable random number generation was used for sensitive identifiers. **Prevention:** Always use a global error handling middleware in Express to mask internal error details and use `crypto.randomBytes` or `crypto.randomUUID` for sensitive identifier generation.
+
 ## 2024-05-23 - AI Assistant RBAC Bypass
 **Vulnerability:** The AI Assistant draft execution endpoint lacked RBAC (Role-Based Access Control) checks on the underlying actions it performed. This allowed any user with access to the assistant to execute restricted actions (like creating purchase orders or toggling SKUs) by using the AI Assistant as a proxy, bypassing standard endpoint permissions.
 **Learning:** API routes backing AI Assistants must manually enforce RBAC because the Assistant acts as a proxy executing actions on the user's behalf. Permissions on standard endpoints do not automatically apply to the assistant's execution engine.

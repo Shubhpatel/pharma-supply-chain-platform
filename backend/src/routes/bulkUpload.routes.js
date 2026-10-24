@@ -33,7 +33,7 @@ const SAMPLE_DATA = {
   ],
 };
 
-router.get("/sample", (req, res) => {
+router.get("/sample", (req, res, next) => {
   try {
     const masterType = (req.query.masterType || "sku").toLowerCase();
     const format = (req.query.format || "csv").toLowerCase();
@@ -59,12 +59,11 @@ router.get("/sample", (req, res) => {
       return res.send(csvString);
     }
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/", requireAuth, requirePermission("masters"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     // ⚡ Bolt: Added .lean() to bypass document hydration for read-only query
     // ⚡ Bolt: Added .lean() to read-only query to prevent severe document hydration performance bottlenecks
@@ -75,12 +74,11 @@ router.get("/", requireAuth, requirePermission("masters"), async (req, res) => {
       .lean();
     return res.json({ history });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (req, res) => {
+router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const uploadJob = await BulkUpload.findById(req.params.id);
     if (!uploadJob) return res.status(404).json({ error: "Upload job not found" });
@@ -114,12 +112,11 @@ router.get("/:id/error-file", requireAuth, requirePermission("masters"), async (
       return res.send(csvString);
     }
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.post("/", requireAuth, requirePermission("masters"), upload.single("file"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -294,8 +291,7 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
       });
     }
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

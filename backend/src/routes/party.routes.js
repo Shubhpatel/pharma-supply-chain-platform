@@ -5,7 +5,7 @@ const Party = require("../models/Party");
 
 const router = express.Router();
 
-router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res, next) => {
   try {
     const filter = req.query.type ? { partyType: req.query.type } : {};
     const parties = await Party.find(filter).sort({ name: 1 });
@@ -15,12 +15,11 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     }));
     return res.json({ parties });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.post("/", requireAuth, requirePermission("masters"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const payload = { ...req.body };
     delete payload.uid;
@@ -38,7 +37,7 @@ router.post("/", requireAuth, requirePermission("masters"), async (req, res) => 
   }
 });
 
-router.put("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const party = await Party.findById(req.params.id);
     if (!party) return res.status(404).json({ error: "Party not found" });
@@ -66,14 +65,13 @@ router.put("/:id", requireAuth, requirePermission("masters"), async (req, res) =
   }
 });
 
-router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const party = await Party.findByIdAndDelete(req.params.id);
     if (!party) return res.status(404).json({ error: "Party not found" });
     return res.json({ message: "Party deleted" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

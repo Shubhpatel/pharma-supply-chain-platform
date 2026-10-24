@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const express = require("express");
 const crypto = require("crypto");
 const { requireAuth } = require("../middleware/auth");
@@ -26,7 +27,7 @@ async function saveChatMessage(userId, role, text, source) {
 }
 
 // GET /api/assistant/history - Return the current user's saved chat history
-router.get("/history", requireAuth, async (req, res) => {
+router.get("/history", requireAuth, async (req, res, next) => {
   try {
     const messages = await AssistantChatMessage.find({ user: req.user.id })
       .sort({ createdAt: 1 })
@@ -43,12 +44,12 @@ router.get("/history", requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error("Assistant history error:", err.message);
-    return res.status(500).json({ error: "Unable to load assistant history." });
+    next(err);
   }
 });
 
 // POST /api/assistant/history - Save client-side assistant events such as navigation and draft status
-router.post("/history", requireAuth, async (req, res) => {
+router.post("/history", requireAuth, async (req, res, next) => {
   const { role, text, source } = req.body || {};
   if (!["user", "assistant"].includes(role) || typeof text !== "string" || !text.trim()) {
     return res.status(400).json({ error: "role and a non-empty text are required" });
@@ -67,7 +68,7 @@ router.post("/history", requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error("Assistant history save error:", err.message);
-    return res.status(500).json({ error: "Unable to save assistant history." });
+    next(err);
   }
 });
 
@@ -84,7 +85,7 @@ function getSafeNavigation(question) {
 }
 
 // POST /api/assistant/chat - Read-only chat analysis and proposal generator
-router.post("/chat", requireAuth, async (req, res) => {
+router.post("/chat", requireAuth, async (req, res, next) => {
   const rawQuestion = typeof req.body?.message === "string" ? req.body.message.trim() : "";
   if (!rawQuestion) return res.status(400).json({ error: "A message is required" });
 
@@ -148,7 +149,7 @@ router.post("/chat", requireAuth, async (req, res) => {
             }));
 
         if (vendor && items.length > 0) {
-          const draftId = `draft_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+          const draftId = `draft_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
           const proposedPayload = {
             supplierId: vendor.id,
             supplierName: vendor.name,
@@ -218,7 +219,7 @@ router.post("/chat", requireAuth, async (req, res) => {
         }).filter((i) => i.sku && i.qty > 0);
 
         if (customer && items.length > 0) {
-          const draftId = `draft_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+          const draftId = `draft_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
           const proposedPayload = {
             customerId: customer.id,
             customerName: customer.name,
@@ -332,12 +333,12 @@ router.post("/chat", requireAuth, async (req, res) => {
     return res.json(response);
   } catch (err) {
     console.error("Assistant error:", err.message);
-    return res.status(500).json({ error: "The assistant encountered an error processing your request." });
+    next(err);
   }
 });
 
 // POST /api/assistant/drafts - Save proposed draft
-router.post("/drafts", requireAuth, async (req, res) => {
+router.post("/drafts", requireAuth, async (req, res, next) => {
   try {
     const { actionType, summary, reason, affectedEntities, proposedPayload, estimatedImpact } = req.body;
     if (!actionType || !summary || !proposedPayload) {
@@ -349,7 +350,7 @@ router.post("/drafts", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid action payload", details: validation.errors });
     }
 
-    const draftId = `draft_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+    const draftId = `draft_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
     const draft = await AssistantDraft.create({
       draftId,
       user: req.user.id,
@@ -375,12 +376,12 @@ router.post("/drafts", requireAuth, async (req, res) => {
 
     return res.status(201).json({ draft });
   } catch (err) {
-    return res.status(500).json({ error: "Could not create action draft" });
+    next(err);
   }
 });
 
 // GET /api/assistant/drafts - List drafts for user
-router.get("/drafts", requireAuth, async (req, res) => {
+router.get("/drafts", requireAuth, async (req, res, next) => {
   try {
     const drafts = await AssistantDraft.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(50);
     const now = new Date();
@@ -393,24 +394,24 @@ router.get("/drafts", requireAuth, async (req, res) => {
     }
     return res.json({ drafts });
   } catch (err) {
-    return res.status(500).json({ error: "Could not retrieve drafts" });
+    next(err);
   }
 });
 
 // GET /api/assistant/drafts/:draftId - Get single draft
-router.get("/drafts/:draftId", requireAuth, async (req, res) => {
+router.get("/drafts/:draftId", requireAuth, async (req, res, next) => {
   try {
     const draft = await AssistantDraft.findOne({ draftId: req.params.draftId });
     if (!draft) return res.status(404).json({ error: "Draft not found" });
     if (String(draft.user) !== req.user.id) return res.status(403).json({ error: "Unauthorized access to draft" });
     return res.json({ draft });
   } catch (err) {
-    return res.status(500).json({ error: "Could not retrieve draft" });
+    next(err);
   }
 });
 
 // POST /api/assistant/drafts/:draftId/approve - Explicit approval step
-router.post("/drafts/:draftId/approve", requireAuth, async (req, res) => {
+router.post("/drafts/:draftId/approve", requireAuth, async (req, res, next) => {
   try {
     const draft = await AssistantDraft.findOne({ draftId: req.params.draftId });
     if (!draft) return res.status(404).json({ error: "Draft not found" });
@@ -443,12 +444,12 @@ router.post("/drafts/:draftId/approve", requireAuth, async (req, res) => {
 
     return res.json({ message: "Draft approved successfully", draft });
   } catch (err) {
-    return res.status(500).json({ error: "Could not approve draft" });
+    next(err);
   }
 });
 
 // POST /api/assistant/drafts/:draftId/reject - Explicit rejection step
-router.post("/drafts/:draftId/reject", requireAuth, async (req, res) => {
+router.post("/drafts/:draftId/reject", requireAuth, async (req, res, next) => {
   try {
     const draft = await AssistantDraft.findOne({ draftId: req.params.draftId });
     if (!draft) return res.status(404).json({ error: "Draft not found" });
@@ -468,12 +469,12 @@ router.post("/drafts/:draftId/reject", requireAuth, async (req, res) => {
 
     return res.json({ message: "Draft rejected", draft });
   } catch (err) {
-    return res.status(500).json({ error: "Could not reject draft" });
+    next(err);
   }
 });
 
 // POST /api/assistant/drafts/:draftId/execute - Execution step (only approved drafts)
-router.post("/drafts/:draftId/execute", requireAuth, async (req, res) => {
+router.post("/drafts/:draftId/execute", requireAuth, async (req, res, next) => {
   try {
     const draft = await AssistantDraft.findOne({ draftId: req.params.draftId });
     if (!draft) return res.status(404).json({ error: "Draft not found" });
@@ -624,7 +625,7 @@ router.post("/drafts/:draftId/execute", requireAuth, async (req, res) => {
         details: { error: err.message },
       }).catch(() => {});
     }
-    return res.status(500).json({ error: "Draft execution failed" });
+    next(err);
   }
 });
 

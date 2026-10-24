@@ -5,7 +5,7 @@ const SkuLocation = require("../models/SkuLocation");
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
@@ -14,12 +14,11 @@ router.get("/", async (req, res) => {
     const locations = await SkuLocation.find(filter).populate("sku", "name uid").sort({ location: 1 }).lean();
     return res.json({ locations });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/export", requireAuth, async (req, res) => {
+router.get("/export", requireAuth, async (req, res, next) => {
   try {
     // Performance optimization: Use .lean() for export query as documents are read-only plain objects
     const locations = await SkuLocation.find()
@@ -45,12 +44,11 @@ router.get("/export", requireAuth, async (req, res) => {
     res.setHeader("Content-Disposition", "attachment; filename=sku_locations.csv");
     return res.send(XLSX.utils.sheet_to_csv(worksheet));
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, async (req, res, next) => {
   try {
     const location = await SkuLocation.create({ sku: req.body.sku, location: req.body.location });
     return res.status(201).json({ location });
@@ -59,7 +57,7 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAuth, async (req, res, next) => {
   try {
     const location = await SkuLocation.findById(req.params.id);
     if (!location) return res.status(404).json({ error: "SKU location not found" });
@@ -73,14 +71,13 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res, next) => {
   try {
     const location = await SkuLocation.findByIdAndDelete(req.params.id);
     if (!location) return res.status(404).json({ error: "SKU location not found" });
     return res.json({ message: "SKU location deleted" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

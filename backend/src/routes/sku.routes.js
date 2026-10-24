@@ -6,7 +6,7 @@ const Sku = require("../models/Sku");
 
 const router = express.Router();
 
-router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
@@ -17,12 +17,11 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     }));
     return res.json({ skus });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/export", requireAuth, async (req, res) => {
+router.get("/export", requireAuth, async (req, res, next) => {
   try {
     // ⚡ Bolt: Added .lean() to bypass document hydration for read-only export
     const skus = await Sku.find().sort({ name: 1 }).lean();
@@ -50,23 +49,21 @@ router.get("/export", requireAuth, async (req, res) => {
     res.setHeader("Content-Disposition", "attachment; filename=skus.csv");
     return res.send(XLSX.utils.sheet_to_csv(worksheet));
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res) => {
+router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res, next) => {
   try {
     const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ sku });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.post("/", requireAuth, requirePermission("masters"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const payload = { ...req.body };
     delete payload.uid;
@@ -77,13 +74,11 @@ router.post("/", requireAuth, requirePermission("masters"), async (req, res) => 
     const sku = await Sku.create(payload);
     return res.status(201).json({ sku });
   } catch (err) {
-    return res.status(err.code === 11000 ? 409 : 500).json({
-      error: err.code === 11000 ? "A SKU with this name already exists" : err.message,
-    });
+    if (err.code === 11000) { return res.status(409).json({ error: "A SKU with this name already exists" }); } else { next(err); }
   }
 });
 
-router.put("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
@@ -101,13 +96,11 @@ router.put("/:id", requireAuth, requirePermission("masters"), async (req, res) =
     await sku.save();
     return res.json({ sku });
   } catch (err) {
-    return res.status(err.code === 11000 ? 409 : 500).json({
-      error: err.code === 11000 ? "A SKU with this name already exists" : err.message,
-    });
+    if (err.code === 11000) { return res.status(409).json({ error: "A SKU with this name already exists" }); } else { next(err); }
   }
 });
 
-router.patch("/:id/toggle", requireAuth, requirePermission("masters"), async (req, res) => {
+router.patch("/:id/toggle", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const sku = await Sku.findById(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
@@ -115,19 +108,17 @@ router.patch("/:id/toggle", requireAuth, requirePermission("masters"), async (re
     await sku.save();
     return res.json({ sku });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res, next) => {
   try {
     const sku = await Sku.findByIdAndDelete(req.params.id);
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ message: "SKU deleted" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

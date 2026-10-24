@@ -10,7 +10,7 @@ const SkuLocation = require("../models/SkuLocation");
 const router = express.Router();
 
 // GET /api/inventory - stock on hand, joined with SKU details
-router.get("/", requireAuth, requirePermission("inventory"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("inventory"), async (req, res, next) => {
   try {
     const stock = await Stock.find({ qty: { $gt: 0 } })
       .populate("sku", "name category subCategory manufacturer uom")
@@ -41,12 +41,12 @@ router.get("/", requireAuth, requirePermission("inventory"), async (req, res) =>
     return res.json({ stock: rows });
   } catch (err) {
     console.error("Inventory error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/inventory/history/:skuId - transaction history for a product (or "all")
-router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async (req, res) => {
+router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async (req, res, next) => {
   try {
     const { skuId } = req.params;
     const { batch, type, startDate, endDate, partyName, docNumber } = req.query;
@@ -222,7 +222,7 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
     return res.json({ transactions: allTransactions });
   } catch (err) {
     console.error("Inventory history error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

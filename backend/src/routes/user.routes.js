@@ -9,19 +9,18 @@ const router = express.Router();
 router.use(requireAuth, requirePermission("users"));
 
 // GET /api/users - List all users
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
     // ⚡ Bolt: Added .lean() to bypass document hydration for read-only query
     const users = await User.find().select("-passwordHash").sort({ createdAt: -1 }).lean();
     return res.json({ users });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // POST /api/users - Create new user (Admin adding user)
-router.post("/", async (req, res) => {
+router.post("/", async (req, res, next) => {
   try {
     const { name, email, password, role, permissions } = req.body;
     if (!name || !email || !password) {
@@ -55,13 +54,12 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PUT /api/users/:id - Update user details, role, and permissions
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req, res, next) => {
   try {
     const { name, email, password, role, permissions } = req.body;
     const user = await User.findById(req.params.id);
@@ -98,13 +96,12 @@ router.put("/:id", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // DELETE /api/users/:id - Delete a user
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   try {
     if (String(req.params.id) === String(req.user.id)) {
       return res.status(400).json({ error: "Cannot delete your own account" });
@@ -115,8 +112,7 @@ router.delete("/:id", async (req, res) => {
 
     return res.json({ message: "User deleted successfully" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
