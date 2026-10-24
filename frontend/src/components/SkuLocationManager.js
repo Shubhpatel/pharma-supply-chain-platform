@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
 import BulkUploadModal from "@/components/BulkUploadModal";
+import PaginationControls from "@/components/PaginationControls";
 
 const BLANK_FORM = { sku: "", location: "" };
 
@@ -19,13 +20,26 @@ export default function SkuLocationManager() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [appliedFilters, setAppliedFilters] = useState({ search: "", status: "all" });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   async function load() {
     setLoading(true);
     try {
-      const [data, skuData] = await Promise.all([api.listSkuLocations(), api.listSkus()]);
+      const [data, skuData] = await Promise.all([
+        api.listSkuLocations(appliedFilters.status !== "all", {
+          page, limit,
+          ...(appliedFilters.search.trim() ? { search: appliedFilters.search.trim() } : {}),
+        }),
+        api.listSkus(),
+      ]);
       setLocations(data.locations || []);
       setSkus(skuData.skus || []);
+      setTotal(data.pagination?.total || 0);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -35,7 +49,12 @@ export default function SkuLocationManager() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, limit, appliedFilters]);
+
+  async function searchSkus(search) {
+    const data = await api.searchSkus(search, false, token);
+    setSkus(data.skus || []);
+  }
 
   function startAdd() {
     setEditingId(null);
@@ -138,6 +157,26 @@ export default function SkuLocationManager() {
         </button>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+        <label className="min-w-[240px] flex-1">
+          <span className="sr-only">Search SKU locations</span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by SKU or location" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        </label>
+        <select value={status} onChange={(event) => setStatus(event.target.value)}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm">
+          <option value="all">All statuses</option>
+          <option value="enabled">Enabled</option>
+          <option value="disabled">Disabled</option>
+        </select>
+        <button type="button" onClick={() => { setAppliedFilters({ search, status }); setPage(1); }}
+          className="rounded-md bg-teal-800 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Filter</button>
+        {(search || status !== "all" || appliedFilters.search || appliedFilters.status !== "all") && (
+          <button type="button" onClick={() => { setSearch(""); setStatus("all"); setAppliedFilters({ search: "", status: "all" }); setPage(1); }}
+            className="text-sm font-medium text-teal-700 hover:underline">Clear filters</button>
+        )}
+      </div>
+
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
@@ -150,6 +189,7 @@ export default function SkuLocationManager() {
                 value={form.sku}
                 onChange={(value) => setForm((current) => ({ ...current, sku: value }))}
                 options={skus.map((sku) => ({ value: sku._id, label: sku.name }))}
+                onSearch={searchSkus}
                 placeholder="Search and select SKU"
                 required
               />
@@ -199,6 +239,8 @@ export default function SkuLocationManager() {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage}
+        onLimitChange={(size) => { setLimit(size); setPage(1); }} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ const DebitNote = require("../models/DebitNote");
 const Grn = require("../models/Grn");
 const Stock = require("../models/Stock");
 const { nextNumber } = require("../utils/idGenerator");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
@@ -244,11 +245,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, r
 router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
-    const debitNotes = await DebitNote.find()
+    const { page, limit, skip } = getPagination(req.query);
+    const [debitNotes, total] = await Promise.all([DebitNote.find()
       .select("debitNoteNumber grnNumber supplierName returnDate totalQty totalAmount gstAmount grandTotal reason status")
       .sort({ createdAt: -1 })
-      .lean();
-    return res.json({ debitNotes });
+      .skip(skip).limit(limit).lean(), DebitNote.countDocuments()]);
+    return res.json({ debitNotes, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     console.error("Internal Server Error:", err.message);
     return res.status(500).json({ error: "Internal server error" });

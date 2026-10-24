@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
+import PaginationControls from "@/components/PaginationControls";
 
 export default function SalesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -14,10 +15,17 @@ export default function SalesPage() {
   const [appliedFilters, setAppliedFilters] = useState({ search: "", fromDate: "", toDate: "" });
   const [duplicatingId, setDuplicatingId] = useState("");
   const { token, showToast } = useApp();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    api.listInvoices().then((d) => setInvoices(d.invoices)).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    api.listInvoices(token, { page, limit }).then((d) => {
+      setInvoices(d.invoices || []);
+      setTotal(d.pagination?.total || 0);
+    }).catch((e) => setError(e.message)).finally(() => setLoading(false));
+  }, [token, page, limit]);
 
   async function handleDuplicate(id) {
     setDuplicatingId(id);
@@ -108,6 +116,7 @@ export default function SalesPage() {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage} onLimitChange={(size) => { setLimit(size); setPage(1); }} />
     </div>
   );
 }

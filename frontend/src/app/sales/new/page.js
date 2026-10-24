@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
@@ -56,6 +56,33 @@ export default function NewInvoicePage() {
       .catch((e) => setError(e.message));
   }, [duplicateId, editId, token]);
 
+  const searchSkus = useCallback(async (search) => {
+    try {
+      const data = await api.searchSkus(search, true, token);
+      setSkus((current) => {
+        const results = data.skus || [];
+        const selectedIds = new Set(items.map((item) => item.sku).filter(Boolean));
+        return [...results, ...current.filter((sku) => selectedIds.has(sku._id) && !results.some((result) => result._id === sku._id))];
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [token, items]);
+
+  const searchCustomers = useCallback(async (search) => {
+    try {
+      const data = await api.searchParties("customer", search, token);
+      setCustomers((current) => {
+        const selected = current.find((customer) => customer._id === form.customerId);
+        return selected && !(data.parties || []).some((customer) => customer._id === selected._id)
+          ? [selected, ...(data.parties || [])]
+          : data.parties || [];
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [token]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -87,6 +114,7 @@ export default function NewInvoicePage() {
     } finally {
       setLoading(false);
     }
+
   }
 
   return (
@@ -98,8 +126,13 @@ export default function NewInvoicePage() {
           <div>
             <label className="block text-sm font-medium mb-1">Customer</label>
             <SearchableSelect required value={form.customerId}
-              onChange={(value) => setForm((f) => ({ ...f, customerId: value }))}
+              onChange={(value) => setForm((f) => ({
+                ...f,
+                customerId: value,
+                customerName: customers.find((customer) => customer._id === value)?.name || "",
+              }))}
               options={customers.map((customer) => ({ value: customer._id, label: `${customer.name}${customer.gstNumber ? ` - ${customer.gstNumber}` : ""}` }))}
+              onSearch={searchCustomers}
               placeholder="Select customer" />
           </div>
           <div>
@@ -111,7 +144,7 @@ export default function NewInvoicePage() {
 
         <div className="border border-gray-200 rounded-lg p-4 bg-white">
           <h2 className="text-sm font-semibold mb-3">Line items</h2>
-          <LineItemsEditor items={items} setItems={setItems} skus={skus} inventory={inventory} includeBatch />
+          <LineItemsEditor items={items} setItems={setItems} skus={skus} inventory={inventory} includeBatch onSearchSkus={searchSkus} />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const User = require("../models/User");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 

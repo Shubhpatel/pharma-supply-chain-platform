@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from "react";
 import SearchableSelect from "./SearchableSelect";
 
-export default function LineItemsEditor({ items, setItems, skus, inventory = [], includeBatch = false }) {
+export default function LineItemsEditor({ items, setItems, skus, inventory = [], includeBatch = false, onSearchSkus }) {
   const applyPreferredStock = useCallback((item) => {
     if (!item.sku) return { ...item, batch: "", expiryDate: "", mrp: "" };
 
@@ -68,7 +68,10 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
       .reduce((sum, row) => sum + Number(row.qty || 0), 0);
   }
 
-  const skuCol = includeBatch ? "col-span-2" : "col-span-5";
+  const gridClass = includeBatch
+    ? "grid-cols-[repeat(14,minmax(0,1fr))]"
+    : "grid-cols-12";
+  const skuCol = includeBatch ? "col-span-3" : "col-span-5";
   const qtyCol = includeBatch ? "col-span-1" : "col-span-2";
   const rateCol = includeBatch ? "col-span-1" : "col-span-2";
   const amountCol = "col-span-1";
@@ -77,8 +80,9 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
   const mrpCol = includeBatch ? "col-span-1" : "col-span-2";
 
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
+    <div className="min-w-0 space-y-2">
+      <div className="overflow-x-auto">
+        <div className={`grid min-w-[1050px] ${gridClass} gap-2 px-1 text-xs font-medium text-gray-500`}>
         <div className={skuCol}>SKU</div>
         {includeBatch && <div className="col-span-2">Batch</div>}
         {includeBatch && <div className="col-span-2">Expiry</div>}
@@ -89,13 +93,16 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
         <div className={rateCol}>Rate</div>
         <div className={amountCol}>Amount</div>
         <div className="col-span-1"></div>
+        </div>
       </div>
-      {items.map((item, i) => (
-        <div key={i} className="grid grid-cols-12 gap-2 items-center">
+      <div className="overflow-x-auto">
+        {items.map((item, i) => (
+          <div key={i} className={`grid min-w-[1050px] ${gridClass} items-center gap-2`}>
           <SearchableSelect
             value={item.sku}
             onChange={(value) => updateItem(i, "sku", value)}
             options={skus.map((sku) => ({ value: sku._id, label: sku.name }))}
+            onSearch={onSearchSkus}
             placeholder="Select SKU"
             required
             className={skuCol}
@@ -137,8 +144,9 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
             {item.qty && item.rate ? (Number(item.qty) * Number(item.rate)).toFixed(2) : "-"}
           </div>
           <button type="button" onClick={() => removeRow(i)} className="col-span-1 text-red-500 text-sm">✕</button>
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
       <button type="button" onClick={addRow} className="text-sm text-blue-600 hover:underline">+ Add line item</button>
     </div>
   );

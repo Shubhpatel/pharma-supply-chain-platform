@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { api } from "@/lib/api";
 import BulkUploadModal from "@/components/BulkUploadModal";
+import PaginationControls from "@/components/PaginationControls";
 
 const BLANK_FORM = {
   name: "",
@@ -28,18 +29,33 @@ export default function PartyManager({ type, title }) {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [status, setStatus] = useState("all");
+  const [appliedFilters, setAppliedFilters] = useState({ search: "", state: "", city: "", status: "all" });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.listParties(type);
-      setParties(data.parties);
+      const data = await api.listParties(type, token, {
+        page, limit,
+        ...(appliedFilters.search.trim() ? { search: appliedFilters.search.trim() } : {}),
+        ...(appliedFilters.state ? { state: appliedFilters.state } : {}),
+        ...(appliedFilters.city ? { city: appliedFilters.city } : {}),
+        ...(appliedFilters.status !== "all" ? { enabled: appliedFilters.status === "enabled" ? "true" : "false" } : {}),
+      });
+      setParties(data.parties || []);
+      setTotal(data.pagination?.total || 0);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [type]);
+  }, [type, token, page, limit, appliedFilters]);
 
   useEffect(() => {
     load();
@@ -133,6 +149,31 @@ export default function PartyManager({ type, title }) {
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+        <label className="min-w-[240px] flex-1">
+          <span className="sr-only">Search {title.toLowerCase()}s</span>
+          <input value={search} onChange={(event) => setSearch(event.target.value)}
+            placeholder={`Search ${title.toLowerCase()}s`} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        </label>
+        <input value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}
+          placeholder="Filter by state" className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        <input value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}
+          placeholder="Filter by city" className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        <select value={status} onChange={(event) => setStatus(event.target.value)}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm">
+          <option value="all">All statuses</option>
+          <option value="enabled">Enabled</option>
+          <option value="disabled">Disabled</option>
+        </select>
+        <button type="button" onClick={() => { setAppliedFilters({ search, state: stateFilter, city: cityFilter, status }); setPage(1); }}
+          className="rounded-md bg-teal-800 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Filter</button>
+        {(search || stateFilter || cityFilter || status !== "all"
+          || appliedFilters.search || appliedFilters.state || appliedFilters.city || appliedFilters.status !== "all") && (
+          <button type="button" onClick={() => { setSearch(""); setStateFilter(""); setCityFilter(""); setStatus("all"); setAppliedFilters({ search: "", state: "", city: "", status: "all" }); setPage(1); }}
+            className="text-sm font-medium text-teal-700 hover:underline">Clear filters</button>
+        )}
+      </div>
+
       <BulkUploadModal
         isOpen={showBulkModal}
         onClose={() => setShowBulkModal(false)}
@@ -205,6 +246,8 @@ export default function PartyManager({ type, title }) {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage}
+        onLimitChange={(size) => { setLimit(size); setPage(1); }} />
     </div>
   );
 }

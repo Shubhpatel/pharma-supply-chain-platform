@@ -7,6 +7,7 @@ import PartyManager from "@/components/PartyManager";
 import SkuLocationManager from "@/components/SkuLocationManager";
 import BulkUploadModal from "@/components/BulkUploadModal";
 import BulkUploadHistory from "@/components/BulkUploadHistory";
+import PaginationControls from "@/components/PaginationControls";
 
 const BLANK_FORM = { name: "", hsnCode: "", category: "", subCategory: "", manufacturer: "", uom: "UNIT", mrp: "" };
 
@@ -21,12 +22,34 @@ export default function MastersPage() {
   const [showForm, setShowForm] = useState(false);
   const [activeView, setActiveView] = useState("sku");
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [category, setCategory] = useState("");
+  const [subCategory, setSubCategory] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
+  const [uom, setUom] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: "", status: "all", category: "", subCategory: "", manufacturer: "", uom: "",
+  });
 
   async function load() {
     setLoading(true);
     try {
-      const d = await api.listSkus();
-      setSkus(d.skus);
+      const d = await api.listSkus(false, token, {
+        page,
+        limit,
+        ...(appliedFilters.search.trim() ? { search: appliedFilters.search.trim() } : {}),
+        ...(appliedFilters.status !== "all" ? { enabled: appliedFilters.status === "enabled" ? "true" : "false" } : {}),
+        ...(appliedFilters.category.trim() ? { category: appliedFilters.category.trim() } : {}),
+        ...(appliedFilters.subCategory.trim() ? { subCategory: appliedFilters.subCategory.trim() } : {}),
+        ...(appliedFilters.manufacturer.trim() ? { manufacturer: appliedFilters.manufacturer.trim() } : {}),
+        ...(appliedFilters.uom.trim() ? { uom: appliedFilters.uom.trim() } : {}),
+      });
+      setSkus(d.skus || []);
+      setTotal(d.pagination?.total || 0);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -36,7 +59,7 @@ export default function MastersPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, limit, token, appliedFilters]);
 
   useEffect(() => {
     const requestedView = new URLSearchParams(window.location.search).get("tab");
@@ -186,6 +209,36 @@ export default function MastersPage() {
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+        <label className="flex min-w-[240px] flex-1 items-center gap-2 text-sm text-gray-600">
+          <span className="sr-only">Search SKUs</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by SKU name or code" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        </label>
+        <input value={category} onChange={(e) => setCategory(e.target.value)}
+          placeholder="Category" className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        <input value={subCategory} onChange={(e) => setSubCategory(e.target.value)}
+          placeholder="Sub category" className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        <input value={manufacturer} onChange={(e) => setManufacturer(e.target.value)}
+          placeholder="Manufacturer" className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        <input value={uom} onChange={(e) => setUom(e.target.value)}
+          placeholder="UOM" className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm" />
+        <select value={status} onChange={(e) => setStatus(e.target.value)}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm">
+          <option value="all">All statuses</option>
+          <option value="enabled">Enabled</option>
+          <option value="disabled">Disabled</option>
+        </select>
+        <button type="button" onClick={() => { setAppliedFilters({ search, status, category, subCategory, manufacturer, uom }); setPage(1); }}
+          className="rounded-md bg-teal-800 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">Filter</button>
+        {(search || category || subCategory || manufacturer || uom || status !== "all"
+          || appliedFilters.search || appliedFilters.category || appliedFilters.subCategory
+          || appliedFilters.manufacturer || appliedFilters.uom || appliedFilters.status !== "all") && (
+          <button type="button" onClick={() => { setSearch(""); setCategory(""); setSubCategory(""); setManufacturer(""); setUom(""); setStatus("all"); setAppliedFilters({ search: "", status: "all", category: "", subCategory: "", manufacturer: "", uom: "" }); setPage(1); }}
+            className="text-sm font-medium text-teal-700 hover:underline">Clear filters</button>
+        )}
+      </div>
+
       {(editingId || showForm) && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
@@ -272,6 +325,7 @@ export default function MastersPage() {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage} onLimitChange={(size) => { setLimit(size); setPage(1); }} />
         </>
       )}
     </div>

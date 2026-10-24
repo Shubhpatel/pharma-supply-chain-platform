@@ -1,19 +1,53 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
-export default function SearchableSelect({ value, onChange, options, placeholder, required = false, className = "", disabled = false }) {
+export default function SearchableSelect({ value, onChange, options, onSearch, placeholder, required = false, className = "", disabled = false }) {
   const selectedOption = options.find((option) => option.value === value);
   const listId = `searchable-select-options-${useId().replaceAll(":", "")}`;
+  const inputRef = useRef(null);
   const [query, setQuery] = useState(selectedOption?.label || "");
   const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState(null);
   const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase()));
 
   useEffect(() => {
-    if (!open) {
-      setQuery(selectedOption?.label || "");
-    }
+    if (!onSearch || query.trim().length < 3) return undefined;
+    const timer = setTimeout(() => onSearch(query.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [onSearch, query]);
+
+  useEffect(() => {
+    if (selectedOption && !open) setQuery(selectedOption.label);
   }, [selectedOption, open]);
+
+  useEffect(() => {
+    if (!value) setQuery("");
+  }, [value]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function updateMenuPosition() {
+      if (!inputRef.current) return;
+      const rect = inputRef.current.getBoundingClientRect();
+      const menuHeight = Math.min(Math.max(filteredOptions.length, 1) * 36 + 8, 240);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const top = spaceBelow < menuHeight && rect.top >= menuHeight
+        ? rect.top - menuHeight - 4
+        : rect.bottom + 4;
+      setMenuPosition({ top, left: rect.left, width: rect.width });
+    }
+
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [open, listId, filteredOptions.length]);
 
   function selectOption(option) {
     onChange(option.value);
@@ -25,6 +59,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
     <div className={`relative ${className}`}>
       <input
         type="text"
+        ref={inputRef}
         value={query}
         placeholder={placeholder}
         autoComplete="off"
@@ -48,8 +83,13 @@ export default function SearchableSelect({ value, onChange, options, placeholder
         aria-controls={listId}
         aria-autocomplete="list"
       />
-      {open && (
-        <div id={listId} role="listbox" className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-300 bg-white py-1 shadow-lg">
+      {open && menuPosition && createPortal(
+        <div
+          id={listId}
+          role="listbox"
+          style={menuPosition}
+          className="fixed z-[100] max-h-60 overflow-y-auto overflow-x-hidden rounded-md border border-gray-300 bg-white py-1 shadow-lg"
+        >
           {filteredOptions.length > 0 ? filteredOptions.map((option) => (
             <button
               type="button"
@@ -63,7 +103,8 @@ export default function SearchableSelect({ value, onChange, options, placeholder
           )) : (
             <div className="px-3 py-2 text-sm text-gray-500">No matches found</div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

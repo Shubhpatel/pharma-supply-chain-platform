@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
+import PaginationControls from "@/components/PaginationControls";
 
 export default function InventoryPage() {
   const { token, ready } = useApp();
@@ -16,6 +17,9 @@ export default function InventoryPage() {
   const [manufacturer, setManufacturer] = useState("");
   const [stockLevel, setStockLevel] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ search: "", batch: "", category: "", manufacturer: "", stockLevel: "" });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     if (!ready) return;
@@ -24,8 +28,11 @@ export default function InventoryPage() {
       setLoading(false);
       return;
     }
-    api.listStock(token).then((d) => setStock(d.stock)).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, [ready, token]);
+    api.listStock(token, { page, limit }).then((d) => {
+      setStock(d.stock || []);
+      setTotal(d.pagination?.total || 0);
+    }).catch((e) => setError(e.message)).finally(() => setLoading(false));
+  }, [ready, token, page, limit]);
 
   const categories = [...new Set(stock.map((item) => item.category).filter(Boolean))].sort();
   const manufacturers = [...new Set(stock.map((item) => item.manufacturer).filter(Boolean))].sort();
@@ -156,6 +163,7 @@ export default function InventoryPage() {
           </table>
         </div>
       )}
+      <PaginationControls page={page} limit={limit} total={total} onPageChange={setPage} onLimitChange={(size) => { setLimit(size); setPage(1); }} />
     </div>
   );
 }

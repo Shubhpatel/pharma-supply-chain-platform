@@ -6,15 +6,18 @@ const SaleInvoice = require("../models/SaleInvoice");
 const DebitNote = require("../models/DebitNote");
 const CreditNote = require("../models/CreditNote");
 const SkuLocation = require("../models/SkuLocation");
+const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
 // GET /api/inventory - stock on hand, joined with SKU details
 router.get("/", requireAuth, requirePermission("inventory"), async (req, res) => {
   try {
-    const stock = await Stock.find({ qty: { $gt: 0 } })
+    const { page, limit, skip } = getPagination(req.query);
+    const filter = { qty: { $gt: 0 } };
+    const [stock, total] = await Promise.all([Stock.find(filter)
       .populate("sku", "name category subCategory manufacturer uom")
-      .lean();
+      .sort({ createdAt: -1 }).skip(skip).limit(limit).lean(), Stock.countDocuments(filter)]);
     const skuIds = stock.filter((item) => item.sku).map((item) => item.sku._id);
     const locations = await SkuLocation.find({ sku: { $in: skuIds }, enabled: true })
       .select("sku location")
@@ -38,7 +41,7 @@ router.get("/", requireAuth, requirePermission("inventory"), async (req, res) =>
         rate: s.rate,
         qty: s.qty,
       }));
-    return res.json({ stock: rows });
+    return res.json({ stock: rows, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
     console.error("Inventory error:", err);
     return res.status(500).json({ error: "Internal server error" });
