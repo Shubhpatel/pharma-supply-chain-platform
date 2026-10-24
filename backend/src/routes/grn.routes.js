@@ -99,7 +99,8 @@ router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
 
     return res.status(201).json({ grn });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -162,7 +163,8 @@ router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
     await grn.save();
     return res.json({ grn });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -175,7 +177,8 @@ router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res) =>
     await grn.deleteOne();
     return res.json({ message: "GRN deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -217,7 +220,8 @@ router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, 
     await grn.save();
     return res.json({ grn });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -232,7 +236,8 @@ router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) =>
       .skip(skip).limit(limit).lean(), Grn.countDocuments()]);
     return res.json({ grns, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -265,7 +270,8 @@ router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res)
     grnPayload.linkedPurchaseReturns = linkedPurchaseReturns;
     return res.json({ grn: grnPayload });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

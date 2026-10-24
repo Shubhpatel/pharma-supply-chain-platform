@@ -97,7 +97,8 @@ router.post("/", requireAuth, requirePermission("pr"), async (req, res) => {
 
     return res.status(201).json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -188,7 +189,8 @@ router.put("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
     await debitNote.save();
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -201,7 +203,8 @@ router.delete("/:id", requireAuth, requirePermission("pr"), async (req, res) => 
     await debitNote.deleteOne();
     return res.json({ message: "Debit note deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -233,7 +236,8 @@ router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, r
     await debitNote.save();
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -248,7 +252,8 @@ router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
       .skip(skip).limit(limit).lean(), DebitNote.countDocuments()]);
     return res.json({ debitNotes, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -264,7 +269,8 @@ router.get("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
     if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
     return res.json({ debitNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

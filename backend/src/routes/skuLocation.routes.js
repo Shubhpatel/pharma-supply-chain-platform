@@ -30,7 +30,8 @@ router.get("/", async (req, res) => {
     ]);
     return res.json({ locations, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -60,7 +61,8 @@ router.get("/export", requireAuth, async (req, res) => {
     res.setHeader("Content-Disposition", "attachment; filename=sku_locations.csv");
     return res.send(XLSX.utils.sheet_to_csv(worksheet));
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -93,7 +95,8 @@ router.delete("/:id", requireAuth, async (req, res) => {
     if (!location) return res.status(404).json({ error: "SKU location not found" });
     return res.json({ message: "SKU location deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

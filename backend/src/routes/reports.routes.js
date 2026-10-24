@@ -135,7 +135,8 @@ router.get("/sales", requireAuth, async (req, res) => {
       data: invoices,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -167,7 +168,8 @@ router.get("/grn", requireAuth, requirePermission("reports"), async (req, res) =
       data: grns,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -199,7 +201,8 @@ router.get("/po", requireAuth, requirePermission("reports"), async (req, res) =>
       data: pos,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -245,7 +248,8 @@ router.get("/near-expired", requireAuth, requirePermission("reports"), async (re
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -285,7 +289,8 @@ router.get("/expired", requireAuth, requirePermission("reports"), async (req, re
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -364,7 +369,8 @@ router.get("/slow-moving", requireAuth, requirePermission("reports"), async (req
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -413,7 +419,8 @@ router.get("/non-moving", requireAuth, requirePermission("reports"), async (req,
       data,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

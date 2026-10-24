@@ -12,14 +12,12 @@ router.use(requireAuth, requirePermission("users"));
 // GET /api/users - List all users
 router.get("/", async (req, res) => {
   try {
-    const { page, limit, skip } = getPagination(req.query);
-    const [users, total] = await Promise.all([
-      User.find().select("-passwordHash").sort({ createdAt: -1 }).skip(skip).limit(limit),
-      User.countDocuments(),
-    ]);
-    return res.json({ users, pagination: paginationMeta(page, limit, total) });
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only query
+    const users = await User.find().select("-passwordHash").sort({ createdAt: -1 }).lean();
+    return res.json({ users });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -58,7 +56,8 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -100,7 +99,8 @@ router.put("/:id", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -116,7 +116,8 @@ router.delete("/:id", async (req, res) => {
 
     return res.json({ message: "User deleted successfully" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -32,13 +32,15 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     }));
     return res.json({ skus, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.get("/export", requireAuth, async (req, res) => {
   try {
-    const skus = await Sku.find().sort({ name: 1 });
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only export
+    const skus = await Sku.find().sort({ name: 1 }).lean();
     const rows = skus.map((sku) => ({
       "Master UID": sku.uid || "",
       Name: sku.name,
@@ -63,7 +65,8 @@ router.get("/export", requireAuth, async (req, res) => {
     res.setHeader("Content-Disposition", "attachment; filename=skus.csv");
     return res.send(XLSX.utils.sheet_to_csv(worksheet));
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -73,7 +76,8 @@ router.get("/:id", requireAuth, requirePermission("masters", "po", "grn", "invoi
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -126,7 +130,8 @@ router.patch("/:id/toggle", requireAuth, requirePermission("masters"), async (re
     await sku.save();
     return res.json({ sku });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -136,7 +141,8 @@ router.delete("/:id", requireAuth, requirePermission("masters"), async (req, res
     if (!sku) return res.status(404).json({ error: "SKU not found" });
     return res.json({ message: "SKU deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

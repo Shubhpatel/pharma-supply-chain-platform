@@ -57,7 +57,8 @@ router.post("/", requireAuth, requirePermission("invoice"), async (req, res) => 
 
     return res.status(201).json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -97,7 +98,8 @@ router.put("/:id", requireAuth, requirePermission("invoice"), async (req, res) =
     await invoice.save();
     return res.json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -110,7 +112,8 @@ router.delete("/:id", requireAuth, requirePermission("invoice"), async (req, res
     await invoice.deleteOne();
     return res.json({ message: "Invoice deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -137,7 +140,8 @@ router.post("/:id/duplicate", requireAuth, requirePermission("invoice"), async (
 
     return res.status(201).json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -183,7 +187,8 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
     await invoice.save();
     return res.json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -198,7 +203,8 @@ router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res
       .skip(skip).limit(limit).lean(), SaleInvoice.countDocuments()]);
     return res.json({ invoices, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -220,7 +226,8 @@ router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, 
     invoice.linkedSalesReturns = linkedSalesReturns;
     return res.json({ invoice });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
