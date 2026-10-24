@@ -23,7 +23,8 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
 
 router.get("/export", requireAuth, async (req, res) => {
   try {
-    const skus = await Sku.find().sort({ name: 1 });
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only export
+    const skus = await Sku.find().sort({ name: 1 }).lean();
     const rows = skus.map((sku) => ({
       "Master UID": sku.uid || "",
       Name: sku.name,
