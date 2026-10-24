@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const { requireAuth } = require("../middleware/auth");
 const AssistantDraft = require("../models/AssistantDraft");
 const AssistantAuditLog = require("../models/AssistantAuditLog");
@@ -147,7 +148,7 @@ router.post("/chat", requireAuth, async (req, res) => {
             }));
 
         if (vendor && items.length > 0) {
-          const draftId = `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const draftId = `draft_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
           const proposedPayload = {
             supplierId: vendor.id,
             supplierName: vendor.name,
@@ -217,7 +218,7 @@ router.post("/chat", requireAuth, async (req, res) => {
         }).filter((i) => i.sku && i.qty > 0);
 
         if (customer && items.length > 0) {
-          const draftId = `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const draftId = `draft_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
           const proposedPayload = {
             customerId: customer.id,
             customerName: customer.name,
@@ -348,7 +349,7 @@ router.post("/drafts", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid action payload", details: validation.errors });
     }
 
-    const draftId = `draft_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const draftId = `draft_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
     const draft = await AssistantDraft.create({
       draftId,
       user: req.user.id,
@@ -491,6 +492,22 @@ router.post("/drafts/:draftId/execute", requireAuth, async (req, res) => {
       draft.status = "expired";
       await draft.save();
       return res.status(400).json({ error: "Draft has expired and cannot be executed" });
+    }
+
+    let requiredPermission = null;
+    if (draft.actionType === "create_purchase_order") {
+      requiredPermission = "po";
+    } else if (draft.actionType === "create_sales_invoice") {
+      requiredPermission = "invoice";
+    } else if (draft.actionType === "toggle_sku") {
+      requiredPermission = "masters";
+    }
+
+    if (requiredPermission && req.user.role !== "ADMIN") {
+      const userPermissions = req.user.permissions || [];
+      if (!userPermissions.includes(requiredPermission)) {
+        return res.status(403).json({ error: "Access denied: insufficient permissions for this action" });
+      }
     }
 
     const payload = draft.proposedPayload;
