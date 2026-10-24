@@ -494,6 +494,22 @@ router.post("/drafts/:draftId/execute", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Draft has expired and cannot be executed" });
     }
 
+    let requiredPermission = null;
+    if (draft.actionType === "create_purchase_order") {
+      requiredPermission = "po";
+    } else if (draft.actionType === "create_sales_invoice") {
+      requiredPermission = "invoice";
+    } else if (draft.actionType === "toggle_sku") {
+      requiredPermission = "masters";
+    }
+
+    if (requiredPermission && req.user.role !== "ADMIN") {
+      const userPermissions = req.user.permissions || [];
+      if (!userPermissions.includes(requiredPermission)) {
+        return res.status(403).json({ error: "Access denied: insufficient permissions for this action" });
+      }
+    }
+
     const payload = draft.proposedPayload;
     let resultRecord = null;
 

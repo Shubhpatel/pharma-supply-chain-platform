@@ -37,7 +37,7 @@ app.use("/api/assistant", assistantRoutes);
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const dummyUserId = "60d5ecb8b5c9c22b8c8b4567";
-const token = jwt.sign({ id: dummyUserId, email: "test@example.com" }, JWT_SECRET);
+const token = jwt.sign({ id: dummyUserId, email: "test@example.com", role: "ADMIN", permissions: ["po", "invoice", "masters"] }, JWT_SECRET);
 
 describe("Pharma Buddy Assistant API & Security Unit Tests", () => {
   beforeEach(() => {
