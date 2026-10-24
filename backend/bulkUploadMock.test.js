@@ -13,9 +13,11 @@ jest.mock("./src/models/BulkUpload", () => ({
   create: jest.fn().mockImplementation((data) => Promise.resolve({ _id: "bulk123", ...data })),
   find: jest.fn().mockReturnValue({
     populate: jest.fn().mockReturnValue({
-      sort: jest.fn().mockResolvedValue([
-        { _id: "bulk123", fileName: "test.csv", masterType: "sku", status: "done", totalRecords: 2, createdAt: new Date() }
-      ])
+      sort: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue([
+          { _id: "bulk123", fileName: "test.csv", masterType: "sku", status: "done", totalRecords: 2, createdAt: new Date() }
+        ])
+      })
     })
   }),
   findById: jest.fn().mockImplementation((id) => Promise.resolve({

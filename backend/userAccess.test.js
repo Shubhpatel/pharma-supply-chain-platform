@@ -48,7 +48,9 @@ jest.mock("./src/models/User", () => {
     }),
     find: jest.fn().mockReturnValue({
       select: jest.fn().mockReturnValue({
-        sort: jest.fn().mockResolvedValue(mockUserStore.map(({ passwordHash, ...rest }) => rest)),
+        sort: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockUserStore.map(({ passwordHash, ...rest }) => rest)),
+        }),
       }),
     }),
     findById: jest.fn().mockImplementation((id) => {
