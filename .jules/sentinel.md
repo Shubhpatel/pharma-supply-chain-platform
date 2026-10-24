@@ -8,6 +8,11 @@
 **Learning:** `requireAuth` was omitted on read-only endpoints, presumably during initial development, and error handlers were dumping `err.message` which could leak stack or DB info.
 **Prevention:** Always apply authentication middleware to all non-public API routes, including read-only ones. Catch blocks must log raw errors securely and return sanitized generic messages to clients to prevent CWE-209.
 
+## 2024-10-23 - Sentinel: [MEDIUM] Fix Information Exposure (CWE-209)
+**Vulnerability:** Across almost all API routes, internal error messages (`err.message`) from caught exceptions were being sent back to the client directly via `res.status(500).json({ error: err.message })`. This could leak sensitive implementation details, stack traces, or database information.
+**Learning:** Returning `err.message` in production API endpoints is a security risk. A previous fix addressed this in `inventory.routes.js`, but this pattern was pervasive throughout the backend. We must systematically apply generic error messages.
+**Prevention:** Always log the actual `err.message` to the server console (`console.error`) and return a generic error message (e.g., `"Internal server error"`) to the client for 500 status codes.
+
 ## 2024-10-23 - Predictable Random Number Generation in Draft IDs
 **Vulnerability:** Weak random number generator (`Math.random()`) was used to create identifiers for Assistant Drafts.
 **Learning:** `Math.random()` is not cryptographically secure and can generate predictable values. In a context where an identifier is used to retrieve, approve, reject, or execute sensitive actions, predictable IDs might lead to ID guessing vulnerabilities (Insecure Direct Object Reference or unauthorized actions if authorization checks fail).

@@ -96,7 +96,8 @@ router.post("/", requireAuth, requirePermission("sr"), async (req, res) => {
 
     return res.status(201).json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -187,7 +188,8 @@ router.put("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
     await creditNote.save();
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -200,7 +202,8 @@ router.delete("/:id", requireAuth, requirePermission("sr"), async (req, res) => 
     await creditNote.deleteOne();
     return res.json({ message: "Credit note deleted" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -223,7 +226,8 @@ router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, r
     await creditNote.save();
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -237,7 +241,8 @@ router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
       .lean();
     return res.json({ creditNotes });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -253,7 +258,8 @@ router.get("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
     if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
     return res.json({ creditNote });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
