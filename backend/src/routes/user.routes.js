@@ -11,7 +11,8 @@ router.use(requireAuth, requirePermission("users"));
 // GET /api/users - List all users
 router.get("/", async (req, res, next) => {
   try {
-    const users = await User.find().select("-passwordHash").sort({ createdAt: -1 });
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only query
+    const users = await User.find().select("-passwordHash").sort({ createdAt: -1 }).lean();
     return res.json({ users });
   } catch (err) {
     next(err);
