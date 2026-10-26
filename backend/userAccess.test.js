@@ -77,11 +77,17 @@ jest.mock("./src/models/PurchaseOrder", () => ({
   find: jest.fn().mockReturnValue({
     select: jest.fn().mockReturnValue({
       sort: jest.fn().mockReturnValue({
+        skip: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            lean: jest.fn().mockResolvedValue([]),
+          }),
+        }),
         lean: jest.fn().mockResolvedValue([]),
         then: (fn) => Promise.resolve([]).then(fn),
       }),
     }),
   }),
+  countDocuments: jest.fn().mockResolvedValue(0),
 }));
 jest.mock("./src/models/Grn", () => ({
   aggregate: jest.fn().mockResolvedValue([]),
