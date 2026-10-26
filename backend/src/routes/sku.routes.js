@@ -23,12 +23,13 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     }
     const { page, limit, skip } = getPagination(req.query);
     const [skus, total] = await Promise.all([
-      Sku.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
+      // ⚡ Bolt: Append .lean() to bypass document hydration for read-only endpoint
+      Sku.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean(),
       Sku.countDocuments(filter),
     ]);
     await Promise.all(skus.filter((sku) => !sku.uid).map(async (sku) => {
       sku.uid = crypto.randomUUID();
-      await sku.save();
+      await Sku.updateOne({ _id: sku._id }, { $set: { uid: sku.uid } });
     }));
     return res.json({ skus, pagination: paginationMeta(page, limit, total) });
   } catch (err) {

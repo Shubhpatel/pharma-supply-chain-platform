@@ -22,12 +22,13 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
     const { page, limit, skip } = getPagination(req.query);
     const [parties, total] = await Promise.all([
-      Party.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
+      // ⚡ Bolt: Append .lean() to bypass document hydration for read-only endpoint
+      Party.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean(),
       Party.countDocuments(filter),
     ]);
     await Promise.all(parties.filter((party) => !party.uid).map(async (party) => {
       party.uid = crypto.randomUUID();
-      await party.save();
+      await Party.updateOne({ _id: party._id }, { $set: { uid: party.uid } });
     }));
     return res.json({ parties, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
