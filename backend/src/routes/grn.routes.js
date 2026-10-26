@@ -241,6 +241,27 @@ router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) =>
   }
 });
 
+// GET /api/grn/:id/pdf
+router.get("/:id/pdf", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
+  try {
+    const { generateDocumentPdf } = require("../utils/pdfGenerator");
+    const grn = await Grn.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("purchaseOrder", "poNumber")
+      .populate("supplier")
+      .lean();
+    if (!grn) return res.status(404).json({ error: "GRN not found" });
+
+    const pdfBuffer = await generateDocumentPdf("GRN", grn);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${grn.grnNumber || "GRN"}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/grn/:id
 router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
   try {

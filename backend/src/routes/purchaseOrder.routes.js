@@ -398,6 +398,26 @@ router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req
   }
 });
 
+// GET /api/purchase-orders/:id/pdf
+router.get("/:id/pdf", requireAuth, requirePermission("po", "grn"), async (req, res) => {
+  try {
+    const { generateDocumentPdf } = require("../utils/pdfGenerator");
+    const po = await PurchaseOrder.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("supplier")
+      .lean();
+    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+
+    const pdfBuffer = await generateDocumentPdf("PO", po);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${po.poNumber || "PO"}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/purchase-orders/:id
 router.get("/:id", requireAuth, requirePermission("po", "grn"), async (req, res) => {
   try {

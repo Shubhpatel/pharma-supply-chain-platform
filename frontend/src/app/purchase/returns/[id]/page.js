@@ -32,6 +32,15 @@ export default function DebitNoteDetailPage() {
   if (error) return <p className="text-sm text-red-600 p-4">{error}</p>;
   if (!debitNote) return <p className="text-sm text-gray-500 p-4">Loading Debit Note...</p>;
 
+  async function handleDownloadPdf() {
+    try {
+      await api.downloadPdf(`/debit-notes/${id}/pdf`, `${debitNote.debitNoteNumber || "DN"}.pdf`, token);
+      showToast("PDF downloaded successfully.");
+    } catch (err) {
+      showToast(err.message || "Failed to download PDF", "error");
+    }
+  }
+
   async function handleConfirm() {
     try {
       const data = await api.confirmDebitNote(id, token);
@@ -54,6 +63,7 @@ export default function DebitNoteDetailPage() {
           {(debitNote.status === "draft" || user?.role === "ADMIN") && <a href={`/purchase/returns/new?edit=${debitNote._id}`} className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 text-sm rounded-lg">Edit</a>}
           {(debitNote.status === "draft" || user?.role === "ADMIN") && <button onClick={handleDelete} className="border border-red-600 text-red-700 hover:bg-red-50 font-medium px-4 py-2 text-sm rounded-lg">Delete</button>}
           {debitNote.status === "draft" && <button onClick={handleConfirm} className="bg-teal-700 text-white hover:bg-teal-800 font-medium px-4 py-2 text-sm rounded-lg">Confirm</button>}
+          <button onClick={handleDownloadPdf} className="bg-teal-700 text-white hover:bg-teal-800 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition">Download PDF</button>
           <button onClick={() => window.print()} className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition">Print Debit Note</button>
         </div>
       </div>
