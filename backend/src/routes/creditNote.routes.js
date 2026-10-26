@@ -248,6 +248,27 @@ router.get("/", requireAuth, requirePermission("sr"), async (req, res) => {
   }
 });
 
+// GET /api/credit-notes/:id/pdf
+router.get("/:id/pdf", requireAuth, requirePermission("sr"), async (req, res) => {
+  try {
+    const { generateDocumentPdf } = require("../utils/pdfGenerator");
+    const creditNote = await CreditNote.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("saleInvoice")
+      .populate("customer")
+      .lean();
+    if (!creditNote) return res.status(404).json({ error: "Credit note not found" });
+
+    const pdfBuffer = await generateDocumentPdf("CN", creditNote);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${creditNote.creditNoteNumber || "CN"}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/credit-notes/:id
 router.get("/:id", requireAuth, requirePermission("sr"), async (req, res) => {
   try {

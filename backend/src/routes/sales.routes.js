@@ -208,6 +208,26 @@ router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res
   }
 });
 
+// GET /api/sales/:id/pdf
+router.get("/:id/pdf", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
+  try {
+    const { generateDocumentPdf } = require("../utils/pdfGenerator");
+    const invoice = await SaleInvoice.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("customer")
+      .lean();
+    if (!invoice) return res.status(404).json({ error: "Invoice not found" });
+
+    const pdfBuffer = await generateDocumentPdf("INV", invoice);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${invoice.invoiceNumber || "INV"}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/sales/:id
 router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
   try {

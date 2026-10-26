@@ -254,6 +254,24 @@ export const api = {
   downloadSampleFile: (masterType, format = "csv") => {
     window.open(`${API_URL}/bulk-uploads/sample?masterType=${masterType}&format=${format}`, "_blank");
   },
+
+  // PDF Export Helper
+  downloadPdf: async (endpoint, fileName = "document.pdf", token) => {
+    const storedToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const authToken = token || storedToken;
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    });
+    if (!res.ok) throw new Error(`PDF generation failed (${res.status})`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
   downloadErrorFile: (uploadId, format = "csv", token) => {
     const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
     window.open(`${API_URL}/bulk-uploads/${uploadId}/error-file?format=${format}${tokenQuery}`, "_blank");

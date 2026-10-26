@@ -257,6 +257,27 @@ router.get("/", requireAuth, requirePermission("pr"), async (req, res) => {
   }
 });
 
+// GET /api/debit-notes/:id/pdf
+router.get("/:id/pdf", requireAuth, requirePermission("pr"), async (req, res) => {
+  try {
+    const { generateDocumentPdf } = require("../utils/pdfGenerator");
+    const debitNote = await DebitNote.findById(req.params.id)
+      .populate("createdBy", "name")
+      .populate("grn")
+      .populate("supplier")
+      .lean();
+    if (!debitNote) return res.status(404).json({ error: "Debit note not found" });
+
+    const pdfBuffer = await generateDocumentPdf("DN", debitNote);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${debitNote.debitNoteNumber || "DN"}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Internal Server Error:", err.message);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/debit-notes/:id
 router.get("/:id", requireAuth, requirePermission("pr"), async (req, res) => {
   try {
