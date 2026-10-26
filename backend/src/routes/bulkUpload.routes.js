@@ -156,8 +156,10 @@ router.post("/", requireAuth, requirePermission("masters"), upload.single("file"
     let existingSkuLocationIds = new Set();
     if (masterType === "sku-location") {
       const [skus, mappings] = await Promise.all([
-        Sku.find().select("name uid"),
-        SkuLocation.find().select("sku"),
+        // ⚡ Bolt: Added .lean() to bypass document hydration for read-only lookup query
+        Sku.find().select("name uid").lean(),
+        // ⚡ Bolt: Added .lean() to bypass document hydration for read-only lookup query
+        SkuLocation.find().select("sku").lean(),
       ]);
       skus.forEach((sku) => {
         skuLookup.set(sku.name.trim().toLowerCase(), sku);
