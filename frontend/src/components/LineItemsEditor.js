@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import SearchableSelect from "./SearchableSelect";
 
 export default function LineItemsEditor({ items, setItems, skus, inventory = [], includeBatch = false, onSearchSkus }) {
+  // ⚡ Bolt: Memoize SKU options mapping to avoid O(N*M) array allocations on every render/keystroke
+  const skuOptions = useMemo(
+    () => skus.map((sku) => ({ value: sku._id, label: sku.name })),
+    [skus]
+  );
   const applyPreferredStock = useCallback((item) => {
     if (!item.sku) return { ...item, batch: "", expiryDate: "", mrp: "" };
 
@@ -101,7 +106,7 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
           <SearchableSelect
             value={item.sku}
             onChange={(value) => updateItem(i, "sku", value)}
-            options={skus.map((sku) => ({ value: sku._id, label: sku.name }))}
+            options={skuOptions}
             onSearch={onSearchSkus}
             placeholder="Select SKU"
             required
