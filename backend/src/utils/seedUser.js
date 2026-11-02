@@ -6,11 +6,16 @@ const User = require("../models/User");
 const Sku = require("../models/Sku");
 
 async function seed() {
-  await connectDB();
-
   const name = process.env.SEED_NAME || "Admin";
   const email = (process.env.SEED_EMAIL || "admin@pharma.local").toLowerCase();
+
+  // Security: Prevent predictable default passwords in production environments
+  if (process.env.NODE_ENV === "production" && !process.env.SEED_PASSWORD) {
+    throw new Error("Security Error: SEED_PASSWORD must be provided in production environments.");
+  }
   const password = process.env.SEED_PASSWORD || "admin123";
+
+  await connectDB();
   const passwordHash = await bcrypt.hash(password, 10);
   const permissions = User.getDefaultPermissions("ADMIN");
 

@@ -20,3 +20,8 @@
 **Vulnerability:** Weak random number generator (`Math.random()`) was used to create identifiers for Assistant Drafts.
 **Learning:** `Math.random()` is not cryptographically secure and can generate predictable values. In a context where an identifier is used to retrieve, approve, reject, or execute sensitive actions, predictable IDs might lead to ID guessing vulnerabilities (Insecure Direct Object Reference or unauthorized actions if authorization checks fail).
 **Prevention:** Always use cryptographically secure methods like `crypto.randomUUID()` or `crypto.randomBytes()` when generating tokens, identifiers, or secrets for sensitive operations.
+
+## 2024-10-23 - Predictable Default Passwords in Seed Scripts
+**Vulnerability:** A database seed script used a hardcoded default password (`admin123`) for administrative accounts if an environment variable was not provided.
+**Learning:** Seed scripts that might be executed in production environments pose a risk if they silently fall back to predictable default credentials, creating an easily guessable backdoor for attackers.
+**Prevention:** Always ensure scripts executing in production environments strictly require necessary secrets via environment variables and fail fast with an error if they are missing, rather than falling back to default values.
