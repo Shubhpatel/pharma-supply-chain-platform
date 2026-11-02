@@ -20,3 +20,8 @@
 **Vulnerability:** Weak random number generator (`Math.random()`) was used to create identifiers for Assistant Drafts.
 **Learning:** `Math.random()` is not cryptographically secure and can generate predictable values. In a context where an identifier is used to retrieve, approve, reject, or execute sensitive actions, predictable IDs might lead to ID guessing vulnerabilities (Insecure Direct Object Reference or unauthorized actions if authorization checks fail).
 **Prevention:** Always use cryptographically secure methods like `crypto.randomUUID()` or `crypto.randomBytes()` when generating tokens, identifiers, or secrets for sensitive operations.
+
+## 2024-10-23 - Sentinel: [MEDIUM] Fix Regex Injection (NoDoS)
+**Vulnerability:** User inputs passed to MongoDB `$regex` queries in `party.routes.js` were not escaped. This allowed attackers to craft malicious regular expressions that could cause high CPU usage (Regular Expression Denial of Service - ReDoS/NoDoS) or match unintended records.
+**Learning:** Raw user input should never be passed directly into a regular expression engine without escaping special characters first, as it exposes the system to algorithmic complexity attacks.
+**Prevention:** Always escape special regex characters (using a function like `string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")`) before dynamically constructing regexes from user input, especially when used in database query operators like `$regex`.

@@ -6,6 +6,9 @@ const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
+// Security: Escape user input before using it in a regex to prevent NoDoS
+const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice", "sr", "pr"), async (req, res, next) => {
   try {
     const filter = req.query.type ? { partyType: req.query.type } : {};
@@ -13,12 +16,13 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
       const search = req.query.search.trim();
       if (search.length < 3) return res.json({ parties: [], pagination: paginationMeta(1, 20, 0) });
       if (search) {
+        const escapedSearch = escapeRegExp(search);
         filter.$or = ["name", "uid", "gstNumber", "contactPerson", "phone", "city", "state"]
-          .map((field) => ({ [field]: { $regex: search, $options: "i" } }));
+          .map((field) => ({ [field]: { $regex: escapedSearch, $options: "i" } }));
       }
     }
-    if (req.query.state) filter.state = { $regex: req.query.state.trim(), $options: "i" };
-    if (req.query.city) filter.city = { $regex: req.query.city.trim(), $options: "i" };
+    if (req.query.state) filter.state = { $regex: escapeRegExp(req.query.state.trim()), $options: "i" };
+    if (req.query.city) filter.city = { $regex: escapeRegExp(req.query.city.trim()), $options: "i" };
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
     const { page, limit, skip } = getPagination(req.query);
     // Performance: .lean() bypasses Mongoose document hydration for read-heavy GET query
