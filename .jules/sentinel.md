@@ -20,3 +20,5 @@
 **Vulnerability:** Weak random number generator (`Math.random()`) was used to create identifiers for Assistant Drafts.
 **Learning:** `Math.random()` is not cryptographically secure and can generate predictable values. In a context where an identifier is used to retrieve, approve, reject, or execute sensitive actions, predictable IDs might lead to ID guessing vulnerabilities (Insecure Direct Object Reference or unauthorized actions if authorization checks fail).
 **Prevention:** Always use cryptographically secure methods like `crypto.randomUUID()` or `crypto.randomBytes()` when generating tokens, identifiers, or secrets for sensitive operations.
+## JWT Secret Verification
+- If `JWT_SECRET` is not set, generating a secure random secret dynamically prevents token bypass vulnerabilities by ensuring tokens are never signed or verified with an `undefined` or easily guessable fallback secret.
