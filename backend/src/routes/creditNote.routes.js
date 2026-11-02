@@ -213,12 +213,15 @@ router.patch("/:id/confirm", requireAuth, requirePermission("sr"), async (req, r
     if (creditNote.status !== "draft") return res.status(400).json({ error: "Only draft credit notes can be confirmed" });
     const saleInvoice = await SaleInvoice.findById(creditNote.saleInvoice);
     if (!saleInvoice || saleInvoice.status !== "confirmed") return res.status(400).json({ error: "The linked sales invoice is not confirmed" });
-    for (const item of creditNote.items) {
-      await Stock.findOneAndUpdate(
-        { sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate },
-        { $inc: { qty: item.qty } },
-        { upsert: true }
-      );
+    const bulkOps = creditNote.items.map((item) => ({
+      updateOne: {
+        filter: { sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate },
+        update: { $inc: { qty: item.qty } },
+        upsert: true,
+      },
+    }));
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
     }
     creditNote.status = "confirmed";
     await creditNote.save();
