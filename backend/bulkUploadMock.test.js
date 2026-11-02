@@ -5,6 +5,18 @@ const XLSX = require("xlsx");
 // Mock Sku, Party, BulkUpload models
 jest.mock("./src/models/Sku", () => ({
   insertMany: jest.fn().mockResolvedValue([]),
+  find: jest.fn().mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue([{ _id: "sku1", name: "Paracetamol 500mg", uid: "uid1" }]),
+    }),
+  }),
+}));
+jest.mock("./src/models/SkuLocation", () => ({
+  find: jest.fn().mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue([{ _id: "loc1", sku: "sku1", location: "A1" }]),
+    }),
+  }),
 }));
 jest.mock("./src/models/Party", () => ({
   insertMany: jest.fn().mockResolvedValue([]),
