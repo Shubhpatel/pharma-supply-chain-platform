@@ -234,4 +234,20 @@ describe("Pharma Buddy Assistant API & Security Unit Tests", () => {
     expect(res.status).toBe(403);
     expect(res.body.error).toContain("Unauthorized");
   });
+
+  test("9. GET /history error path should pass error to next(err) resulting in 500", async () => {
+    AssistantChatMessage.find.mockImplementationOnce(() => {
+      throw new Error("Simulated database failure");
+    });
+
+    // The route catches the error and calls next(err). With no custom error handler
+    // in this test setup, Express's default error handler responds with a 500 status.
+    const res = await request(app)
+      .get("/api/assistant/history")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(500);
+    // Note: Since we are hitting the default Express error handler, the response is HTML.
+    // In a real app with a global error handler, this would be JSON, but checking 500 is enough here.
+  });
 });
