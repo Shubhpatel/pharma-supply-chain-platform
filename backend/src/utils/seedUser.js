@@ -1,3 +1,4 @@
+const logger = require("./logger");
 // Run `npm run seed` from backend/ to provision the admin account and sample SKUs.
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
@@ -17,16 +18,16 @@ async function seed() {
   const existingUser = await User.findOne({ email });
   if (!existingUser) {
     await User.create({ name, email, passwordHash, role: "ADMIN", permissions });
-    console.log("User created:");
-    console.log("  email:   ", email);
-    console.log("  password:", password);
+    logger.info("User created:");
+    logger.info("  email:   ", email);
+    logger.info("  password:", password);
   } else {
     existingUser.name = name;
     existingUser.passwordHash = passwordHash;
     existingUser.role = "ADMIN";
     existingUser.permissions = permissions;
     await existingUser.save();
-    console.log(`Admin user updated: ${email}`);
+    logger.info(`Admin user updated: ${email}`);
   }
 
   const sampleSkus = [
@@ -39,12 +40,12 @@ async function seed() {
     const exists = await Sku.findOne({ name: s.name });
     if (!exists) await Sku.create(s);
   }
-  console.log("Sample SKUs ensured.");
+  logger.info("Sample SKUs ensured.");
 
   process.exit(0);
 }
 
 seed().catch((err) => {
-  console.error(err);
+  logger.error(err);
   process.exit(1);
 });

@@ -1,6 +1,6 @@
+const logger = require("../utils/logger");
 const crypto = require("crypto");
 const express = require("express");
-const crypto = require("crypto");
 const { requireAuth } = require("../middleware/auth");
 const AssistantDraft = require("../models/AssistantDraft");
 const AssistantAuditLog = require("../models/AssistantAuditLog");
@@ -43,7 +43,7 @@ router.get("/history", requireAuth, async (req, res, next) => {
       })),
     });
   } catch (err) {
-    console.error("Assistant history error:", err.message);
+    logger.error("Assistant history error:", err.message);
     next(err);
   }
 });
@@ -67,7 +67,7 @@ router.post("/history", requireAuth, async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error("Assistant history save error:", err.message);
+    logger.error("Assistant history save error:", err.message);
     next(err);
   }
 });
@@ -299,7 +299,7 @@ router.post("/chat", requireAuth, async (req, res, next) => {
         const result = await response.json().catch(() => ({}));
         replyText = result.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
       } catch (e) {
-        console.error("Gemini AI error:", e.message);
+        logger.error("Gemini AI error:", e.message);
       } finally {
         clearTimeout(timeout);
       }
@@ -332,7 +332,7 @@ router.post("/chat", requireAuth, async (req, res, next) => {
     await saveChatMessage(req.user.id, "assistant", response.reply, response.source === "gemini" ? "AI analysis" : "Database analysis");
     return res.json(response);
   } catch (err) {
-    console.error("Assistant error:", err.message);
+    logger.error("Assistant error:", err.message);
     next(err);
   }
 });
@@ -606,7 +606,7 @@ router.post("/drafts/:draftId/execute", requireAuth, async (req, res, next) => {
       resultRecord,
     });
   } catch (err) {
-    console.error("Draft execution error:", err.message);
+    logger.error("Draft execution error:", err.message);
     if (req.params.draftId) {
       await AssistantDraft.updateOne(
         { draftId: req.params.draftId },
