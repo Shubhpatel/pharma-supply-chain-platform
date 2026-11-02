@@ -102,12 +102,14 @@ jest.mock("./src/models/Grn", () => ({
 const authRoutes = require("./src/routes/auth.routes");
 const userRoutes = require("./src/routes/user.routes");
 const purchaseOrderRoutes = require("./src/routes/purchaseOrder.routes");
+const errorHandler = require("./src/middleware/errorHandler");
 
 const app = express();
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
+app.use(errorHandler);
 
 describe("User Role & Access Control Unit Tests", () => {
   let adminToken;
@@ -170,5 +172,25 @@ describe("User Role & Access Control Unit Tests", () => {
 
     expect(res.body.user.role).toBe("SALES");
     expect(res.body.user.permissions).toEqual(["invoice", "sr"]);
+  });
+
+  test("GET /api/users should return 500 when database throws an error", async () => {
+    const User = require("./src/models/User");
+
+    // Mock the Mongoose query chain to throw an error
+    User.find.mockReturnValueOnce({
+      select: jest.fn().mockReturnValueOnce({
+        sort: jest.fn().mockReturnValueOnce({
+          lean: jest.fn().mockRejectedValueOnce(new Error("Database error")),
+        }),
+      }),
+    });
+
+    const res = await request(app)
+      .get("/api/users")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(500);
+
+    expect(res.body.error).toBe("Internal Server Error");
   });
 });
