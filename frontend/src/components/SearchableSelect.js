@@ -1,16 +1,23 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export default function SearchableSelect({ value, onChange, options, onSearch, placeholder, required = false, className = "", disabled = false }) {
-  const selectedOption = options.find((option) => option.value === value);
+  // ⚡ Bolt: Memoize selected option lookup and filtered list to prevent redundant array ops on unrelated parent re-renders
+  const selectedOption = useMemo(
+    () => options.find((option) => option.value === value),
+    [options, value]
+  );
   const listId = `searchable-select-options-${useId().replaceAll(":", "")}`;
   const inputRef = useRef(null);
   const [query, setQuery] = useState(selectedOption?.label || "");
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState(null);
-  const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase()));
+  const filteredOptions = useMemo(
+    () => options.filter((option) => option.label.toLowerCase().includes(query.toLowerCase())),
+    [options, query]
+  );
 
   useEffect(() => {
     if (!onSearch || query.trim().length < 3) return undefined;

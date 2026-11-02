@@ -74,6 +74,7 @@ jest.mock("./src/models/User", () => {
 
 // Mock dependencies for routes
 jest.mock("./src/models/PurchaseOrder", () => ({
+  countDocuments: jest.fn().mockResolvedValue(0),
   find: jest.fn().mockReturnValue({
     select: jest.fn().mockReturnValue({
       sort: jest.fn().mockReturnValue({

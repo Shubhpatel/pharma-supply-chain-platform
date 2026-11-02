@@ -20,6 +20,7 @@ jest.mock("./src/models/CreditNote");
 
 const AssistantDraft = require("./src/models/AssistantDraft");
 const AssistantAuditLog = require("./src/models/AssistantAuditLog");
+const AssistantChatMessage = require("./src/models/AssistantChatMessage");
 const Sku = require("./src/models/Sku");
 const Party = require("./src/models/Party");
 const Stock = require("./src/models/Stock");
@@ -64,6 +65,7 @@ describe("Pharma Buddy Assistant API & Security Unit Tests", () => {
     Grn.find.mockReturnValue(mockChain([]));
     DebitNote.find.mockReturnValue(mockChain([]));
     CreditNote.find.mockReturnValue(mockChain([]));
+    AssistantChatMessage.find.mockReturnValue(mockChain([]));
 
     AssistantAuditLog.create = jest.fn().mockResolvedValue({});
   });
