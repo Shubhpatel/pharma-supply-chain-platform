@@ -88,6 +88,7 @@ jest.mock("./src/models/PurchaseOrder", () => ({
       }),
     }),
   }),
+  countDocuments: jest.fn().mockResolvedValue(0),
 }));
 jest.mock("./src/models/Grn", () => ({
   aggregate: jest.fn().mockResolvedValue([]),
