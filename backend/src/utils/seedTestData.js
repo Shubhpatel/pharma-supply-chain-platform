@@ -384,7 +384,17 @@ async function seedTestData() {
   }
 }
 
-seedTestData().catch((err) => {
-  console.error("Test data seed failed:", err.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  seedTestData().catch((err) => {
+    console.error("Test data seed failed:", err.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  dateDaysAgo,
+  makeItems,
+  seedTestData,
+  today,
+  expiryDate
+};
