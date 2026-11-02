@@ -3,6 +3,7 @@ const { requireAuth, requirePermission } = require("../middleware/auth");
 const crypto = require("crypto");
 const Party = require("../models/Party");
 const { getPagination, paginationMeta } = require("../utils/pagination");
+const { escapeRegex } = require("../utils/regex");
 
 const router = express.Router();
 
@@ -13,12 +14,15 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
       const search = req.query.search.trim();
       if (search.length < 3) return res.json({ parties: [], pagination: paginationMeta(1, 20, 0) });
       if (search) {
+        // 🛡️ Sentinel: Escape user input in regex to prevent ReDoS / Regex Injection
+        const escapedSearch = escapeRegex(search);
         filter.$or = ["name", "uid", "gstNumber", "contactPerson", "phone", "city", "state"]
-          .map((field) => ({ [field]: { $regex: search, $options: "i" } }));
+          .map((field) => ({ [field]: { $regex: escapedSearch, $options: "i" } }));
       }
     }
-    if (req.query.state) filter.state = { $regex: req.query.state.trim(), $options: "i" };
-    if (req.query.city) filter.city = { $regex: req.query.city.trim(), $options: "i" };
+    // 🛡️ Sentinel: Escape user input in regex to prevent ReDoS / Regex Injection
+    if (req.query.state) filter.state = { $regex: escapeRegex(req.query.state.trim()), $options: "i" };
+    if (req.query.city) filter.city = { $regex: escapeRegex(req.query.city.trim()), $options: "i" };
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
     const { page, limit, skip } = getPagination(req.query);
     // Performance: .lean() bypasses Mongoose document hydration for read-heavy GET query

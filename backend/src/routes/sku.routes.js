@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const XLSX = require("xlsx");
 const Sku = require("../models/Sku");
 const { getPagination, paginationMeta } = require("../utils/pagination");
+const { escapeRegex } = require("../utils/regex");
 
 const router = express.Router();
 
@@ -12,13 +13,16 @@ router.get("/", requireAuth, requirePermission("masters", "po", "grn", "invoice"
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
     ["category", "subCategory", "manufacturer", "uom"].forEach((field) => {
-      if (req.query[field]) filter[field] = { $regex: req.query[field].trim(), $options: "i" };
+      // 🛡️ Sentinel: Escape user input in regex to prevent ReDoS / Regex Injection
+      if (req.query[field]) filter[field] = { $regex: escapeRegex(req.query[field].trim()), $options: "i" };
     });
     if (req.query.search) {
       const search = req.query.search.trim();
       if (search.length < 3) return res.json({ skus: [], pagination: paginationMeta(1, 20, 0) });
       if (search) {
-        filter.$or = [{ name: { $regex: search, $options: "i" } }, { code: { $regex: search, $options: "i" } }];
+        // 🛡️ Sentinel: Escape user input in regex to prevent ReDoS / Regex Injection
+        const escapedSearch = escapeRegex(search);
+        filter.$or = [{ name: { $regex: escapedSearch, $options: "i" } }, { code: { $regex: escapedSearch, $options: "i" } }];
       }
     }
     const { page, limit, skip } = getPagination(req.query);
