@@ -57,6 +57,11 @@ const app = express();
 app.use(express.json());
 app.use("/api/bulk-uploads", bulkUploadRoutes);
 
+// Error handler middleware to simulate central error handling
+app.use((err, req, res, next) => {
+  res.status(500).json({ error: "Internal server error" });
+});
+
 describe("Bulk Masters Upload Unit Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -77,6 +82,19 @@ describe("Bulk Masters Upload Unit Tests", () => {
       .expect(200);
 
     expect(res.headers["content-type"]).toContain("spreadsheetml");
+  });
+
+  test("GET /api/bulk-uploads/sample should handle internal errors correctly", async () => {
+    const jsonToSheetSpy = jest.spyOn(XLSX.utils, 'json_to_sheet').mockImplementationOnce(() => {
+      throw new Error("Mocked internal error");
+    });
+
+    const res = await request(app)
+      .get("/api/bulk-uploads/sample?masterType=sku&format=csv")
+      .expect(500);
+
+    expect(res.body.error).toBe("Internal server error");
+    jsonToSheetSpy.mockRestore();
   });
 
   test("POST /api/bulk-uploads should successfully import valid SKUs", async () => {
