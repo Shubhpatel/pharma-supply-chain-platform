@@ -1,6 +1,5 @@
 const crypto = require("crypto");
 const express = require("express");
-const crypto = require("crypto");
 const { requireAuth } = require("../middleware/auth");
 const AssistantDraft = require("../models/AssistantDraft");
 const AssistantAuditLog = require("../models/AssistantAuditLog");
@@ -385,13 +384,24 @@ router.get("/drafts", requireAuth, async (req, res, next) => {
   try {
     const drafts = await AssistantDraft.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(50);
     const now = new Date();
-    // Update expired drafts
+
+    // Performance optimization: Find IDs of drafts that need expiration and update them
+    // in memory so we can run a single bulk update against MongoDB instead of N+1 saves.
+    const expiredDraftIds = [];
     for (const draft of drafts) {
       if (draft.status === "pending" && draft.expiresAt < now) {
         draft.status = "expired";
-        await draft.save();
+        expiredDraftIds.push(draft._id);
       }
     }
+
+    if (expiredDraftIds.length > 0) {
+      await AssistantDraft.updateMany(
+        { _id: { $in: expiredDraftIds } },
+        { $set: { status: "expired" } }
+      );
+    }
+
     return res.json({ drafts });
   } catch (err) {
     next(err);
