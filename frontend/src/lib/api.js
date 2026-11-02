@@ -254,8 +254,19 @@ export const api = {
   downloadSampleFile: (masterType, format = "csv") => {
     window.open(`${API_URL}/bulk-uploads/sample?masterType=${masterType}&format=${format}`, "_blank");
   },
-  downloadErrorFile: (uploadId, format = "csv", token) => {
-    const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : "";
-    window.open(`${API_URL}/bulk-uploads/${uploadId}/error-file?format=${format}${tokenQuery}`, "_blank");
+  downloadErrorFile: async (uploadId, format = "csv", token) => {
+    const res = await fetch(`${API_URL}/bulk-uploads/${uploadId}/error-file?format=${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `error-file.${format === "xlsx" ? "xlsx" : "csv"}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   },
 };

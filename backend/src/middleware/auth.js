@@ -3,9 +3,8 @@ const jwt = require("jsonwebtoken");
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   let token = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!token && req.query.token) {
-    token = req.query.token;
-  }
+
+  // 🛡️ Security Fix: Removed fallback to req.query.token to prevent token leakage in URLs
   if (!token) return res.status(401).json({ error: "Missing auth token" });
 
   try {
