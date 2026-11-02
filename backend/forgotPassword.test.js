@@ -1,6 +1,5 @@
 const express = require("express");
 const request = require("supertest");
-const bcrypt = require("bcryptjs");
 
 jest.mock("./src/models/User");
 jest.mock("./src/utils/email", () => ({
