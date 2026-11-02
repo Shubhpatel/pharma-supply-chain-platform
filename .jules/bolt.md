@@ -5,3 +5,7 @@
 ## 2026-10-26 - Inline Options Array Mapping in Form Tables
 **Learning:** Mapping master data arrays inline inside table row iterations (`skus.map(...)`) causes $O(N \times M)$ object allocations on every single keypress and render in form editors.
 **Action:** Always extract and memoize options arrays using `useMemo` at the table editor component level before passing them to child row select components.
+
+## 2026-11-02 - N+1 MongoDB Query Bottleneck
+**Learning:** Iterating over Mongoose documents and calling `.save()` on each one individually inside a loop causes N+1 query problems and significantly degrades performance.
+**Action:** Always batch document updates using bulk operations like `Model.updateMany` or `Model.bulkWrite` instead of sequentially awaiting `.save()` inside loops to eliminate N+1 latency.
