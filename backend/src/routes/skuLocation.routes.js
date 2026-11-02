@@ -14,9 +14,12 @@ router.get("/", async (req, res, next) => {
     if (req.query.search) {
       const search = req.query.search.trim();
       if (search) {
-        const matchingSkus = await Sku.find({ name: { $regex: search, $options: "i" } }).select("_id").lean();
+        // Security fix: Escape user input to prevent Regex Injection (NoDoS)
+        const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedSearch = escapeRegExp(search);
+        const matchingSkus = await Sku.find({ name: { $regex: escapedSearch, $options: "i" } }).select("_id").lean();
         filter.$or = [
-          { location: { $regex: search, $options: "i" } },
+          { location: { $regex: escapedSearch, $options: "i" } },
           { sku: { $in: matchingSkus.map((sku) => sku._id) } },
         ];
       }

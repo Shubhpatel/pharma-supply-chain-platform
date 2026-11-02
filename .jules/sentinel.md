@@ -20,3 +20,8 @@
 **Vulnerability:** Weak random number generator (`Math.random()`) was used to create identifiers for Assistant Drafts.
 **Learning:** `Math.random()` is not cryptographically secure and can generate predictable values. In a context where an identifier is used to retrieve, approve, reject, or execute sensitive actions, predictable IDs might lead to ID guessing vulnerabilities (Insecure Direct Object Reference or unauthorized actions if authorization checks fail).
 **Prevention:** Always use cryptographically secure methods like `crypto.randomUUID()` or `crypto.randomBytes()` when generating tokens, identifiers, or secrets for sensitive operations.
+
+## 2024-10-25 - Regex Injection (NoDoS)
+**Vulnerability:** Unescaped user input was passed directly to a Mongoose `$regex` query in the SKU Location search, allowing an attacker to craft complex regular expressions that could cause a Regular Expression Denial of Service (ReDoS).
+**Learning:** Always treat user input as untrusted, especially when constructing dynamic patterns like regular expressions.
+**Prevention:** Escape user input using a regex escaping utility function before passing it to any regex evaluation or `$regex` query.
