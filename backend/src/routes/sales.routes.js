@@ -163,6 +163,9 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
       }
     }
 
+    // Performance: Use bulkWrite to process all stock deductions in a single database roundtrip,
+    // avoiding the N+1 query problem from looping findByIdAndUpdate.
+    const bulkOps = [];
     for (const item of invoice.items) {
       const matchingStocks = await Stock.find({
         sku: item.sku,
@@ -174,9 +177,18 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
       for (const stock of matchingStocks) {
         if (remaining <= 0) break;
         const consumed = Math.min(remaining, stock.qty);
-        await Stock.findByIdAndUpdate(stock._id, { $inc: { qty: -consumed } });
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: stock._id },
+            update: { $inc: { qty: -consumed } }
+          }
+        });
         remaining -= consumed;
       }
+    }
+
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
     }
 
     invoice.status = "confirmed";
