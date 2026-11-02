@@ -235,3 +235,9 @@ describe("Pharma Buddy Assistant API & Security Unit Tests", () => {
     expect(res.body.error).toContain("Unauthorized");
   });
 });
+
+// mock Counter
+jest.mock("./src/models/Counter", () => ({
+  findByIdAndUpdate: jest.fn().mockResolvedValue({ seq: 1 }),
+  create: jest.fn().mockResolvedValue({ _id: "dummy", seq: 1 }),
+}));
