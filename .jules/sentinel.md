@@ -20,3 +20,8 @@
 **Vulnerability:** Weak random number generator (`Math.random()`) was used to create identifiers for Assistant Drafts.
 **Learning:** `Math.random()` is not cryptographically secure and can generate predictable values. In a context where an identifier is used to retrieve, approve, reject, or execute sensitive actions, predictable IDs might lead to ID guessing vulnerabilities (Insecure Direct Object Reference or unauthorized actions if authorization checks fail).
 **Prevention:** Always use cryptographically secure methods like `crypto.randomUUID()` or `crypto.randomBytes()` when generating tokens, identifiers, or secrets for sensitive operations.
+
+## 2026-11-02 - [MEDIUM] Regex Injection (NoDoS) in Search Endpoints
+**Vulnerability:** User inputs passed directly into MongoDB `$regex` queries without escaping special characters. This allows an attacker to inject arbitrary regex patterns, potentially causing a Regular Expression Denial of Service (ReDoS) or bypassing search intent (Regex Injection).
+**Learning:** Any user input that is utilized within a regular expression evaluation (such as MongoDB's `$regex`) must be sanitized. Failing to do so can severely impact database performance and reliability.
+**Prevention:** Always escape special regex characters (e.g., `.*+?^${}()|[]\`) from user inputs using a utility function before using them in `$regex` queries.
