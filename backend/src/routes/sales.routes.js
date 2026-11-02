@@ -10,7 +10,7 @@ const { getPagination, paginationMeta } = require("../utils/pagination");
 const router = express.Router();
 
 // POST /api/sales
-router.post("/", requireAuth, requirePermission("invoice"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("invoice"), async (req, res, next) => {
   try {
     const { customerId, customerName, saleDate, gstRate, items } = req.body;
     if ((!customerId && !customerName) || !saleDate || !items || items.length === 0) {
@@ -57,13 +57,12 @@ router.post("/", requireAuth, requirePermission("invoice"), async (req, res) => 
 
     return res.status(201).json({ invoice });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PUT /api/sales/:id
-router.put("/:id", requireAuth, requirePermission("invoice"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("invoice"), async (req, res, next) => {
   try {
     const { customerId, customerName, saleDate, items } = req.body;
     const invoice = await SaleInvoice.findById(req.params.id);
@@ -98,13 +97,12 @@ router.put("/:id", requireAuth, requirePermission("invoice"), async (req, res) =
     await invoice.save();
     return res.json({ invoice });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // DELETE /api/sales/:id
-router.delete("/:id", requireAuth, requirePermission("invoice"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("invoice"), async (req, res, next) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
@@ -112,13 +110,12 @@ router.delete("/:id", requireAuth, requirePermission("invoice"), async (req, res
     await invoice.deleteOne();
     return res.json({ message: "Invoice deleted" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // POST /api/sales/:id/duplicate
-router.post("/:id/duplicate", requireAuth, requirePermission("invoice"), async (req, res) => {
+router.post("/:id/duplicate", requireAuth, requirePermission("invoice"), async (req, res, next) => {
   try {
     const source = await SaleInvoice.findById(req.params.id);
     if (!source) return res.status(404).json({ error: "Invoice not found" });
@@ -140,13 +137,12 @@ router.post("/:id/duplicate", requireAuth, requirePermission("invoice"), async (
 
     return res.status(201).json({ invoice });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PATCH /api/sales/:id/confirm
-router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (req, res) => {
+router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (req, res, next) => {
   try {
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
@@ -187,13 +183,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
     await invoice.save();
     return res.json({ invoice });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/sales
-router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res, next) => {
   try {
     // Performance: .lean() returns plain JS objects, avoiding Mongoose document hydration overhead
     const { page, limit, skip } = getPagination(req.query);
@@ -203,13 +198,12 @@ router.get("/", requireAuth, requirePermission("invoice", "sr"), async (req, res
       .skip(skip).limit(limit).lean(), SaleInvoice.countDocuments()]);
     return res.json({ invoices, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/sales/:id
-router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, res) => {
+router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, res, next) => {
   try {
     // Performance: .lean() bypasses Mongoose document hydration for read-only view
     const invoice = await SaleInvoice.findById(req.params.id)
@@ -226,8 +220,7 @@ router.get("/:id", requireAuth, requirePermission("invoice", "sr"), async (req, 
     invoice.linkedSalesReturns = linkedSalesReturns;
     return res.json({ invoice });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

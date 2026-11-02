@@ -68,7 +68,7 @@ async function receivedQuantitiesByPo(poIds) {
 }
 
 // POST /api/purchase-orders
-router.post("/", requireAuth, requirePermission("po"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("po"), async (req, res, next) => {
   try {
     const { supplierId, supplierName, orderDate, paymentTerm, expectedDeliveryDate, gstRate, items } = req.body;
     if ((!supplierId && !supplierName) || !orderDate || !items || items.length === 0) {
@@ -107,8 +107,7 @@ router.post("/", requireAuth, requirePermission("po"), async (req, res) => {
 
     return res.status(201).json({ purchaseOrder: po });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
@@ -139,7 +138,7 @@ router.get("/bulk-sample", (req, res) => {
   return res.send(XLSX.utils.sheet_to_csv(worksheet));
 });
 
-router.post("/bulk-upload", requireAuth, upload.single("file"), async (req, res) => {
+router.post("/bulk-upload", requireAuth, upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
@@ -262,13 +261,12 @@ router.post("/bulk-upload", requireAuth, upload.single("file"), async (req, res)
     });
     return res.status(201).json({ message: `Successfully imported ${created.length} purchase orders.`, purchaseOrders: created });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PUT /api/purchase-orders/:id - updates a draft or placed purchase order
-router.put("/:id", requireAuth, requirePermission("po"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("po"), async (req, res, next) => {
   try {
     const { items } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
@@ -298,13 +296,12 @@ router.put("/:id", requireAuth, requirePermission("po"), async (req, res) => {
     await po.save();
     return res.json({ purchaseOrder: po });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // DELETE /api/purchase-orders/:id
-router.delete("/:id", requireAuth, requirePermission("po"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("po"), async (req, res, next) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
@@ -312,13 +309,12 @@ router.delete("/:id", requireAuth, requirePermission("po"), async (req, res) => 
     await po.deleteOne();
     return res.json({ message: "Purchase order deleted" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // POST /api/purchase-orders/:id/duplicate
-router.post("/:id/duplicate", requireAuth, requirePermission("po"), async (req, res) => {
+router.post("/:id/duplicate", requireAuth, requirePermission("po"), async (req, res, next) => {
   try {
     const source = await PurchaseOrder.findById(req.params.id);
     if (!source) return res.status(404).json({ error: "Purchase order not found" });
@@ -342,13 +338,12 @@ router.post("/:id/duplicate", requireAuth, requirePermission("po"), async (req, 
 
     return res.status(201).json({ purchaseOrder: po });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PATCH /api/purchase-orders/:id/confirm
-router.patch("/:id/confirm", requireAuth, requirePermission("po"), async (req, res) => {
+router.patch("/:id/confirm", requireAuth, requirePermission("po"), async (req, res, next) => {
   try {
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ error: "Purchase order not found" });
@@ -357,13 +352,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("po"), async (req, r
     await po.save();
     return res.json({ purchaseOrder: po });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/purchase-orders
-router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("po"), async (req, res, next) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const { page, limit, skip } = getPagination(req.query);
@@ -374,13 +368,12 @@ router.get("/", requireAuth, requirePermission("po"), async (req, res) => {
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})), pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/purchase-orders/open/list
-router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req, res) => {
+router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req, res, next) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const filter = { status: { $in: ["placed", "partially_received"] } };
@@ -393,13 +386,12 @@ router.get("/open/list", requireAuth, requirePermission("po", "grn"), async (req
     const receivedByPo = await receivedQuantitiesByPo(orders.map((order) => order._id));
     return res.json({ purchaseOrders: orders.map((order) => addPendingQuantities(order, receivedByPo[String(order._id)] || {})), pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/purchase-orders/:id
-router.get("/:id", requireAuth, requirePermission("po", "grn"), async (req, res) => {
+router.get("/:id", requireAuth, requirePermission("po", "grn"), async (req, res, next) => {
   try {
     // Performance: .lean() bypasses Mongoose document hydration for read-only view
     const po = await PurchaseOrder.findById(req.params.id)
@@ -420,8 +412,7 @@ router.get("/:id", requireAuth, requirePermission("po", "grn"), async (req, res)
     purchaseOrder.lastUpdatedAt = latestGrn?.createdAt || po.updatedAt;
     return res.json({ purchaseOrder });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

@@ -31,7 +31,7 @@ function createFallbackReport(reportType, summary, data) {
 }
 
 // Generate a concise operational summary without exposing the provider key to the browser.
-router.post("/ai-summary", requireAuth, async (req, res) => {
+router.post("/ai-summary", requireAuth, async (req, res, next) => {
   try {
     const { reportType, summary, data } = req.body || {};
     if (!reportType || !Array.isArray(data)) {
@@ -107,7 +107,7 @@ router.post("/ai-summary", requireAuth, async (req, res) => {
 });
 
 // 1. Sales Report: GET /api/reports/sales?startDate=...&endDate=...
-router.get("/sales", requireAuth, async (req, res) => {
+router.get("/sales", requireAuth, async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
     const filter = {};
@@ -135,12 +135,11 @@ router.get("/sales", requireAuth, async (req, res) => {
       data: invoices,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/grn", requireAuth, requirePermission("reports"), async (req, res) => {
+router.get("/grn", requireAuth, requirePermission("reports"), async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
     const filter = {};
@@ -168,12 +167,11 @@ router.get("/grn", requireAuth, requirePermission("reports"), async (req, res) =
       data: grns,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/po", requireAuth, requirePermission("reports"), async (req, res) => {
+router.get("/po", requireAuth, requirePermission("reports"), async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
     const filter = {};
@@ -201,12 +199,11 @@ router.get("/po", requireAuth, requirePermission("reports"), async (req, res) =>
       data: pos,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/near-expired", requireAuth, requirePermission("reports"), async (req, res) => {
+router.get("/near-expired", requireAuth, requirePermission("reports"), async (req, res, next) => {
   try {
     const days = parseInt(req.query.days, 10) || 30;
     const today = new Date();
@@ -248,12 +245,11 @@ router.get("/near-expired", requireAuth, requirePermission("reports"), async (re
       data,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/expired", requireAuth, requirePermission("reports"), async (req, res) => {
+router.get("/expired", requireAuth, requirePermission("reports"), async (req, res, next) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -289,8 +285,7 @@ router.get("/expired", requireAuth, requirePermission("reports"), async (req, re
       data,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
@@ -324,7 +319,7 @@ async function getSkuSalesActivity(daysLimit) {
   return salesMap;
 }
 
-router.get("/slow-moving", requireAuth, requirePermission("reports"), async (req, res) => {
+router.get("/slow-moving", requireAuth, requirePermission("reports"), async (req, res, next) => {
   try {
     const salesMap = await getSkuSalesActivity(30);
 
@@ -369,12 +364,11 @@ router.get("/slow-moving", requireAuth, requirePermission("reports"), async (req
       data,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
-router.get("/non-moving", requireAuth, requirePermission("reports"), async (req, res) => {
+router.get("/non-moving", requireAuth, requirePermission("reports"), async (req, res, next) => {
   try {
     const salesMap = await getSkuSalesActivity(60);
 
@@ -419,8 +413,7 @@ router.get("/non-moving", requireAuth, requirePermission("reports"), async (req,
       data,
     });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 

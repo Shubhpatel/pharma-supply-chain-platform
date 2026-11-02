@@ -22,7 +22,7 @@ async function addSkuLocationSnapshots(items) {
 
 // POST /api/grn  { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items: [{sku, skuName, qtyOrdered, qtyReceived, batch, expiryDate, mrp, rate}] }
 // Creates the GRN, adds the received quantities to stock, and updates the PO's status.
-router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
+router.post("/", requireAuth, requirePermission("grn"), async (req, res, next) => {
   try {
     const { purchaseOrderId, grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, gstRate, items } = req.body;
     if (!purchaseOrderId || !grnDate || !purchaseInvoiceNumber?.trim() || !purchaseInvoiceDate || !items || items.length === 0) {
@@ -99,13 +99,12 @@ router.post("/", requireAuth, requirePermission("grn"), async (req, res) => {
 
     return res.status(201).json({ grn });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PUT /api/grn/:id
-router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
+router.put("/:id", requireAuth, requirePermission("grn"), async (req, res, next) => {
   try {
     const { grnDate, purchaseInvoiceNumber, purchaseInvoiceDate, items } = req.body;
     const grn = await Grn.findById(req.params.id);
@@ -163,13 +162,12 @@ router.put("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
     await grn.save();
     return res.json({ grn });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // DELETE /api/grn/:id
-router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res) => {
+router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res, next) => {
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
@@ -177,13 +175,12 @@ router.delete("/:id", requireAuth, requirePermission("grn"), async (req, res) =>
     await grn.deleteOne();
     return res.json({ message: "GRN deleted" });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // PATCH /api/grn/:id/confirm
-router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, res) => {
+router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, res, next) => {
   try {
     const grn = await Grn.findById(req.params.id);
     if (!grn) return res.status(404).json({ error: "GRN not found" });
@@ -220,13 +217,12 @@ router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, 
     await grn.save();
     return res.json({ grn });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/grn
-router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
+router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res, next) => {
   try {
     // Performance: .lean() returns plain JS objects to bypass Mongoose document hydration
     const { page, limit, skip } = getPagination(req.query);
@@ -236,13 +232,12 @@ router.get("/", requireAuth, requirePermission("grn", "pr"), async (req, res) =>
       .skip(skip).limit(limit).lean(), Grn.countDocuments()]);
     return res.json({ grns, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
 // GET /api/grn/:id
-router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res) => {
+router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res, next) => {
   try {
     // Performance: .lean() bypasses Mongoose document hydration for read-only view
     const grn = await Grn.findById(req.params.id)
@@ -270,8 +265,7 @@ router.get("/:id", requireAuth, requirePermission("grn", "pr"), async (req, res)
     grnPayload.linkedPurchaseReturns = linkedPurchaseReturns;
     return res.json({ grn: grnPayload });
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    return res.status(500).json({ error: "Internal server error" });
+    next(err);
   }
 });
 
