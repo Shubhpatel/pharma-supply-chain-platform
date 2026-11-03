@@ -148,7 +148,15 @@ export default function LineItemsEditor({ items, setItems, skus, inventory = [],
           <div className={`${amountCol} text-sm text-gray-600`}>
             {item.qty && item.rate ? (Number(item.qty) * Number(item.rate)).toFixed(2) : "-"}
           </div>
-          <button type="button" onClick={() => removeRow(i)} className="col-span-1 text-red-500 text-sm">✕</button>
+          <button
+            type="button"
+            onClick={() => removeRow(i)}
+            className="col-span-1 text-red-500 text-sm hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none rounded transition-colors w-6 h-6 flex items-center justify-center"
+            aria-label="Remove line item"
+            title="Remove line item"
+          >
+            ✕
+          </button>
           </div>
         ))}
       </div>
