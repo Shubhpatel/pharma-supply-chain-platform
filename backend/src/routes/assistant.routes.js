@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const express = require("express");
 const { requireAuth } = require("../middleware/auth");
 const AssistantDraft = require("../models/AssistantDraft");
