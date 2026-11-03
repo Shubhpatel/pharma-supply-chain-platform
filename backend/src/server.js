@@ -1,3 +1,4 @@
+const logger = require("./utils/logger");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -51,9 +52,9 @@ const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
   Promise.all([Stock.syncIndexes(), SkuLocation.syncIndexes()])
-    .then(() => app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`)))
+    .then(() => app.listen(PORT, () => logger.info(`Backend listening on http://localhost:${PORT}`)))
     .catch((err) => {
-      console.error("Index synchronization error:", err.message);
+      logger.error("Index synchronization error:", err.message);
       process.exit(1);
     });
 });

@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const crypto = require("crypto");
 const express = require("express");
 const { requireAuth } = require("../middleware/auth");
@@ -42,7 +43,7 @@ router.get("/history", requireAuth, async (req, res, next) => {
       })),
     });
   } catch (err) {
-    console.error("Assistant history error:", err.message);
+    logger.error("Assistant history error:", err.message);
     next(err);
   }
 });
@@ -66,7 +67,7 @@ router.post("/history", requireAuth, async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error("Assistant history save error:", err.message);
+    logger.error("Assistant history save error:", err.message);
     next(err);
   }
 });
@@ -298,7 +299,7 @@ router.post("/chat", requireAuth, async (req, res, next) => {
         const result = await response.json().catch(() => ({}));
         replyText = result.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
       } catch (e) {
-        console.error("Gemini AI error:", e.message);
+        logger.error("Gemini AI error:", e.message);
       } finally {
         clearTimeout(timeout);
       }
@@ -331,7 +332,7 @@ router.post("/chat", requireAuth, async (req, res, next) => {
     await saveChatMessage(req.user.id, "assistant", response.reply, response.source === "gemini" ? "AI analysis" : "Database analysis");
     return res.json(response);
   } catch (err) {
-    console.error("Assistant error:", err.message);
+    logger.error("Assistant error:", err.message);
     next(err);
   }
 });
@@ -382,15 +383,20 @@ router.post("/drafts", requireAuth, async (req, res, next) => {
 // GET /api/assistant/drafts - List drafts for user
 router.get("/drafts", requireAuth, async (req, res, next) => {
   try {
-    const drafts = await AssistantDraft.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(50);
     const now = new Date();
-    // Update expired drafts
-    for (const draft of drafts) {
-      if (draft.status === "pending" && draft.expiresAt < now) {
-        draft.status = "expired";
-        await draft.save();
-      }
-    }
+
+    // ⚡ Bolt: Optimized N+1 draft.save() queries in a loop with a single bulk updateMany()
+    await AssistantDraft.updateMany(
+      { user: req.user.id, status: "pending", expiresAt: { $lt: now } },
+      { $set: { status: "expired" } }
+    );
+
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only drafts listing
+    const drafts = await AssistantDraft.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
     return res.json({ drafts });
   } catch (err) {
     next(err);
@@ -605,7 +611,7 @@ router.post("/drafts/:draftId/execute", requireAuth, async (req, res, next) => {
       resultRecord,
     });
   } catch (err) {
-    console.error("Draft execution error:", err.message);
+    logger.error("Draft execution error:", err.message);
     if (req.params.draftId) {
       await AssistantDraft.updateOne(
         { draftId: req.params.draftId },
