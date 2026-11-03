@@ -219,15 +219,25 @@ router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, r
       const available = matchingStocks.reduce((sum, stock) => sum + stock.qty, 0);
       if (available < item.qty) return res.status(400).json({ error: `Insufficient available stock for ${item.skuName} (${item.batch})` });
     }
+    // Performance: Collect operations and use bulkWrite to avoid N+1 queries during update
+    const bulkOps = [];
     for (const item of debitNote.items) {
       const matchingStocks = await Stock.find({ sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate }).sort({ createdAt: 1 });
       let remaining = item.qty;
       for (const stock of matchingStocks) {
         if (remaining <= 0) break;
         const deduct = Math.min(remaining, stock.qty);
-        await Stock.findByIdAndUpdate(stock._id, { $inc: { qty: -deduct } });
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: stock._id },
+            update: { $inc: { qty: -deduct } }
+          }
+        });
         remaining -= deduct;
       }
+    }
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
     }
     debitNote.status = "confirmed";
     await debitNote.save();
