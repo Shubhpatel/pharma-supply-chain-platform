@@ -147,12 +147,23 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
     const invoice = await SaleInvoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
     if (invoice.status !== "draft") return res.status(400).json({ error: "Only draft invoices can be confirmed" });
+    if (invoice.items.length === 0) return res.status(400).json({ error: "Invoice must have at least one item" });
 
+    // Validate all items before querying to prevent heavy queries on malformed data
     for (const item of invoice.items) {
       if (!item.batch || !item.expiryDate || Number.isNaN(Number(item.mrp))) {
         return res.status(400).json({ error: `Batch, expiry date and MRP are required for ${item.skuName}` });
       }
-      const stockRecords = await Stock.find({ sku: item.sku, batch: item.batch });
+    }
+
+    // ⚡ Bolt: Eliminate N+1 query by pre-fetching all required stock records upfront
+    const stockQueryPairs = invoice.items.map(item => ({ sku: item.sku, batch: item.batch }));
+    const allStockRecords = await Stock.find({ $or: stockQueryPairs }).lean();
+
+    for (const item of invoice.items) {
+      const stockRecords = allStockRecords.filter(stock =>
+        String(stock.sku) === String(item.sku) && stock.batch === item.batch
+      );
       const matchingLotRecords = stockRecords.filter((stock) =>
         stock.expiryDate.toISOString().slice(0, 10) === new Date(item.expiryDate).toISOString().slice(0, 10)
         && Number(stock.mrp) === Number(item.mrp)
