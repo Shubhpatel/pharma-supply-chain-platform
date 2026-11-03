@@ -383,15 +383,20 @@ router.post("/drafts", requireAuth, async (req, res, next) => {
 // GET /api/assistant/drafts - List drafts for user
 router.get("/drafts", requireAuth, async (req, res, next) => {
   try {
-    const drafts = await AssistantDraft.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(50);
     const now = new Date();
-    // Update expired drafts
-    for (const draft of drafts) {
-      if (draft.status === "pending" && draft.expiresAt < now) {
-        draft.status = "expired";
-        await draft.save();
-      }
-    }
+
+    // ⚡ Bolt: Optimized N+1 draft.save() queries in a loop with a single bulk updateMany()
+    await AssistantDraft.updateMany(
+      { user: req.user.id, status: "pending", expiresAt: { $lt: now } },
+      { $set: { status: "expired" } }
+    );
+
+    // ⚡ Bolt: Added .lean() to bypass document hydration for read-only drafts listing
+    const drafts = await AssistantDraft.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
     return res.json({ drafts });
   } catch (err) {
     next(err);
