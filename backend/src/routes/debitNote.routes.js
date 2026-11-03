@@ -246,9 +246,17 @@ router.patch("/:id/confirm", requireAuth, requirePermission("pr"), async (req, r
       for (const stock of matchingStocks) {
         if (remaining <= 0) break;
         const deduct = Math.min(remaining, stock.qty);
-        await Stock.findByIdAndUpdate(stock._id, { $inc: { qty: -deduct } });
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: stock._id },
+            update: { $inc: { qty: -deduct } }
+          }
+        });
         remaining -= deduct;
       }
+    }
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
     }
     debitNote.status = "confirmed";
     await debitNote.save();

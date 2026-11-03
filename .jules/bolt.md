@@ -9,3 +9,11 @@
 ## 2026-11-02 - Bulk Queries for Availability Checks
 **Learning:** Performing database queries in loops (N+1 query problem), such as checking stock availability per line item, causes severe latency issues due to repeated database round-trips.
 **Action:** Replace iterative query loops with a single bulk query (e.g., using `$or` conditions) combined with `.lean()`, building an in-memory map for $O(1)$ availability checking to significantly reduce latency.
+
+## 2026-11-02 - N+1 Queries in Document Updates
+**Learning:** Performing database updates (e.g. `findByIdAndUpdate`) sequentially inside a loop creates N+1 query patterns, leading to significant I/O bottleneck and poor performance, especially for transactions with many items.
+**Action:** Always collect sequential database operations into an array and execute them in a single network trip using `Model.bulkWrite()` when updating multiple documents.
+
+## 2024-05-18 - Replacing N+1 queries with bulk operations
+**Learning:** Found a pattern where an initial query fetched documents which were iterated over in memory to check conditions, and individual `.save()` calls were executed on documents matching the condition.
+**Action:** Replace such N+1 loops by using a single `.updateMany()` operation specifying the same condition, which prevents large memory allocations, network overhead, and database lock times. Also append `.lean()` to any subsequent read-only `.find()` calls to skip Mongoose document hydration.

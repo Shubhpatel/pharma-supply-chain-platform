@@ -7,7 +7,7 @@ const { getPagination, paginationMeta } = require("../utils/pagination");
 
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.enabled !== undefined) filter.enabled = req.query.enabled === "true";
