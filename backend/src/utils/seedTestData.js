@@ -1,3 +1,4 @@
+const logger = require("./logger");
 // Run with: `npm run seed:test` (from backend/).
 // Adds a small, repeatable dataset for exercising the application manually.
 require("dotenv").config();
@@ -32,9 +33,9 @@ async function ensureTestUser() {
       email: TEST_EMAIL,
       passwordHash: await bcrypt.hash(TEST_PASSWORD, 10),
     });
-    console.log(`Created test user: ${TEST_EMAIL} / ${TEST_PASSWORD}`);
+    logger.info(`Created test user: ${TEST_EMAIL} / ${TEST_PASSWORD}`);
   } else {
-    console.log(`Test user already exists: ${TEST_EMAIL}`);
+    logger.info(`Test user already exists: ${TEST_EMAIL}`);
   }
   return user;
 }
@@ -376,15 +377,15 @@ async function seedTestData() {
     await ensureDraftSale(user._id, customer, skus);
     await ensureBulkTransactions(user._id, vendor, customer, skus);
 
-    console.log("Test data is ready.");
-    console.log(`Login: ${TEST_EMAIL} / ${TEST_PASSWORD}`);
-    console.log("Created records use TEST- identifiers and can be safely used in manual flows.");
+    logger.info("Test data is ready.");
+    logger.info(`Login: ${TEST_EMAIL} / ${TEST_PASSWORD}`);
+    logger.info("Created records use TEST- identifiers and can be safely used in manual flows.");
   } finally {
     await mongoose.connection.close();
   }
 }
 
 seedTestData().catch((err) => {
-  console.error("Test data seed failed:", err.message);
+  logger.error("Test data seed failed:", err.message);
   process.exitCode = 1;
 });

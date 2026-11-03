@@ -1,3 +1,4 @@
+const logger = require("../utils/logger");
 const express = require("express");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 const SaleInvoice = require("../models/SaleInvoice");
@@ -75,7 +76,7 @@ router.post("/ai-summary", requireAuth, async (req, res, next) => {
           }
         );
       } catch (err) {
-        console.error("Gemini report generation request failed:", err.name === "AbortError" ? "request timed out" : err.message);
+        logger.error("Gemini report generation request failed:", err.name === "AbortError" ? "request timed out" : err.message);
         response = null;
         break;
       } finally {
@@ -88,7 +89,7 @@ router.post("/ai-summary", requireAuth, async (req, res, next) => {
 
     const text = result.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
     if (!response?.ok || !text) {
-      console.error("Gemini report generation failed:", result.error?.message || response?.status || "no response");
+      logger.error("Gemini report generation failed:", result.error?.message || response?.status || "no response");
       return res.json({
         report: createFallbackReport(reportType, summary, data),
         recordsAnalyzed: data.length,
@@ -97,7 +98,7 @@ router.post("/ai-summary", requireAuth, async (req, res, next) => {
     }
     return res.json({ report: text, recordsAnalyzed: data.length, source: "gemini" });
   } catch (err) {
-    console.error("AI report generation error:", err.message);
+    logger.error("AI report generation error:", err.message);
     return res.json({
       report: createFallbackReport(req.body?.reportType || "current report", req.body?.summary, Array.isArray(req.body?.data) ? req.body.data : []),
       recordsAnalyzed: Array.isArray(req.body?.data) ? req.body.data.length : 0,

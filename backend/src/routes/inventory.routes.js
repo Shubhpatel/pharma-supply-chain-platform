@@ -7,6 +7,7 @@ const DebitNote = require("../models/DebitNote");
 const CreditNote = require("../models/CreditNote");
 const SkuLocation = require("../models/SkuLocation");
 const { getPagination, paginationMeta } = require("../utils/pagination");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -43,7 +44,7 @@ router.get("/", requireAuth, requirePermission("inventory"), async (req, res, ne
       }));
     return res.json({ stock: rows, pagination: paginationMeta(page, limit, total) });
   } catch (err) {
-    console.error("Inventory error:", err);
+    logger.error("Inventory error:", err);
     next(err);
   }
 });
@@ -224,7 +225,7 @@ router.get("/history/:skuId", requireAuth, requirePermission("inventory"), async
 
     return res.json({ transactions: allTransactions });
   } catch (err) {
-    console.error("Inventory history error:", err);
+    logger.error("Inventory history error:", err);
     next(err);
   }
 });
