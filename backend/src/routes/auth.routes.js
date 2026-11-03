@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
 const { sendPasswordResetEmail } = require("../utils/email");
+const logger = require("../utils/logger");
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ router.post("/login", async (req, res, next) => {
       },
     });
   } catch (err) {
+    logger.error("Internal Server Error:", err.message);
     next(err);
   }
 });
@@ -66,6 +68,7 @@ router.post("/forgot-password", async (req, res, next) => {
       message: "If an account with that email exists, password reset instructions have been sent.",
     });
   } catch (err) {
+    logger.error("Internal Server Error:", err.message);
     next(err);
   }
 });
@@ -99,6 +102,7 @@ router.post("/reset-password", async (req, res, next) => {
 
     return res.json({ message: "Password has been reset successfully" });
   } catch (err) {
+    logger.error("Internal Server Error:", err.message);
     next(err);
   }
 });
