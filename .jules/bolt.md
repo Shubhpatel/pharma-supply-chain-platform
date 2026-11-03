@@ -6,6 +6,10 @@
 **Learning:** Mapping master data arrays inline inside table row iterations (`skus.map(...)`) causes $O(N \times M)$ object allocations on every single keypress and render in form editors.
 **Action:** Always extract and memoize options arrays using `useMemo` at the table editor component level before passing them to child row select components.
 
+## 2026-11-02 - Bulk Queries for Availability Checks
+**Learning:** Performing database queries in loops (N+1 query problem), such as checking stock availability per line item, causes severe latency issues due to repeated database round-trips.
+**Action:** Replace iterative query loops with a single bulk query (e.g., using `$or` conditions) combined with `.lean()`, building an in-memory map for $O(1)$ availability checking to significantly reduce latency.
+
 ## 2026-11-02 - N+1 Queries in Document Updates
 **Learning:** Performing database updates (e.g. `findByIdAndUpdate`) sequentially inside a loop creates N+1 query patterns, leading to significant I/O bottleneck and poor performance, especially for transactions with many items.
 **Action:** Always collect sequential database operations into an array and execute them in a single network trip using `Model.bulkWrite()` when updating multiple documents.
