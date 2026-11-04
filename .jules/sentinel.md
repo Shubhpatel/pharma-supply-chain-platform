@@ -25,3 +25,7 @@
 **Vulnerability:** The GET `/api/sku-locations` endpoint was missing the `requireAuth` middleware, allowing unauthenticated users to access SKU location data.
 **Learning:** Read-only endpoints (`GET` requests) are easily overlooked for authentication when they don't perform destructive actions, but they can still expose sensitive internal data.
 **Prevention:** Always ensure `requireAuth` is applied to all API endpoints, including `GET` routes, unless the endpoint is explicitly designed to be public. Use `router.use(requireAuth)` where appropriate to protect entire route groups.
+## 2025-03-09 - Information Exposure via Unhandled Error Responses
+**Vulnerability:** Found endpoints directly returning `err.message` in HTTP 400 responses (e.g., `skuLocation.routes.js` and `party.routes.js`).
+**Learning:** Returning unhandled database errors (like `err.message` from Mongoose) directly in the HTTP response exposes sensitive internal database schema information and application state, which violates CWE-209 (Information Exposure through an Error Message).
+**Prevention:** Always use the global error handler `next(err)` to process unhandled errors instead of explicitly formatting `err.message` in the `res.status(X).json()` response. Handled errors (e.g. `err.code === 11000`) should return static sanitized error messages.
