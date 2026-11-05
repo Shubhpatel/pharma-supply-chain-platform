@@ -147,13 +147,27 @@ router.post("/bulk-upload", requireAuth, upload.single("file"), async (req, res,
     if (!rows.length) return res.status(400).json({ error: "Uploaded file contains no rows" });
 
     const [vendors, skus] = await Promise.all([
-      Party.find({ partyType: "vendor" }).select("name uid"),
-      Sku.find().select("name uid"),
+      // ⚡ Bolt: Append .lean() to bypass document hydration for read-only lookup query
+      Party.find({ partyType: "vendor" }).select("name uid").lean(),
+      // ⚡ Bolt: Append .lean() to bypass document hydration for read-only lookup query
+      Sku.find().select("name uid").lean(),
     ]);
-    await Promise.all(vendors.filter((vendor) => !vendor.uid).map(async (vendor) => {
-      vendor.uid = crypto.randomUUID();
-      await vendor.save();
-    }));
+    const bulkOps = [];
+    vendors.forEach((vendor) => {
+      if (!vendor.uid) {
+        vendor.uid = crypto.randomUUID();
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: vendor._id },
+            update: { $set: { uid: vendor.uid } },
+          },
+        });
+      }
+    });
+    // ⚡ Bolt: Use bulkWrite to avoid N+1 query problem during vendor uid backfill
+    if (bulkOps.length > 0) {
+      await Party.bulkWrite(bulkOps);
+    }
     const vendorsByUid = new Map(vendors.filter((vendor) => vendor.uid).map((vendor) => [vendor.uid.trim().toLowerCase(), vendor]));
     const vendorsByName = new Map(vendors.map((vendor) => [vendor.name.trim().toLowerCase(), vendor]));
     const skusByUid = new Map();
