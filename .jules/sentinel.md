@@ -25,3 +25,7 @@
 **Vulnerability:** The GET `/api/sku-locations` endpoint was missing the `requireAuth` middleware, allowing unauthenticated users to access SKU location data.
 **Learning:** Read-only endpoints (`GET` requests) are easily overlooked for authentication when they don't perform destructive actions, but they can still expose sensitive internal data.
 **Prevention:** Always ensure `requireAuth` is applied to all API endpoints, including `GET` routes, unless the endpoint is explicitly designed to be public. Use `router.use(requireAuth)` where appropriate to protect entire route groups.
+## 2024-05-18 - Fix Information Exposure in Error Responses
+**Vulnerability:** Found multiple instances where the raw `err.message` from generic errors was returned in a 400 JSON response in Express routes (CWE-209).
+**Learning:** Returning unhandled database or code `err.message` can leak sensitive internal paths, logic, or stack information to users and potential attackers.
+**Prevention:** Avoid sending raw error strings to the user. Known errors (like `err.code === 11000` for MongoDB duplicates) should be handled explicitly with safe, static messages. Unknown errors should be passed to `next(err)` to be processed by a global error handler that returns a generic "Internal Server Error" while securely logging the details.
