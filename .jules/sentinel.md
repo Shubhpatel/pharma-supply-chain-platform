@@ -25,3 +25,8 @@
 **Vulnerability:** The GET `/api/sku-locations` endpoint was missing the `requireAuth` middleware, allowing unauthenticated users to access SKU location data.
 **Learning:** Read-only endpoints (`GET` requests) are easily overlooked for authentication when they don't perform destructive actions, but they can still expose sensitive internal data.
 **Prevention:** Always ensure `requireAuth` is applied to all API endpoints, including `GET` routes, unless the endpoint is explicitly designed to be public. Use `router.use(requireAuth)` where appropriate to protect entire route groups.
+
+## 2024-10-23 - Sentinel: [CRITICAL] Missing Auth on Sample Endpoints
+**Vulnerability:** The GET `/api/bulk-uploads/sample` and GET `/api/purchase-orders/bulk-sample` endpoints were missing the `requireAuth` middleware, allowing unauthenticated access to sample data.
+**Learning:** Endpoints returning sample or mock data might be perceived as low-risk and therefore skip authentication. However, they can still leak application structures, formatting conventions, or business logic. All internal endpoints should be authenticated by default.
+**Prevention:** Always verify that every route, including those returning sample or static-like data for internal tools (e.g., CSV bulk upload templates), is protected by `requireAuth`.
