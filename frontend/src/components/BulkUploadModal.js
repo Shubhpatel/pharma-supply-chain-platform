@@ -63,6 +63,7 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close modal"
             className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none"
           >
             &times;
