@@ -174,20 +174,35 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
       }
     }
 
+    const bulkOps = [];
+    const stockDeductions = {};
     for (const item of invoice.items) {
+      // ⚡ Bolt: Added .lean() to bypass hydration as we only need plain objects for bulkWrite
       const matchingStocks = await Stock.find({
         sku: item.sku,
         batch: item.batch,
         expiryDate: new Date(item.expiryDate),
         mrp: item.mrp,
-      }).sort({ expiryDate: 1, rate: 1, mrp: 1 });
+      }).sort({ expiryDate: 1, rate: 1, mrp: 1 }).lean();
       let remaining = item.qty;
       for (const stock of matchingStocks) {
         if (remaining <= 0) break;
-        const consumed = Math.min(remaining, stock.qty);
-        await Stock.findByIdAndUpdate(stock._id, { $inc: { qty: -consumed } });
+        const currentQty = stock.qty - (stockDeductions[stock._id] || 0);
+        if (currentQty <= 0) continue;
+        const consumed = Math.min(remaining, currentQty);
+        stockDeductions[stock._id] = (stockDeductions[stock._id] || 0) + consumed;
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: stock._id },
+            update: { $inc: { qty: -consumed } }
+          }
+        });
         remaining -= consumed;
       }
+    }
+    // ⚡ Bolt: Execute all stock decrements in a single DB round-trip instead of N+1 individual updates
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
     }
 
     invoice.status = "confirmed";
