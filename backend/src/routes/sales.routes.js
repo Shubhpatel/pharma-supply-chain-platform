@@ -174,20 +174,54 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
       }
     }
 
+    // ⚡ Bolt: Replaced N+1 find and findByIdAndUpdate queries with a single bulkWrite operation.
+    // We use the already fetched `allStockRecords` for filtering and track deductions in memory
+    // to prevent read-your-own-writes hazards during the loop.
+    const inMemoryDeductions = {};
+    const stockIdToConsumed = {};
+
     for (const item of invoice.items) {
-      const matchingStocks = await Stock.find({
-        sku: item.sku,
-        batch: item.batch,
-        expiryDate: new Date(item.expiryDate),
-        mrp: item.mrp,
-      }).sort({ expiryDate: 1, rate: 1, mrp: 1 });
+      const matchingStocks = allStockRecords
+        .filter(stock =>
+          String(stock.sku) === String(item.sku) &&
+          stock.batch === item.batch &&
+          new Date(stock.expiryDate).getTime() === new Date(item.expiryDate).getTime() &&
+          Number(stock.mrp) === Number(item.mrp)
+        )
+        .sort((a, b) => {
+          const dateDiff = new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          const rateDiff = (a.rate || 0) - (b.rate || 0);
+          if (rateDiff !== 0) return rateDiff;
+          return (a.mrp || 0) - (b.mrp || 0);
+        });
+
       let remaining = item.qty;
       for (const stock of matchingStocks) {
         if (remaining <= 0) break;
-        const consumed = Math.min(remaining, stock.qty);
-        await Stock.findByIdAndUpdate(stock._id, { $inc: { qty: -consumed } });
+
+        const stockIdStr = String(stock._id);
+        const deductedAlready = inMemoryDeductions[stockIdStr] || 0;
+        const actualAvailableQty = stock.qty - deductedAlready;
+
+        if (actualAvailableQty <= 0) continue;
+
+        const consumed = Math.min(remaining, actualAvailableQty);
+        inMemoryDeductions[stockIdStr] = deductedAlready + consumed;
+        stockIdToConsumed[stockIdStr] = (stockIdToConsumed[stockIdStr] || 0) + consumed;
         remaining -= consumed;
       }
+    }
+
+    const bulkOps = Object.entries(stockIdToConsumed).map(([id, totalConsumed]) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $inc: { qty: -totalConsumed } }
+      }
+    }));
+
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
     }
 
     invoice.status = "confirmed";
