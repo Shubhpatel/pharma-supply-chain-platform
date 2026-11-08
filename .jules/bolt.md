@@ -21,3 +21,7 @@
 ## 2024-05-18 - Replacing N+1 queries with bulk operations
 **Learning:** Found a pattern where an initial query fetched documents which were iterated over in memory to check conditions, and individual `.save()` calls were executed on documents matching the condition.
 **Action:** Replace such N+1 loops by using a single `.updateMany()` operation specifying the same condition, which prevents large memory allocations, network overhead, and database lock times. Also append `.lean()` to any subsequent read-only `.find()` calls to skip Mongoose document hydration.
+
+## 2026-11-08 - Refactor Sequential Writes into BulkWrite
+**Learning:** Iteratively querying and updating individual records inside a loop causes an N+1 query problem, increasing network overhead and reducing database throughput.
+**Action:** Replaced sequential `Stock.findOneAndUpdate` operations in transaction confirmation routes with a single `Stock.bulkWrite` to ensure O(1) database trips for better performance.
