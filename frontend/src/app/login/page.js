@@ -35,14 +35,14 @@ export default function LoginPage() {
       <h1 className="text-xl font-semibold mb-6">Log in</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input required type="email" value={form.email}
+          <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+          <input id="email" required type="email" value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input required type="password" value={form.password}
+          <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+          <input id="password" required type="password" value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
         </div>
