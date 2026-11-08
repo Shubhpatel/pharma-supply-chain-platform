@@ -54,8 +54,9 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Reset Token</label>
+        <label htmlFor="token" className="block text-sm font-medium mb-1">Reset Token</label>
         <input
+          id="token"
           required
           type="text"
           value={token}
@@ -65,8 +66,9 @@ function ResetPasswordForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">New Password</label>
+        <label htmlFor="newPassword" className="block text-sm font-medium mb-1">New Password</label>
         <input
+          id="newPassword"
           required
           type="password"
           value={newPassword}
@@ -75,8 +77,9 @@ function ResetPasswordForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+        <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">Confirm New Password</label>
         <input
+          id="confirmPassword"
           required
           type="password"
           value={confirmPassword}
