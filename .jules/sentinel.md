@@ -25,3 +25,7 @@
 **Vulnerability:** The GET `/api/sku-locations` endpoint was missing the `requireAuth` middleware, allowing unauthenticated users to access SKU location data.
 **Learning:** Read-only endpoints (`GET` requests) are easily overlooked for authentication when they don't perform destructive actions, but they can still expose sensitive internal data.
 **Prevention:** Always ensure `requireAuth` is applied to all API endpoints, including `GET` routes, unless the endpoint is explicitly designed to be public. Use `router.use(requireAuth)` where appropriate to protect entire route groups.
+## 2024-05-18 - Fix Exposed Internal Error Messages and Missing Auth
+**Vulnerability:** Information Exposure (CWE-209) via `err.message` in HTTP error responses and missing authentication on sample file download endpoints.
+**Learning:** Returning `err.message` directly or omitting `requireAuth` on read-only/sample endpoints exposes internals or allows unauthorized access.
+**Prevention:** Always pass unhandled errors to the global error handler (`next(err)`) and explicitly include `requireAuth` on all endpoints.

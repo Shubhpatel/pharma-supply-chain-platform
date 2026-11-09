@@ -49,9 +49,8 @@ router.post("/", requireAuth, requirePermission("masters"), async (req, res, nex
     const party = await Party.create({ ...payload, createdBy: req.user.id });
     return res.status(201).json({ party });
   } catch (err) {
-    return res.status(err.code === 11000 ? 409 : 400).json({
-      error: err.code === 11000 ? `A ${req.body.partyType} with this name already exists` : err.message,
-    });
+    if (err.code === 11000) return res.status(409).json({ error: `A ${req.body.partyType} with this name already exists` });
+    next(err);
   }
 });
 
@@ -77,9 +76,8 @@ router.put("/:id", requireAuth, requirePermission("masters"), async (req, res, n
     await party.save();
     return res.json({ party });
   } catch (err) {
-    return res.status(err.code === 11000 ? 409 : 400).json({
-      error: err.code === 11000 ? `A ${req.body.partyType || "party"} with this name already exists` : err.message,
-    });
+    if (err.code === 11000) return res.status(409).json({ error: `A ${req.body.partyType || "party"} with this name already exists` });
+    next(err);
   }
 });
 

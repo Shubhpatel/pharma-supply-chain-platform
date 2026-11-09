@@ -33,7 +33,7 @@ const SAMPLE_DATA = {
   ],
 };
 
-router.get("/sample", (req, res, next) => {
+router.get("/sample", requireAuth, requirePermission("masters"), (req, res, next) => {
   try {
     const masterType = (req.query.masterType || "sku").toLowerCase();
     const format = (req.query.format || "csv").toLowerCase();
