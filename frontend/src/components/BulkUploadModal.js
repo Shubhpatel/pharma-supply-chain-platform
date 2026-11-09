@@ -63,7 +63,8 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none"
+            aria-label="Close modal"
+            className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
           >
             &times;
           </button>
@@ -71,13 +72,14 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">
+            <label htmlFor="masterType" className="block text-xs font-semibold uppercase text-gray-600 mb-1">
               Select Master Type
             </label>
             <select
+              id="masterType"
               value={masterType}
               onChange={(e) => setMasterType(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-600 outline-none"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-600 outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               <option value="sku">SKU Master</option>
               <option value="sku-location">SKU Location</option>
@@ -111,14 +113,15 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
 
           {/* File input */}
           <div>
-            <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">
+            <label htmlFor="fileUpload" className="block text-xs font-semibold uppercase text-gray-600 mb-1">
               Upload File (.csv, .xlsx, .xls)
             </label>
             <input
+              id="fileUpload"
               type="file"
               accept=".csv, .xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
               onChange={(e) => setFile(e.target.files[0] || null)}
-              className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+              className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:outline-none rounded-md"
             />
           </div>
 
@@ -151,14 +154,14 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy || !file}
-              className="px-4 py-2 rounded-md bg-teal-800 text-white text-sm font-medium hover:bg-teal-900 disabled:opacity-50"
+              className="px-4 py-2 rounded-md bg-teal-800 text-white text-sm font-medium hover:bg-teal-900 disabled:opacity-50 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
             >
               {busy ? "Uploading..." : "Upload & Save"}
             </button>
