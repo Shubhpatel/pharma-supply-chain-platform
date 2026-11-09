@@ -111,7 +111,7 @@ router.post("/", requireAuth, requirePermission("po"), async (req, res, next) =>
   }
 });
 
-router.get("/bulk-sample", (req, res) => {
+router.get("/bulk-sample", requireAuth, requirePermission("po"), (req, res) => {
   const sample = [{
     "Vendor UID": "PASTE-VENDOR-UID-HERE",
     Supplier: "Apex Healthcare Pvt Ltd",
