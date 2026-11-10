@@ -25,3 +25,7 @@
 **Vulnerability:** The GET `/api/sku-locations` endpoint was missing the `requireAuth` middleware, allowing unauthenticated users to access SKU location data.
 **Learning:** Read-only endpoints (`GET` requests) are easily overlooked for authentication when they don't perform destructive actions, but they can still expose sensitive internal data.
 **Prevention:** Always ensure `requireAuth` is applied to all API endpoints, including `GET` routes, unless the endpoint is explicitly designed to be public. Use `router.use(requireAuth)` where appropriate to protect entire route groups.
+## 2025-02-14 - Information Exposure in skuLocation routes
+**Vulnerability:** CWE-209 in skuLocation routes where err.message was directly returned in HTTP responses.
+**Learning:** Error messages in catch blocks should be passed to the global error handler via next(err) or sanitized, as exposing err.message can leak internal stack traces or database details.
+**Prevention:** Systematically apply next(err) for unexpected errors and explicitly handle known errors with static messages.
