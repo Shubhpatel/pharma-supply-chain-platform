@@ -21,3 +21,6 @@
 ## 2024-05-18 - Replacing N+1 queries with bulk operations
 **Learning:** Found a pattern where an initial query fetched documents which were iterated over in memory to check conditions, and individual `.save()` calls were executed on documents matching the condition.
 **Action:** Replace such N+1 loops by using a single `.updateMany()` operation specifying the same condition, which prevents large memory allocations, network overhead, and database lock times. Also append `.lean()` to any subsequent read-only `.find()` calls to skip Mongoose document hydration.
+## 2024-05-27 - Optimize N+1 Query in GRN Confirmation
+**Learning:** Sequential Mongoose findOneAndUpdate calls within transaction confirmation loops (e.g., GRN) create severe N+1 query bottlenecks and database contention under load.
+**Action:** Use Model.bulkWrite() mapping an array of updateOne operations with upsert: true to batch updates and drastically reduce round-trips.
