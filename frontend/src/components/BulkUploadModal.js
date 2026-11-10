@@ -63,7 +63,8 @@ export default function BulkUploadModal({ isOpen, onClose, initialMasterType = "
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none"
+            aria-label="Close"
+            className="text-gray-400 hover:text-gray-600 font-bold text-xl leading-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:outline-none rounded"
           >
             &times;
           </button>
