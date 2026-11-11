@@ -191,12 +191,20 @@ router.patch("/:id/confirm", requireAuth, requirePermission("grn"), async (req, 
       return res.status(400).json({ error: "The linked purchase order is not confirmed" });
     }
 
+    // ⚡ Bolt: Replace N+1 sequential findOneAndUpdate queries with bulkWrite
+    // Impact: Avoids multiple database roundtrips during GRN confirmation
+    const stockUpdates = [];
     for (const item of grn.items) {
-      await Stock.findOneAndUpdate(
-        { sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate },
-        { $inc: { qty: item.qtyReceived } },
-        { upsert: true }
-      );
+      stockUpdates.push({
+        updateOne: {
+          filter: { sku: item.sku, batch: item.batch, expiryDate: item.expiryDate, mrp: item.mrp, rate: item.rate },
+          update: { $inc: { qty: item.qtyReceived } },
+          upsert: true
+        }
+      });
+    }
+    if (stockUpdates.length > 0) {
+      await Stock.bulkWrite(stockUpdates);
     }
 
     const existingGrns = await Grn.find({ purchaseOrder: po._id, status: "confirmed" }).select("items.sku items.qtyReceived");
