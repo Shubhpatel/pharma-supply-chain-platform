@@ -69,7 +69,11 @@ router.post("/", requireAuth, async (req, res, next) => {
     const location = await SkuLocation.create({ sku: req.body.sku, location: req.body.location });
     return res.status(201).json({ location });
   } catch (err) {
-    return res.status(400).json({ error: err.code === 11000 ? "A SKU location with this name already exists" : err.message });
+    // Security: Prevent information exposure by not leaking raw err.message.
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "A SKU location with this name already exists" });
+    }
+    next(err);
   }
 });
 
@@ -83,7 +87,11 @@ router.put("/:id", requireAuth, async (req, res, next) => {
     await location.save();
     return res.json({ location });
   } catch (err) {
-    return res.status(400).json({ error: err.code === 11000 ? "A SKU location with this name already exists" : err.message });
+    // Security: Prevent information exposure by not leaking raw err.message.
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "A SKU location with this name already exists" });
+    }
+    next(err);
   }
 });
 
