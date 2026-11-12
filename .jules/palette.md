@@ -5,3 +5,7 @@
 ## 2024-11-11 - [Dynamic Pagination State]
 **Learning:** Pagination text like "Page X of Y" is invisible to screen reader users when it updates dynamically upon clicking "Next" or "Previous". Standard focus/hover styles were also missing, hurting keyboard users.
 **Action:** Always wrap dynamic pagination state indicators in `aria-live="polite"` so screen readers announce the page change automatically. Ensure all interactive table controls have `focus-visible` styles for keyboard navigation.
+
+## 2024-03-24 - Custom Select Listbox Missing Option Roles
+**Learning:** Custom combobox/listbox components often use generic buttons without proper ARIA roles, breaking screen reader functionality.
+**Action:** Always ensure children of `role="listbox"` have `role="option"` and `aria-selected`, along with visual indicators for the selected state.
