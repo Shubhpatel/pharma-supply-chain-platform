@@ -69,10 +69,10 @@ router.post("/", requireAuth, async (req, res, next) => {
     const location = await SkuLocation.create({ sku: req.body.sku, location: req.body.location });
     return res.status(201).json({ location });
   } catch (err) {
+    // Security: Prevent information exposure by not leaking raw err.message.
     if (err.code === 11000) {
       return res.status(400).json({ error: "A SKU location with this name already exists" });
     }
-    // Sentinel Security Fix: Prevent Information Exposure (CWE-209) by avoiding err.message
     next(err);
   }
 });
@@ -87,10 +87,10 @@ router.put("/:id", requireAuth, async (req, res, next) => {
     await location.save();
     return res.json({ location });
   } catch (err) {
+    // Security: Prevent information exposure by not leaking raw err.message.
     if (err.code === 11000) {
       return res.status(400).json({ error: "A SKU location with this name already exists" });
     }
-    // Sentinel Security Fix: Prevent Information Exposure (CWE-209) by avoiding err.message
     next(err);
   }
 });
