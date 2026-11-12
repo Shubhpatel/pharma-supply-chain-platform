@@ -205,6 +205,17 @@ router.patch("/:id/confirm", requireAuth, requirePermission("invoice"), async (r
       await Stock.bulkWrite(bulkOps);
     }
 
+    const bulkOps = Object.entries(stockIdToConsumed).map(([id, totalConsumed]) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $inc: { qty: -totalConsumed } }
+      }
+    }));
+
+    if (bulkOps.length > 0) {
+      await Stock.bulkWrite(bulkOps);
+    }
+
     invoice.status = "confirmed";
     await invoice.save();
     return res.json({ invoice });
