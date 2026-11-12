@@ -100,10 +100,12 @@ export default function SearchableSelect({ value, onChange, options, onSearch, p
           {filteredOptions.length > 0 ? filteredOptions.map((option) => (
             <button
               type="button"
+              role="option"
+              aria-selected={value === option.value}
               key={option.value}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => selectOption(option)}
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+              className={`block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus-visible:bg-gray-100 focus-visible:outline-none ${value === option.value ? "bg-gray-50 font-medium text-teal-900" : ""}`}
             >
               {option.label}
             </button>

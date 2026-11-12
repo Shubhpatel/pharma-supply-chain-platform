@@ -13,15 +13,15 @@ export default function PaginationControls({ page, limit, total, onPageChange, o
         <select
           value={limit}
           onChange={(event) => onLimitChange(Number(event.target.value))}
-          className="rounded-md border border-gray-300 px-2 py-1"
+          className="rounded-md border border-gray-300 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 transition-colors"
         >
           {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
         </select>
       </label>
-      <span>Page {page} of {totalPages} ({total} rows)</span>
+      <span aria-live="polite" className="tabular-nums">Page {page} of {totalPages} ({total} rows)</span>
       <div className="flex gap-2">
-        <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)} className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-40">Previous</button>
-        <button type="button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-40">Next</button>
+        <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 transition-colors disabled:opacity-40 disabled:hover:bg-transparent">Previous</button>
+        <button type="button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page" className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 transition-colors disabled:opacity-40 disabled:hover:bg-transparent">Next</button>
       </div>
     </div>
   );
