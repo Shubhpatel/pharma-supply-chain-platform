@@ -32,6 +32,15 @@ export default function CreditNoteDetailPage() {
   if (error) return <p className="text-sm text-red-600 p-4">{error}</p>;
   if (!creditNote) return <p className="text-sm text-gray-500 p-4">Loading Credit Note...</p>;
 
+  async function handleDownloadPdf() {
+    try {
+      await api.downloadPdf(`/credit-notes/${id}/pdf`, `${creditNote.creditNoteNumber || "CN"}.pdf`, token);
+      showToast("PDF downloaded successfully.");
+    } catch (err) {
+      showToast(err.message || "Failed to download PDF", "error");
+    }
+  }
+
   async function handleConfirm() {
     try {
       const data = await api.confirmCreditNote(id, token);
@@ -54,6 +63,7 @@ export default function CreditNoteDetailPage() {
           {(creditNote.status === "draft" || user?.role === "ADMIN") && <a href={`/sales/returns/new?edit=${creditNote._id}`} className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 text-sm rounded-lg">Edit</a>}
           {(creditNote.status === "draft" || user?.role === "ADMIN") && <button onClick={handleDelete} className="border border-red-600 text-red-700 hover:bg-red-50 font-medium px-4 py-2 text-sm rounded-lg">Delete</button>}
           {creditNote.status === "draft" && <button onClick={handleConfirm} className="bg-teal-700 text-white hover:bg-teal-800 font-medium px-4 py-2 text-sm rounded-lg">Confirm</button>}
+          <button onClick={handleDownloadPdf} className="bg-teal-700 text-white hover:bg-teal-800 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition">Download PDF</button>
           <button onClick={() => window.print()} className="bg-gray-800 text-white hover:bg-gray-900 font-medium px-4 py-2 text-sm rounded-lg shadow-sm transition">Print Credit Note</button>
         </div>
       </div>
